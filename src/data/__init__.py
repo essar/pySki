@@ -46,6 +46,7 @@ p_TS_S = lambda (m, (ts, c, a, s)): (ts, s)
 def repeat(value, times):
     return [value for __i in range(times)]
 
+
 def min_xy(data): return (min(ps_Xs(data)), min(ps_Ys(data)))
 
 # Base functional transforms
@@ -75,6 +76,10 @@ def ps_Cart_Ss_r(data): return map(p_Cart_S_r, repeat(min_xy(data), len(data)), 
 ################################
 # CLASSES, TBC
 ########
+
+class ProcessedData:
+    def __init__(self):
+        self.all_points = []
 
 
 class SkiPoint:
@@ -119,23 +124,5 @@ class SkiTrack:
     
     
         
-class SkiTrackHeader:
-    
-    area = ((0, 0), (0, 0))
-    distance = 0.0
-    duration = 0
-    hiAlt = loAlt = dAlt = 0
-    hiSpeed = 0
-    avSpeed = 0.0
-    first = last = SkiPoint.P0
-    name = ''
-    
-    def print_track_header(self):
-        print 'Count/duration: {0}'.format(self.duration)
-        print 'Distance: {0}'.format(self.distance)
-        print 'Altitude: {0}m-{1}m'.format(self.loAlt, self.hiAlt)
-        print 'High speed: {0}km/h'.format(self.hiSpeed)
-        print 'Average speed: {0}km/h'.format(self.avSpeed)
-        print 'Area: {0}'.format(self.area)
-        
+
         

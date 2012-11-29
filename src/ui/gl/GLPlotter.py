@@ -12,15 +12,14 @@ glData = ui.gl.SkiGLPlotData()
 
 # Load fonts
 pyglet.font.add_file('../resources/saxmono.ttf')
-#action_man = pyglet.font.load('Sax Mono')
     
 # Create a new window
 win = pyglet.window.Window(width=glCfg.window_width, height=glCfg.window_height)
 
-# Create status label
+# Create status labels
 lbl_status = pyglet.text.Label(text='Essar Ski Data'
                              , font_name='saxMono'
-                             , font_size=glCfg.status_font_size
+                             , font_size=10
                              , x=10
                              , y=8
                              #, bold=True
@@ -29,14 +28,17 @@ lbl_status = pyglet.text.Label(text='Essar Ski Data'
                              )  
 
 lbl_fps = pyglet.text.Label(text='[fps]'
-                             , font_name=glCfg.status_font_name
-                             , font_size=glCfg.status_font_size
+                             , font_name='saxMono'
+                             , font_size=10
                              , x=win.width - 10
                              , y=8
-                             , bold=True
                              , anchor_x='right'
                              , anchor_y='bottom'
                              )  
+
+# Live transformations
+live_scale_x = live_scale_y = live_scale_z = 1
+live_tx = live_ty = live_tz = 0
 
 def draw_status():
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
@@ -59,11 +61,16 @@ def on_draw():
     glLoadIdentity()
         
     # Adjust for margin
-    glTranslatef(glCfg.window_xmargin, glCfg.window_ymargin + (glCfg.status_height if glCfg.show_status_panel else 0), 0.0)
+    glTranslatef(glCfg.window_xmargin, glCfg.window_ymargin, 0.0)
+    # Adjust for view
+    glTranslatef(glCfg.view_x + live_tx, glCfg.view_y + live_ty, glCfg.view_z + live_tz)
+    # Adjust for status bar
+    glTranslatef(0.0, (glCfg.status_height if glCfg.show_status_panel else 0), 0.0)
+    
         
     # Scale to fit window
     glCfg.update_scales(win.width, win.height) # Apply scaling rules
-    glScalef(glCfg.scale_x, glCfg.scale_y, glCfg.scale_z)
+    glScalef(glCfg.scale_x * live_scale_x, glCfg.scale_y * live_scale_y, glCfg.scale_z * live_scale_z)
         
     # Rotate about X axis
     #glRotatef(-90.0, 10.0, 0.0, 0.0)
@@ -120,8 +127,8 @@ def drawSkiGLPlot():
     # Call one-off set up
     setup()
     
-    # If in partial mode, call update function
-    if glData.b_partial:
+    # If in animate mode, call update function
+    if glCfg.animate:
         pyglet.clock.schedule_interval(update, 1.0 / glCfg.draw_fps)
     
     # Start pyglet main thread

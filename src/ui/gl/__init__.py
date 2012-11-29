@@ -5,6 +5,8 @@ import data as d
 class SkiGLPlotConfig:
     ''' Class containing configurable properties for a GL plot.'''
     
+    animate = True
+    
     base_bg_colour_4f = (0.1, 0.1, 0.15, 0.1)
     base_depth = -1
     
@@ -25,8 +27,6 @@ class SkiGLPlotConfig:
     show_sprite = True
     
     show_status_panel = True
-    status_font_name = 'Courier'
-    status_font_size = 10
     status_height = 30
     
     view_x = 0
@@ -60,7 +60,7 @@ class SkiGLPlotData:
     vertex_data = ('v3i', [])
     vlen = 0
     
-    b_partial = False
+    #b_partial = False
     draw_idxs = []
     idx_start = 0
     idx_end = 2
@@ -69,13 +69,17 @@ class SkiGLPlotData:
         return self.point_data[min(len(self.point_data), self.idx_end) - 1]
 
     def get_status_text(self):
-        return 'Altitude: {0:4,d}m | Speed: {1:>2d}km/h'.format(d.p_A(self.last_point()), d.p_S(self.last_point()))
+        return '[ 12/02/2012 10:00:00 ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>2d}km/h ]'.format(
+                        d.p_Mode(self.last_point())
+                      , d.p_A(self.last_point())
+                      , d.p_S(self.last_point())
+                      )
     
     def build_colours(self, cData):    
         # Calculate boundary values
         minV = min(cData)
         maxV = max(cData)
-    
+
         cVals = []
         for v in cData:
             (r, g, b) = GLRenderer.getColourValue(minV, maxV, v)
