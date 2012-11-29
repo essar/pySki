@@ -9,9 +9,47 @@ import ui.gl
 # Create config & data objects
 glCfg = ui.gl.SkiGLPlotConfig()
 glData = ui.gl.SkiGLPlotData()
+
+# Load fonts
+pyglet.font.add_file('../resources/saxmono.ttf')
+#action_man = pyglet.font.load('Sax Mono')
     
 # Create a new window
 win = pyglet.window.Window(width=glCfg.window_width, height=glCfg.window_height)
+
+# Create status label
+lbl_status = pyglet.text.Label(text='Essar Ski Data'
+                             , font_name='saxMono'
+                             , font_size=glCfg.status_font_size
+                             , x=10
+                             , y=8
+                             #, bold=True
+                             , anchor_x='left'
+                             , anchor_y='bottom'
+                             )  
+
+lbl_fps = pyglet.text.Label(text='[fps]'
+                             , font_name=glCfg.status_font_name
+                             , font_size=glCfg.status_font_size
+                             , x=win.width - 10
+                             , y=8
+                             , bold=True
+                             , anchor_x='right'
+                             , anchor_y='bottom'
+                             )  
+
+def draw_status():
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    
+    # Clear transforms
+    glLoadIdentity()
+    
+    py_fps = pyglet.app.clock.get_fps()
+    lbl_status.text = glData.get_status_text()
+    lbl_status.draw()
+    
+    lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
+    lbl_fps.draw()
     
 
 @win.event
@@ -21,7 +59,7 @@ def on_draw():
     glLoadIdentity()
         
     # Adjust for margin
-    glTranslatef(glCfg.window_xmargin, glCfg.window_ymargin, 0.0)
+    glTranslatef(glCfg.window_xmargin, glCfg.window_ymargin + (glCfg.status_height if glCfg.show_status_panel else 0), 0.0)
         
     # Scale to fit window
     glCfg.update_scales(win.width, win.height) # Apply scaling rules
@@ -29,9 +67,23 @@ def on_draw():
         
     # Rotate about X axis
     #glRotatef(-90.0, 10.0, 0.0, 0.0)
+    
+    # Draw base plane
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+    glColor4f(*glCfg.base_bg_colour_4f)
+    glBegin(GL_QUADS)
+    glVertex3i(0, 0, glCfg.base_depth)
+    glVertex3i(0, glCfg.plot_height, glCfg.base_depth)
+    glVertex3i(glCfg.plot_width, glCfg.plot_height, glCfg.base_depth)
+    glVertex3i(glCfg.plot_width, 0, glCfg.base_depth)
+    glEnd()
         
     # Draw plot elements as lines
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
     glData.vertex_list.draw(GL_LINE_STRIP)
+    
+    if glCfg.show_status_panel:
+        draw_status()
     
     glFlush()
 
@@ -64,7 +116,6 @@ def update(dt):
         # Update vertex data
         glData.refresh_vertex_list()
     
-    
 def drawSkiGLPlot():
     # Call one-off set up
     setup()
@@ -72,7 +123,6 @@ def drawSkiGLPlot():
     # If in partial mode, call update function
     if glData.b_partial:
         pyglet.clock.schedule_interval(update, 1.0 / glCfg.draw_fps)
-        print 'Update event scheduled'
     
     # Start pyglet main thread
     pyglet.app.run()

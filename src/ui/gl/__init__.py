@@ -1,15 +1,15 @@
-
 import GLRenderer
 import pyglet.graphics
+import data as d
 
 class SkiGLPlotConfig:
     ''' Class containing configurable properties for a GL plot.'''
     
+    base_bg_colour_4f = (0.1, 0.1, 0.15, 0.1)
+    base_depth = -1
+    
     draw_fps = 25
     draw_step = 10
-    
-    info_label_font_name = 'Arial'
-    info_label_font_size = 20
     
     plot_depth = 1
     plot_drawmode = '2D'
@@ -22,8 +22,12 @@ class SkiGLPlotConfig:
     scale_y = 1.0
     scale_z = 1.0
     
-    show_info_panel = True
     show_sprite = True
+    
+    show_status_panel = True
+    status_font_name = 'Courier'
+    status_font_size = 10
+    status_height = 30
     
     view_x = 0
     view_y = 0
@@ -39,10 +43,10 @@ class SkiGLPlotConfig:
         if self.scale_stretch:
             # Update scale factors to make plot fill window
             self.scale_x = float(window_width - (2 * self.window_xmargin)) / float(max(1, self.plot_width))
-            self.scale_y = float(window_height - (2 * self.window_ymargin)) / float(max(1, self.plot_height))
+            self.scale_y = float(window_height - (self.status_height if self.show_status_panel else 0) - (2 * self.window_ymargin)) / float(max(1, self.plot_height))
         if self.scale_constrain:
             # Update scale factors so they scale x:X
-            self.scale_x = self.scale_y = max(self.scale_x, self.scale_y)
+            self.scale_x = self.scale_y = min(self.scale_x, self.scale_y)
             
             
 class SkiGLPlotData:
@@ -63,23 +67,9 @@ class SkiGLPlotData:
     
     def last_point(self):
         return self.point_data[min(len(self.point_data), self.idx_end) - 1]
-    
-    def last_altitude(self):
-        (__ts, (__g, __c, __a, __s)) = self.point_data[min(len(self.point_data), self.idx_end) - 1]
-        return __a
-    
-    def last_speed(self):
-        (__ts, (__g, __c, __a, __s)) = self.point_data[min(len(self.point_data), self.idx_end) - 1]
-        return __s
-    
-    def last_x(self):
-        (__ts, (__g, (__x, __y), __a, __s)) = self.point_data[min(len(self.point_data), self.idx_end) - 1]
-        return __x
-    
-    def last_y(self):
-        (__ts, (__g, (__x, __y), __a, __s)) = self.point_data[min(len(self.point_data), self.idx_end) - 1]
-        return __y
-    
+
+    def get_status_text(self):
+        return 'Altitude: {0:4,d}m | Speed: {1:>2d}km/h'.format(d.p_A(self.last_point()), d.p_S(self.last_point()))
     
     def build_colours(self, cData):    
         # Calculate boundary values
@@ -119,31 +109,23 @@ class SkiGLPlotData:
         self.refresh_vertex_list()
     
     
-    def load_xy_plot(self, data, xyF, cF):
-        self.point_data = data
-        
-        xydata = xyF(data)
-        # Get minimum X & Y values
-        minX = min(map(lambda (x, y): x, xydata))
-        minY = min(map(lambda (x, y): y, xydata))
-    
-        # Build list of vertex coordinates
-        vVals = []
-        for (x, y) in xydata:
-            vVals.append(int(x - minX))
-            vVals.append(int(y - minY))
+    def load_xy_plot(self, pdata, xyF, cF):
+        self.point_data = pdata
+
+        # Build flat array of vertex values        
+        vVals = [b for a in xyF(pdata) for b in a]
         
         self.vertex_data = ('v2i', vVals)
-        self.vlen = len(data)
-        self.build_colours(cF(data))
+        self.vlen = len(pdata)
+        self.build_colours(cF(pdata))
         
         self.build_vertex_list()
         
     
-    def load_xyz_plot(self, data, xyzF, cF):
-        self.point_data = data
+    def load_xyz_plot(self, pdata, xyzF, cF):
+        self.point_data = pdata
         
-        xyzdata = xyzF(data)
+        xyzdata = xyzF(pdata)
         # Get minimum X, Y & Z values
         minX = min(map(lambda ((x, y), z): x, xyzdata))
         minY = min(map(lambda ((x, y), z): y, xyzdata))
@@ -156,25 +138,21 @@ class SkiGLPlotData:
             vVals.append(int(y - minY))
             vVals.append(int(z - minZ))
             
-        self.vlen = len(data)
+        self.vlen = len(pdata)
         self.vertex_data = ('v3i', vVals)
-        self.build_colours(cF(data))
+        self.build_colours(cF(pdata))
         self.build_vertex_list()
     
 
     def refresh_vertex_list(self):
         # Update indices list
         self.update_indices()
-        
         # Calculate lengths
         vLen = self.vertex_list.get_size()
         iLen = len(self.index_data)
-        
         # Resize vertex list
         self.vertex_list.resize(vLen, iLen)
-        
         # Set list elements
-        #self.vertex_list.vertices = self.vertex_data
         self.vertex_list.indices = self.index_data
     
     
@@ -183,10 +161,3 @@ class SkiGLPlotData:
         self.idx_end = max(2, min(self.vlen, self.idx_end))
         # Update index data
         self.index_data = range(self.idx_start, self.idx_end - 1)
-    
-        
-    def vertex_count(self):
-        (__a, __b) = self.vertex_data
-        return len(__b)
-    
-        
