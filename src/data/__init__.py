@@ -114,15 +114,7 @@ class SkiPoint:
         print 'Speed: {0}km/h'.format(self.speed)
 
 
-class SkiTrack:
-    
-    points = []
-    
-    def __init__(self, points):
-        self.header = SkiTrackHeader()
-        self.points = points
-    
-    
+
         
 
         

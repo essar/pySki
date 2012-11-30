@@ -69,8 +69,9 @@ class SkiGLPlotData:
         return self.point_data[min(len(self.point_data), self.idx_end) - 1]
 
     def get_status_text(self):
-        return '[ 12/02/2012 10:00:00 ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>2d}km/h ]'.format(
-                        d.p_Mode(self.last_point())
+        return '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>2d}km/h ]'.format(
+                        d.p_TS(self.last_point())
+                      , d.p_Mode(self.last_point())
                       , d.p_A(self.last_point())
                       , d.p_S(self.last_point())
                       )

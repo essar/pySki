@@ -18,7 +18,7 @@ glData = GLPlotter.glData
 def readData(filename):
     # Read CSV data from file
     ioData = io.CSVLoader.loadCSVFile(filename)
-    data.Processor.pData.all_points
+    data.Processor.set_tz('US/Mountain')
     data.Processor.process(ioData)
     
     appData = data.Processor.pData.all_points
