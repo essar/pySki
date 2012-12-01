@@ -5,6 +5,7 @@ Interpolates between missing points in a data list
 @version: 1.0 (30 Nov 2012)
 '''
 
+import logging as log
 from data import DatumPoint
 
 count_added = 0
@@ -22,7 +23,6 @@ def __linear_interpolate(p1, p2):
       Linearly interpolate the x, y, latitude, longitude, altitude, speed and time of two Datum points.
       If the x, y and altitude change between the two points is unchanged, speed is forced to 0.
     '''
-    
     ts = __linear_interpolate_i(p1.ts, p2.ts)
     la = __linear_interpolate_f(p1.la, p2.la)
     lo = __linear_interpolate_f(p1.lo, p2.lo)
@@ -31,7 +31,10 @@ def __linear_interpolate(p1, p2):
     a = __linear_interpolate_i(p1.a, p2.a)
     s = __linear_interpolate_i(p1.s, p2.s)
     
-    return DatumPoint(ts, ((la, lo), (x, y), a, s))
+    dp = DatumPoint(ts, ((la, lo), (x, y), a, s))
+    log.debug('[Interpolator] New point: {0}  ({1} : {2})', dp, p1, p2)
+    
+    return dp
 
 
 class LinkedObj:
@@ -56,35 +59,59 @@ def build_linked_list(array):
     # Smarter way to do this?
     arr = array[:]
     arr.reverse()
-    lastPoint = None
+    lastNode = None
     for i in arr:
-        newPoint = LinkedObj(i, lastPoint)
-        lastPoint = newPoint
+        newNode = LinkedObj(i, lastNode)
+        lastNode = newNode
         
-    return lastPoint
-    
+    return lastNode
+
+ 
+def interpolate_list(lData, deltaF, interF):
+    return interpolate_linked_list(build_linked_list(lData), deltaF, interF)   
+
         
-def interpolate_linked_list(firstPoint, deltaF, interF):
+def interpolate_linked_list(firstNode, deltaF, interF):
     global count_added, count_removed, counter
     
-    thisPoint = firstPoint
-    while thisPoint != None and thisPoint.nxt != None:
-        delta = deltaF(thisPoint.obj, thisPoint.nxt.obj)
+    # Initialise with first node
+    thisNode = firstNode
+    while thisNode != None and thisNode.nxt != None:
+        nextNode = thisNode.nxt
+        # Calculate distance between points
+        delta = deltaF(thisNode.obj, nextNode.obj)
+        log.debug('[Interpolator] Node {0}: delta {1}', counter, delta)
         
         if delta < 0:
-            print ' ** WARN! Negative time delta ({0})'.format(delta)
+            # Negative delta
+            log.warn('[Interpolator] Negative time delta ({0}) at node {1}', delta, counter)
         if delta == 0:
-            thisPoint.nxt = thisPoint.nxt.nxt
+            # Duplicate point, remove
+            thisNode.nxt = nextNode.nxt
+            log.info('[Interpolator] Removed node at {0}', counter)
+            # Increment counter
             count_removed += 1
+            counter -+ 1
         while delta > 1:
-            newPoint = LinkedObj(interF(thisPoint.obj, thisPoint.nxt.obj))
-            newPoint.nxt = thisPoint.nxt
-            thisPoint.nxt = newPoint
+            # Interpolate a new point mediating this node and next node
+            newNode = LinkedObj(interF(thisNode.obj, nextNode.obj))
+            # Set new node's next to next node
+            newNode.nxt = nextNode
+            # Set this node's next to new node
+            thisNode.nxt = newNode
+            log.info('[Interpolator] Created node at {0}', counter)
             
-            delta = deltaF(thisPoint.obj, thisPoint.nxt.obj)
+            # Recalculate delta
+            delta = deltaF(thisNode.obj, nextNode.obj)
+            log.debug('[Interpolator] Node {0}: delta {1}', counter, delta)
+            # Increment counters
             count_added += 1
             counter += 1
-            
-        thisPoint = thisPoint.nxt
+        
+        # Move to next node    
+        thisNode = nextNode
+        # Increment counter
         counter += 1
+        
+        log.debug('[Interpolator] Counter={0}; added={1}, removed={2}', counter, count_added, count_removed)
     
