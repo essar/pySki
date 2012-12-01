@@ -1,15 +1,16 @@
 '''
-Created on 28 Nov 2012
 
-Main data structures:
+  GPS data structures:
+    GPSDatum: (ts, geo_coords, cart_coords, a, s)
 
-SkiPoint: (mode, (ts, (x, y), a, s))
-Track: (TrackHeader, [SkiPoint])
+  Main data structures:
+    SkiPoint: (mode, (ts, (x, y), a, s))
+    Track: (TrackHeader, [SkiPoint])
+    TrackHeader: <class>
 
-TrackHeader: <class>
 
-
-@author: sroberts
+@author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
+  @version: 1.0 (28 Nov 2012)
 '''
 
 ################################
@@ -80,6 +81,20 @@ def ps_Cart_Ss_r(data): return map(p_Cart_S_r, repeat(min_xy(data), len(data)), 
 class ProcessedData:
     def __init__(self):
         self.all_points = []
+
+class GPSDatum:
+    '''
+      Class representing a single entry of GPS data, as read from a GPS device
+      or file.
+    '''
+    def __init__(self, (ts, (la, lo), (x, y), a, s)):
+        self.gps_ts = ts
+        self.gps_la = la
+        self.gps_lo = lo
+        self.gps_x = x
+        self.gps_y = y
+        self.gps_a = a
+        self.gps_s = s
 
 
 class SkiPoint:
