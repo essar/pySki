@@ -4,7 +4,7 @@ Created on 28 Nov 2012
 @author: sroberts
 '''
 
-import data
+import ski.data as d
 from datetime import datetime
 
 try:
@@ -14,7 +14,7 @@ try:
 except ImportError:
     tz_support = False
 
-pData = data.ProcessedData()
+pData = d.ProcessedData()
 
 
 def set_tz(tz_name):

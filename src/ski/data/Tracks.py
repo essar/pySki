@@ -5,7 +5,7 @@ Created on 16 Nov 2012
 '''
 
 from math import sqrt
-import data
+import ski.data as d
 
 def calc_dalt((d, a1), a2):
     da = a1 - a2
@@ -28,28 +28,28 @@ class SkiTrackHeader:
         self.last = tData[-1]
         
         # Area, width & height
-        xsD = data.ps_Xs(tData)
-        ysD = data.ps_Ys(tData)
+        xsD = d.ps_Xs(tData)
+        ysD = d.ps_Ys(tData)
         self.area = ((min(xsD), min(ysD)), (max(xsD), max(ysD)))
         self.width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*self.area)
         self.height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*self.area)
         
         # Altitude
-        asD = data.ps_As(tData)
+        asD = d.ps_As(tData)
         self.loAlt = min(asD)
         self.hiAlt = max(asD)
         #self.dAlt = sum(asD)
-        p0 = (0, data.p_A(self.first))
-        (self.dAlt, __pa) = reduce(calc_dalt, data.ps_As(tData), p0)
+        p0 = (0, d.p_A(self.first))
+        (self.dAlt, __pa) = reduce(calc_dalt, d.ps_As(tData), p0)
         
         # Speed
-        ssD = data.ps_Ss(tData)
+        ssD = d.ps_Ss(tData)
         #self.avSpeed = avg(ssD)
         self.hiSpeed = max(ssD)
         
         # Distance & duration
-        p0 = (0, data.p_Cart(self.first))
-        (self.distance, __px) = reduce(calc_distance, data.ps_Carts(tData), p0)
+        p0 = (0, d.p_Cart(self.first))
+        (self.distance, __px) = reduce(calc_distance, d.ps_Carts(tData), p0)
         self.duration = len(tData)
     
     

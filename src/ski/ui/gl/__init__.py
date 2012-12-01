@@ -1,6 +1,6 @@
 import GLRenderer
 import pyglet.graphics
-import data as d
+import ski.data as d
 
 class SkiGLPlotConfig:
     ''' Class containing configurable properties for a GL plot.'''

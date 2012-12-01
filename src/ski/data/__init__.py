@@ -1,5 +1,4 @@
 '''
-
   GPS data structures:
     GPSDatum: (ts, geo_coords, cart_coords, a, s)
 
@@ -8,8 +7,7 @@
     Track: (TrackHeader, [SkiPoint])
     TrackHeader: <class>
 
-
-@author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
+  @author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
   @version: 1.0 (28 Nov 2012)
 '''
 

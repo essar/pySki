@@ -4,11 +4,11 @@ Created on 16 Nov 2012
 @author: sroberts
 '''
 from pyglet.gl import *
-import ui.gl
+import ski.ui.gl
 
 # Create config & data objects
-glCfg = ui.gl.SkiGLPlotConfig()
-glData = ui.gl.SkiGLPlotData()
+glCfg = ski.ui.gl.SkiGLPlotConfig()
+glData = ski.ui.gl.SkiGLPlotData()
 
 # Load fonts
 pyglet.font.add_file('../resources/saxmono.ttf')

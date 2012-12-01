@@ -7,7 +7,7 @@
 '''
 
 import logging as log
-from data import GPSDatum
+from ski.data import GPSDatum
 
 count_added = 0
 count_removed = 0
