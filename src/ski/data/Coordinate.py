@@ -22,6 +22,12 @@ WGS_COORD_MODE_RAD = 0x02;
 # COORDINATE UTILITY FUNCTIONS
 ########
 
+def addSeconds(degrees, decimalMins):
+    mins = int(decimalMins)
+    secs = (decimalMins % max(1, mins)) * 60.0
+    return (degrees, mins, secs)
+
+
 def arcLengthOfMeridian(phi):
     '''
       Computes the ellipsoidal distance from the equator to a point at a given latitude.
