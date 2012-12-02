@@ -15,7 +15,7 @@ counter = 0
 
 def delta_i(i1, i2): return i2 - i1
 def delta_f(f1, f2): return f2 - f1
-def delta_pt(pt1, pt2): return pt2.ts - pt1.ts
+def delta_pt(pt1, pt2): return pt2.gps_ts - pt1.gps_ts
 
 def linear_interpolate_f(f1, f2): return f1 + ((f2 - f1) / 2.0)
 def linear_interpolate_i(i1, i2): return i1 + ((i2 - i1) / 2)
@@ -24,6 +24,10 @@ def linear_interpolate_pt(p1, p2):
       Linearly interpolate the x, y, latitude, longitude, altitude, speed and time of two GPSDatum points.
       If the x, y and altitude change between the two points is unchanged, speed is forced to 0.
     '''
+    
+    log.debug('[Interpolator] p1: %s', p1)
+    log.debug('[Interpolator] p2: %s', p2)
+    
     ts = linear_interpolate_i(p1.gps_ts, p2.gps_ts)
     la = linear_interpolate_f(p1.gps_la, p2.gps_la)
     lo = linear_interpolate_f(p1.gps_lo, p2.gps_lo)
@@ -32,8 +36,8 @@ def linear_interpolate_pt(p1, p2):
     a = linear_interpolate_i(p1.gps_a, p2.gps_a)
     s = linear_interpolate_i(p1.gps_s, p2.gps_s)
     
-    dp = GPSDatum(ts, (la, lo), (x, y), a, s)
-    log.debug('[Interpolator] New point: {0}  ({1} : {2})', dp, p1, p2)
+    dp = GPSDatum((ts, (la, lo), (x, y), a, s))
+    log.debug('[Interpolator] New point: %s', dp)
     
     return dp
 
@@ -91,6 +95,10 @@ def interpolate_list(lData, deltaF, interF):
     interpolate_linked_list(ll, deltaF, interF)
     return ll.to_array()
 
+
+def interpolate_datum_list(dList):
+    d0 = interpolate_list(map(lambda x: GPSDatum(x), dList), delta_pt, linear_interpolate_pt)
+    return map(lambda x: (x.gps_ts, (x.gps_la, x.gps_lo), (x.gps_x, x.gps_y), x.gps_a, x.gps_s), d0)
         
 def interpolate_linked_list(firstNode, deltaF, interF):
     '''
@@ -109,15 +117,15 @@ def interpolate_linked_list(firstNode, deltaF, interF):
         nextNode = thisNode.nxt
         # Calculate distance between points
         delta = deltaF(thisNode.obj, nextNode.obj)
-        log.debug('[Interpolator] Node {0}: delta {1}', counter, delta)
+        log.debug('[Interpolator] Node %d: delta %d', counter, delta)
         
         if delta < 0:
             # Negative delta
-            log.warn('[Interpolator] Negative time delta ({0}) at node {1}', delta, counter)
+            log.warn('[Interpolator] Negative time delta (%d) at node %d', delta, counter)
         if delta == 0:
             # Duplicate point, remove
             thisNode.nxt = nextNode.nxt
-            log.info('[Interpolator] Removed node at {0}', counter)
+            log.info('[Interpolator] Removed node at %d', counter)
             # Increment counter
             count_removed += 1
             counter -+ 1
@@ -128,11 +136,12 @@ def interpolate_linked_list(firstNode, deltaF, interF):
             newNode.nxt = nextNode
             # Set this node's next to new node
             thisNode.nxt = newNode
-            log.info('[Interpolator] Created node at {0}', counter)
+            log.info('[Interpolator] Created node at %d', counter)
             
             # Recalculate delta
+            nextNode = thisNode.nxt
             delta = deltaF(thisNode.obj, nextNode.obj)
-            log.debug('[Interpolator] Node {0}: delta {1}', counter, delta)
+            log.debug('[Interpolator] Node %d: delta %d', counter, delta)
             # Increment counters
             count_added += 1
             counter += 1
@@ -142,5 +151,5 @@ def interpolate_linked_list(firstNode, deltaF, interF):
         # Increment counter
         counter += 1
         
-        log.debug('[Interpolator] Counter={0}; added={1}, removed={2}', counter, count_added, count_removed)
+        log.debug('[Interpolator] Counter=%d; added=%d, removed=%d', counter, count_added, count_removed)
     

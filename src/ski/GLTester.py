@@ -8,6 +8,7 @@ import pyglet
 import io.CSVLoader
 import io.GSDLoader
 import data as d
+import data.Interpolator
 import data.Processor
 import data.Tracks as xtr
 from ui.gl import GLPlotter
@@ -21,7 +22,7 @@ def readData(filename):
     #ioData = io.CSVLoader.loadCSVFile(filename)
     # Read GSD data from file
     ioData = io.GSDLoader.load_gsd_file(filename)
-    
+    ioData = data.Interpolator.interpolate_datum_list(ioData)
     
     data.Processor.set_tz('US/Mountain')
     data.Processor.process(ioData)
