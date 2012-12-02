@@ -6,6 +6,7 @@ Created on 16 Nov 2012
 
 import pyglet
 import io.CSVLoader
+import io.GSDLoader
 import data as d
 import data.Processor
 import data.Tracks as xtr
@@ -17,7 +18,11 @@ glData = GLPlotter.glData
 # Load data from file
 def readData(filename):
     # Read CSV data from file
-    ioData = io.CSVLoader.loadCSVFile(filename)
+    #ioData = io.CSVLoader.loadCSVFile(filename)
+    # Read GSD data from file
+    ioData = io.GSDLoader.load_gsd_file(filename)
+    
+    
     data.Processor.set_tz('US/Mountain')
     data.Processor.process(ioData)
     
@@ -46,7 +51,8 @@ def readData(filename):
 
 
 # Code a-go-go
-readData('../data/ski_11-02-2012_sjr_20120211.csv')
+#readData('../data/ski_11-02-2012_sjr_20120211.csv')
+readData('../data/sjr_20120211.gsd')
 GLPlotter.drawSkiGLPlot()    
 pyglet.app.run()
     
