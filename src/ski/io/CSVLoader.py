@@ -5,33 +5,21 @@ Created on 16 Nov 2012
 '''
 
 import csv
-import datetime
-import time
+import ski.io as io
 
 def unpack(row):
     '''
       Unpacks a list of strings into a GPS tuple
       @return: a GPS tuple (ts, ((lat, lon), (x, y), alt, spd)).
     '''
-    ts = to_datetime(row[1].strip(), row[2].strip())
+    ts = io.as_seconds(row[1].strip(), row[2].strip(), '%d-%m-%Y', '%H:%M:%S')
     lat = float(row[6].strip())
     lon = float(row[7].strip())
     x = int(row[10].strip())
     y = int(row[11].strip())
     a = int(row[8].strip())
     s = int(row[9].strip())
-    return (ts, ((lat, lon), (x, y), a, s))
-
-
-def to_datetime(datestr, timestr):
-    '''
-      Returns a date as the number of whole seconds since the epoch (1st January 1970)
-      @param datestr: a string containing the date component to be parsed
-      @param timestr: a string containing the date component to be parsed
-      @return: an integer
-    '''
-    dt = datetime.datetime.strptime(datestr + timestr, '%d-%m-%Y%H:%M:%S')
-    return int(time.mktime(dt.timetuple()))
+    return (ts, (lat, lon), (x, y), a, s)
 
 
 def loadCSV(CSVData):

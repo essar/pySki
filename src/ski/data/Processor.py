@@ -39,7 +39,7 @@ def b_ts(secs):
 def pack(mode, ts, x, y, a, s):
     return (mode, (ts, (x, y), a, s))
 
-def repack((ts, ((la, lo), (x, y), a, s))):
+def repack((ts, (la, lo), (x, y), a, s)):
     return pack('STOP', b_ts(ts), x, y, a, s)
 
 def process(inData):
