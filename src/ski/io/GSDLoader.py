@@ -127,14 +127,32 @@ def parse_data_line(line):
     try:
         # Parse latitude
         latStr = '{:08d}'.format(int(lParts[0]))
-        (latD, latM, latS) = coord.addSeconds(int(latStr[:2]), float(latStr[2:]) / 10000.0)
+        
+        i = 2 if int(latStr) > 0 else 3
+        latD = int(latStr[:i])
+        latDM = float(latStr[i:]) / 10000.0
+        
+        latDMS = coord.addSeconds(latD, latDM)
+        log.debug('[GSDLoader] Latitude: %s->%s->%s->%s', lParts[0], latStr, (latD, latDM), latDMS)
+        
+        (latD, latM, latS) = latDMS
         
         # Parse longitude
         lonStr = '{:08d}'.format(int(lParts[1]))
-        (lonD, lonM, lonS) = coord.addSeconds(int(lonStr[:2]), float(lonStr[3:]) / 10000.0)
         
+        i = 3 if int(lonStr) > 0 else 4
+        lonD = int(lonStr[:i])
+        lonDM = float(lonStr[i:]) / 10000.0
+        
+        lonDMS = coord.addSeconds(lonD, lonDM)
+        log.debug('[GSDLoader] Longitude: %s->%s->%s->%s', lParts[1], lonStr, (lonD, lonDM), lonDMS)
+        
+        (lonD, lonM, lonS) = lonDMS
         # Calculate coordinates
-        wgs = coord.DMStoWGS(coord.DMSCoordinate(latD, latM, latS, lonD, lonM, lonS))
+        dms = coord.DMSCoordinate(latD, latM, latS, lonD, lonM, lonS)
+        log.debug('[GSDLoader] DMS: %s', dms)
+        wgs = coord.DMStoWGS(dms)
+        log.debug('[GSDLoader] WGS: %s', wgs)
         
         # Latitude & Longitude
         lat = wgs.getLatitudeDegrees()
@@ -143,7 +161,7 @@ def parse_data_line(line):
         # Cartesian X & Y
         if convert_coords:
             utm = coord.WGStoUTM(wgs)
-            x = -utm.x
+            x = utm.x
             y = utm.y
         else:
             x = y = 0

@@ -146,7 +146,7 @@ class DMSCoordinate:
         #
         
         # Calculate hemisphere indicator
-        latX = 'S' if latD > 0 else 'N'
+        latX = 'S' if latD < 0 else 'N'
         latD = abs(latD)
         
         # Adjust out-of-range minutes and seconds
@@ -266,16 +266,16 @@ def DMStoWGS(dms):
         + (dms.latitude.minutes / 60.0)
         + (dms.latitude.seconds / 3600.0)
     )
-    # Check E/W - West is negative
-    lat *= -1 if dms.latitude.hemisphere == 'W' else 1
+    # Check N/S - South is negative
+    lat *= -1 if dms.latitude.hemisphere == 'S' else 1
 
     # Build longitude value
     lon = (dms.longitude.degrees
            + (dms.longitude.minutes / 60.0)
            + (dms.longitude.seconds / 3600.0)
     )
-    # Check N/S - South is negative
-    lon *= -1 if dms.longitude.hemisphere == 'S' else 1
+    # Check E/W - West is negative
+    lon *= -1 if dms.longitude.hemisphere == 'W' else 1
 
     return WGSCoordinate(float(lat), float(lon), WGS_COORD_MODE_DEG);
 
