@@ -15,10 +15,14 @@ from math import sqrt
 import pyglet.window.key as key
 
 def __centre_on_last(cfg, ctl):
-    #ctl.pan_centre(ctl.last_x - (cfg.window_width / 2), (cfg.window_height / 2) - ctl.last_y, 0.0)
-    cx = (cfg.window_width - (2 * cfg.window_xmargin)) / 2
-    cy = (cfg.window_height - (2 * cfg.window_ymargin)) / 2
-    ctl.pan_view_to(cx - ctl.last_x, cy - ctl.last_y, 0)
+    cx = (float(cfg.plot_width) / 2.0) - ctl.last_x
+    cy = (float(cfg.plot_height) / 2.0) - ctl.last_y
+    
+    sx = cfg.scale_x / ctl.live_scale_x
+    sy = cfg.scale_y / ctl.live_scale_y
+    sz = cfg.scale_z / ctl.live_scale_z
+    
+    ctl.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
     
 def __pan_down(cfg, ctl):
     ctl.pan_view_down(cfg.pan_step_y / ctl.live_scale_y)
