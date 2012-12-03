@@ -131,6 +131,9 @@ def update(dt):
         
         # Update vertex data
         glData.refresh_vertex_list()
+
+    glCtl.last_x = glData.last_x() * (glCfg.scale_x * glCtl.live_scale_x)
+    glCtl.last_y = glData.last_y() * (glCfg.scale_y * glCtl.live_scale_y)
     
 def drawSkiGLPlot():
     # Call one-off set up
