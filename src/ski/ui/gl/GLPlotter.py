@@ -14,7 +14,8 @@ glData = ski.ui.gl.SkiGLPlotData()
 pyglet.font.add_file('../resources/saxmono.ttf')
     
 # Create a new window
-win = pyglet.window.Window(width=glCfg.window_width, height=glCfg.window_height)
+win = pyglet.window.Window(width=glCfg.window_width, height=glCfg.window_height, fullscreen=glCfg.window_fullscreen)
+#win = pyglet.window.Window(fullscreen=glCfg.window_fullscreen)
 
 # Create status labels
 lbl_status = pyglet.text.Label(text='Essar Ski Data'

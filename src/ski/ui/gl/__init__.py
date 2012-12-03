@@ -33,7 +33,7 @@ class SkiGLPlotConfig:
     view_y = 0
     view_z = 0
     
-    window_fullscreen = False
+    window_fullscreen = True
     window_height = 600
     window_width = 800
     window_xmargin = 2
