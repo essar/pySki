@@ -67,10 +67,18 @@ def on_draw():
     # Adjust for status bar
     glTranslatef(0.0, (glCfg.status_height if glCfg.show_status_panel else 0), 0.0)
     
-        
-    # Scale to fit window
     glCfg.update_scales(win.width, win.height) # Apply scaling rules
-    glScalef(glCfg.scale_x * glCtl.live_scale_x, glCfg.scale_y * glCtl.live_scale_y, glCfg.scale_z * glCtl.live_scale_z)
+    # Scale to fit window
+    glScalef(glCfg.scale_x, glCfg.scale_y, glCfg.scale_z)
+    
+    cx = float((glCfg.plot_width / 2.0) - (glCtl.live_tx / glCfg.scale_x))
+    cy = float((glCfg.plot_height / 2.0) - (glCtl.live_ty / glCfg.scale_y))
+    #cz = float(glCfg.plot_depth / 2.0)
+    
+    # Scale according to zoom factors about centre point
+    glTranslatef(cx, cy, 0.0)
+    glScalef(glCtl.live_scale_x, glCtl.live_scale_y, glCtl.live_scale_z)
+    glTranslatef(-cx, -cy, 0.0)
         
     # Rotate about X axis
     #glRotatef(-90.0, 10.0, 0.0, 0.0)
