@@ -13,6 +13,9 @@ class SkiGLPlotConfig:
     draw_fps = 25
     draw_step = 10
     
+    pan_step_x = 50
+    pan_step_y = 50
+    
     plot_depth = 1
     plot_drawmode = '2D'
     plot_height = 0
@@ -38,6 +41,8 @@ class SkiGLPlotConfig:
     window_width = 800
     window_xmargin = 2
     window_ymargin = 2
+    
+    zoom_step = 2
     
     def update_scales(self, window_width, window_height):
         if self.scale_stretch:

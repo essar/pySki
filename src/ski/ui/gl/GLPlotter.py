@@ -5,10 +5,13 @@ Created on 16 Nov 2012
 '''
 from pyglet.gl import *
 import ski.ui.gl
+import ski.ui.gl.GLController as ctl
+from ski.ui.gl import KeyHandler
 
 # Create config & data objects
 glCfg = ski.ui.gl.SkiGLPlotConfig()
 glData = ski.ui.gl.SkiGLPlotData()
+glCtl = ctl.GLController()
 
 # Load fonts
 pyglet.font.add_file('../resources/saxmono.ttf')
@@ -37,10 +40,6 @@ lbl_fps = pyglet.text.Label(text='[fps]'
                              , anchor_y='bottom'
                              )  
 
-# Live transformations
-live_scale_x = live_scale_y = live_scale_z = 1
-live_tx = live_ty = live_tz = 0
-
 def draw_status():
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     
@@ -64,14 +63,14 @@ def on_draw():
     # Adjust for margin
     glTranslatef(glCfg.window_xmargin, glCfg.window_ymargin, 0.0)
     # Adjust for view
-    glTranslatef(glCfg.view_x + live_tx, glCfg.view_y + live_ty, glCfg.view_z + live_tz)
+    glTranslatef(glCfg.view_x + glCtl.live_tx, glCfg.view_y + glCtl.live_ty, glCfg.view_z + glCtl.live_tz)
     # Adjust for status bar
     glTranslatef(0.0, (glCfg.status_height if glCfg.show_status_panel else 0), 0.0)
     
         
     # Scale to fit window
     glCfg.update_scales(win.width, win.height) # Apply scaling rules
-    glScalef(glCfg.scale_x * live_scale_x, glCfg.scale_y * live_scale_y, glCfg.scale_z * live_scale_z)
+    glScalef(glCfg.scale_x * glCtl.live_scale_x, glCfg.scale_y * glCtl.live_scale_y, glCfg.scale_z * glCtl.live_scale_z)
         
     # Rotate about X axis
     #glRotatef(-90.0, 10.0, 0.0, 0.0)
@@ -79,6 +78,7 @@ def on_draw():
     # Draw base plane
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
     glColor4f(*glCfg.base_bg_colour_4f)
+    
     glBegin(GL_QUADS)
     glVertex3i(0, 0, glCfg.base_depth)
     glVertex3i(0, glCfg.plot_height, glCfg.base_depth)
@@ -95,6 +95,13 @@ def on_draw():
     
     glFlush()
 
+@win.event
+def on_key_press(symbol, modifiers):
+    KeyHandler.handle_key_press(symbol, modifiers, glCfg, glCtl)
+
+@win.event
+def on_key_release(symbol, mods):
+    pass
 
 @win.event
 def on_resize(width, height):
@@ -117,7 +124,8 @@ def setup():
     
     
 def update(dt):
-    if glData.idx_end < glData.vlen:
+    # Update if we're running and there are indexes left
+    if glCtl.playing and glData.idx_end < glData.vlen:
         # Increment end index
         glData.idx_end = glData.idx_end + glCfg.draw_step
         

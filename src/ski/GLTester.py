@@ -4,6 +4,8 @@ Created on 16 Nov 2012
 @author: sroberts
 '''
 
+import logging as log
+
 import pyglet
 import io.CSVLoader
 import io.GSDLoader
@@ -19,10 +21,10 @@ glData = GLPlotter.glData
 # Load data from file
 def readData(filename):
     # Read CSV data from file
-    #ioData = io.CSVLoader.loadCSVFile(filename)
+    ioData = io.CSVLoader.loadCSVFile(filename)
     # Read GSD data from file
-    ioData = io.GSDLoader.load_gsd_file(filename)
-    ioData = data.Interpolator.interpolate_datum_list(ioData)
+    #ioData = io.GSDLoader.load_gsd_file(filename)
+    #ioData = data.Interpolator.interpolate_datum_list(ioData)
     
     data.Processor.set_tz('US/Mountain')
     data.Processor.process(ioData)
@@ -51,9 +53,12 @@ def readData(filename):
     print 'Draw {0} points fitting {1}x{2}'.format(len(appData), glCfg.plot_width, glCfg.plot_height)
 
 
+# Config log levels
+log.basicConfig(level=log.DEBUG)
+
 # Code a-go-go
-#readData('../data/ski_11-02-2012_sjr_20120211.csv')
-readData('../data/sjr_20120211.gsd')
+readData('../data/ski_11-02-2012_sjr_20120211.csv')
+#readData('../data/sjr_20120211.gsd')
 GLPlotter.drawSkiGLPlot()    
 pyglet.app.run()
     
