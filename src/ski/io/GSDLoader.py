@@ -6,7 +6,7 @@ Created on 1 Dec 2012
 
 import logging as log
 
-import ski.data.Coordinate as coord
+import ski.data.coordinate as coord
 import ski.io as io
 
 convert_coords = True

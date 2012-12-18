@@ -7,7 +7,9 @@
 '''
 
 import logging as log
-from ski.data import GPSDatum
+
+from gpsdatum import GPSDatum
+from linkednode import LinkedNode
 
 count_added = 0
 count_removed = 0
@@ -42,65 +44,7 @@ def linear_interpolate_pt(p1, p2):
     return dp
 
 
-class LinkedNode:
-    '''
-      Object that forms a linked list node.  Each node in a linked list
-      contains a payload and reference to the next item in the list.
-      @param obj: the payload of this node.
-      @param nxt: the next item in the linked list.
-    '''
-    def __init__(self, obj=None, nxt=None):
-        self.obj = obj
-        self.nxt = nxt
-    
-    def __str__(self):
-        str(self.obj)
-
-    def to_array(self):
-        # See if this can be done with list comprehension?
-        out = [self.obj]
-        o = self.nxt
-        while o != None:
-            out.append(o.obj)
-            o = o.nxt
-        return out
-
-
-def build_linked_list(array):
-    '''
-      Builds a linked list from a flat array of objects.
-      @param array: the array to store in the payloads of the linked list
-      @return: the first LinkedObj node in the linked list
-    '''
-    # Smarter way to do this?
-    arr = array[:]
-    arr.reverse()
-    lastNode = None
-    for i in arr:
-        newNode = LinkedNode(i, lastNode)
-        lastNode = newNode
-        
-    return lastNode
-
- 
-def interpolate_list(lData, deltaF, interF):
-    '''
-      Interpolate over an array of data.
-      @param lData: an array of data to interpolate.
-      @param deltaF: a function used to calculate the delta between two nodes.
-      @param interF: a function used to interpolate between two nodes.
-      @return: an array of the interpolated nodes.
-    '''
-    ll = build_linked_list(lData)
-    interpolate_linked_list(ll, deltaF, interF)
-    return ll.to_array()
-
-
-def interpolate_datum_list(dList):
-    d0 = interpolate_list(map(lambda x: GPSDatum(x), dList), delta_pt, linear_interpolate_pt)
-    return map(lambda x: (x.gps_ts, (x.gps_la, x.gps_lo), (x.gps_x, x.gps_y), x.gps_a, x.gps_s), d0)
-        
-def interpolate_linked_list(firstNode, deltaF, interF):
+def interpolate_list(firstNode, deltaF, interF, deDup=True):
     '''
       Interpolate over a linked list. Interpolation happens 'in-place', no
       object is returned.
@@ -110,6 +54,9 @@ def interpolate_linked_list(firstNode, deltaF, interF):
       
     '''
     global count_added, count_removed, counter
+    
+    # Reset counters
+    count_added = count_removed = counter = 0
     
     # Initialise with first node
     thisNode = firstNode
@@ -122,7 +69,7 @@ def interpolate_linked_list(firstNode, deltaF, interF):
         if delta < 0:
             # Negative delta
             log.warn('[Interpolator] Negative time delta (%d) at node %d', delta, counter)
-        if delta == 0:
+        if delta == 0 and deDup:
             # Duplicate point, remove
             thisNode.nxt = nextNode.nxt
             log.info('[Interpolator] Removed node at %d', counter)
