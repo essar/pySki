@@ -40,10 +40,10 @@ class SkiTrack:
     hdr = SkiTrackHeader()
     data = []
     
-    xData = []
-    yData = []
-    aData = []
-    sData = []
+    xs = []
+    ys = []
+    alts = []
+    spds = []
     
     def __init__(self, tData):
         # Validate arguments
@@ -55,19 +55,19 @@ class SkiTrack:
         self.hdr.mode = tData[0].mode
         
         # Property arrays
-        self.xData = [p.x for p in tData]
-        self.yData = [p.y for p in tData]
-        self.aData = [p.alt for p in tData]
-        self.sData = [p.spd for p in tData]
+        self.xs = [p.x for p in tData]
+        self.ys = [p.y for p in tData]
+        self.alts = [p.alt for p in tData]
+        self.spds = [p.spd for p in tData]
         
         # Area, width & height
-        self.hdr.area = ((min(self.xData), min(self.yData)), (max(self.xData), max(self.yData)))
+        self.hdr.area = ((min(self.xs), min(self.ys)), (max(self.xs), max(self.ys)))
         self.hdr.width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*self.hdr.area)
         self.hdr.height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*self.hdr.area)
         
         # Altitude
-        self.hdr.loAlt = min(self.aData)
-        self.hdr.hiAlt = max(self.aData)
+        self.hdr.loAlt = min(self.alts)
+        self.hdr.hiAlt = max(self.alts)
         self.hdr.dAlt = sum([p.delta_a for p in tData])
         
         # Angle
@@ -80,10 +80,9 @@ class SkiTrack:
         self.hdr.distance = sum(distsD)
         self.hdr.duration = len(tData)
         
-        
         # Speed
-        self.hdr.hiSpeed = max(self.sData)
-        self.hdr.avSpeed = sum(self.sData) / len(tData)
+        self.hdr.hiSpeed = max(self.spds)
+        self.hdr.avSpeed = sum(self.spds) / len(tData)
         
         
 class SkiTrackPoint:
@@ -110,7 +109,7 @@ class SkiTrackPoint:
         self.spd = d.gps_s
         
     def __str__(self):
-        return '[{:s}]: {:s} ({:.2f}m, {:+.1f}m)'.format(self.mode, self.as_tuple(), self.distance, self.delta_a)
+        return '{:s} ({:.2f}m, {:+.1f}m)'.format(self.as_tuple(), self.distance, self.delta_a)
     
     def as_tuple(self):
         return (self.mode, (self.ts, (self.x, self.y), self.alt, self.spd))

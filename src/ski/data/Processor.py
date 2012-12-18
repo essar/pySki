@@ -107,6 +107,24 @@ def create_st_point(datum, last_stp=None):
 
 window_sz = 20
 
+def build_track_data(all_data_list):
+    global track_data
+    
+    track_data = {}
+    this_track = []
+    this_mode = None
+    
+    for stp in all_data_list:
+        if this_mode is not None and this_mode <> stp.mode:
+            log.info('Completed %s track of %d points', this_mode, len(this_track))
+            track_data[this_track[0]] = SkiTrack(this_track)
+            
+            this_track = []
+        
+        this_mode = stp.mode    
+        this_track.append(stp)
+    
+
 def process_track_point(current_mode, this_point, point_window):
     if type(current_mode) is not str:
         raise ValueError('Expected String at argument 1', type(current_mode))
@@ -190,7 +208,7 @@ def process(data):
       Process GPS data into ski tracks and perform analytics.
       @param data: a list of GPSDatum objects that have been pre-processed.
     '''
-    global all_data, lift_data, ski_data, stop_data
+    global all_data, lift_data, ski_data, stop_data, track_data
     
     log.info('[Processor] Starting data processing...')
     log.info('[Processor] Time zone: %s.', tz)
@@ -224,6 +242,7 @@ def process(data):
     
     #Save off:
     # Map/dict by track
+    build_track_data(all_data_list)
     
     return all_data
 
