@@ -10,7 +10,7 @@ from datetime import datetime
 import logging as log
 from math import degrees, sqrt, atan
 
-from skitrack import MODE_LIFT, MODE_SKI, MODE_STOP, SkiTrackPoint
+from skitrack import MODE_LIFT, MODE_SKI, MODE_STOP, SkiTrack, SkiTrackPoint
 from types import InstanceType
 
 ###############################################################################
@@ -107,7 +107,6 @@ def create_st_point(datum, last_stp=None):
 
 window_sz = 20
 
-
 def process_track_point(current_mode, this_point, point_window):
     if type(current_mode) is not str:
         raise ValueError('Expected String at argument 1', type(current_mode))
@@ -128,13 +127,6 @@ def process_track_point(current_mode, this_point, point_window):
     moving = float(sum([1 if d > 0 else 0 for d in dists])) / wLen
     stopped = float(sum([1 if d == 0 else 0 for d in dists])) / wLen
     
-    #ascent = reduce(lambda d, stp: d + stp.delta_a, point_window, 0)
-    #ascending = len(filter(lambda stp: float(stp.delta_a > 0), point_window)) / wLen
-    #descending = len(filter(lambda stp: float(stp.delta_a < 0), point_window)) / wLen
-    
-    #moving = len(filter(lambda stp: float(stp.distance > 0), point_window)) / wLen
-    #stopped = len(filter(lambda stp: float(stp.distance == 0), point_window)) / wLen
-        
     if current_mode == MODE_STOP:
         # Stopped, but now moving
         if this_point.distance > 0 and moving >= 0.5:
@@ -198,35 +190,39 @@ def process(data):
       Process GPS data into ski tracks and perform analytics.
       @param data: a list of GPSDatum objects that have been pre-processed.
     '''
-    global all_data
+    global all_data, lift_data, ski_data, stop_data
     
     log.info('[Processor] Starting data processing...')
     log.info('[Processor] Time zone: %s.', tz)
     
     # Build list of STPs
-    all_data = []
+    all_data_list = []
     last_stp = None
     for d in data:
         last_stp = create_st_point(d, last_stp)
-        all_data.append(last_stp)
+        all_data_list.append(last_stp)
     
     # Process to set modes
     window_start = 0
     cMode = MODE_STOP
     
-    for stp in all_data:
+    for stp in all_data_list:
         # Calculate window end
         window_end = window_start + window_sz
         # Process mode
-        cMode = process_track_point(cMode, stp, all_data[window_start:window_end])
+        cMode = process_track_point(cMode, stp, all_data_list[window_start:window_end])
         # Update point mode
         stp.mode = cMode
         # Increment window
         window_start += 1
     
+    # Mode lists
+    all_data = SkiTrack(all_data_list)
+    lift_data = SkiTrack(filter(lambda stp: stp.mode == MODE_LIFT, all_data_list))
+    ski_data = SkiTrack(filter(lambda stp: stp.mode == MODE_SKI, all_data_list))
+    stop_data = SkiTrack(filter(lambda stp: stp.mode == MODE_STOP, all_data_list))
+    
     #Save off:
-    # All points
-    # All ski points
     # Map/dict by track
     
     return all_data

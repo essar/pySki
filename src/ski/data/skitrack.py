@@ -113,4 +113,4 @@ class SkiTrackPoint:
         return '[{:s}]: {:s} ({:.2f}m, {:+.1f}m)'.format(self.mode, self.as_tuple(), self.distance, self.delta_a)
     
     def as_tuple(self):
-        return (self.ts, (self.x, self.y), self.alt, self.spd)
+        return (self.mode, (self.ts, (self.x, self.y), self.alt, self.spd))
