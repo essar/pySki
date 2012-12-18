@@ -4,9 +4,9 @@ Created on 11 Dec 2012
 @author: sroberts
 '''
 
-def as_time(secs):
-    return secs
-
+MODE_LIFT = 'LIFT'
+MODE_SKI = 'SKI'
+MODE_STOP = 'STOP'
 
 class SkiTrackHeader:
     first = last = None
@@ -100,16 +100,17 @@ class SkiTrackPoint:
     delta_x = delta_y = delta_a = 0
     distance = xy_distance = 0.0
     calc_speed = 0.0
+    tz_time = None
 
     def __init__(self, d):
+        self.ts = d.gps_ts
         self.x = d.gps_x
         self.y = d.gps_y
         self.alt = d.gps_a
         self.spd = d.gps_s
         
-        # Calculate timestamp value
-        self.ts = as_time(d.gps_ts)
-    
+    def __str__(self):
+        return '[{:s}]: {:s} ({:.2f}m, {:+.1f}m)'.format(self.mode, self.as_tuple(), self.distance, self.delta_a)
     
     def as_tuple(self):
-        return (self.ts, (self.x, self.y), self.a, self.s)
+        return (self.ts, (self.x, self.y), self.alt, self.spd)

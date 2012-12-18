@@ -10,6 +10,7 @@ import logging as log
 from gpsdatum import GPSDatum
 from linkednode import LinkedNode
 import interpolator
+from types import InstanceType
 
 convert_coords = True
 
@@ -44,7 +45,7 @@ def interpolate_list(firstNode):
       'in-line'; no object is returned.
       @param firstNode: a LinkedNode object at the start of the linked list.
     '''
-    if type(firstNode) is not LinkedNode:
+    if type(firstNode) is not InstanceType:
         raise ValueError('Expected a LinkedNode object for interpolate_list')
     
     deltaF = interpolator.delta_pt
@@ -80,15 +81,15 @@ def preprocess(data):
     # Interpolate
     interpolate_list(firstNode)
     print interpolator.counter
-    log.info('First stage interpolation complete.')
+    log.info('[Preprocessor] First stage interpolation complete.')
     
     # Remove outlyers
     remove_outlyers(firstNode)
-    log.info('Outlyer removal complete.')
+    log.info('[Preprocessor] Outlyer removal complete.')
     
     # Re-interpolate?
     interpolate_list(firstNode)
-    log.info('Second state interpolation complete.')
+    log.info('[Preprocessor] Second state interpolation complete.')
     
     return firstNode.to_array()
     
