@@ -4,6 +4,8 @@ Created on 16 Nov 2012
 @author: sroberts
 '''
 
+import logging as log
+
 import pyglet
 import io.GSDLoader
 import data.preprocessor
@@ -51,8 +53,10 @@ def readData(filename):
     print 'Draw {0} points fitting {1}x{2}'.format(len(appData), glCfg.plot_width, glCfg.plot_height)
 
 
+# Config log levels
+log.basicConfig(level=log.INFO)
+
 # Code a-go-go
-#readData('../data/ski_11-02-2012_sjr_20120211.csv')
 readData('../data/sjr_20120211.gsd')
 GLPlotter.drawSkiGLPlot()    
 pyglet.app.run()

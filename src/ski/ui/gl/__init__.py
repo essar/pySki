@@ -13,6 +13,9 @@ class SkiGLPlotConfig:
     draw_fps = 25
     draw_step = 10
     
+    pan_step_x = 50
+    pan_step_y = 50
+    
     plot_depth = 1
     plot_drawmode = '2D'
     plot_height = 0
@@ -38,6 +41,8 @@ class SkiGLPlotConfig:
     window_width = 800
     window_xmargin = 2
     window_ymargin = 2
+    
+    zoom_step = 2
     
     def update_scales(self, window_width, window_height):
         if self.scale_stretch:
@@ -67,6 +72,12 @@ class SkiGLPlotData:
     
     def last_point(self):
         return self.point_data[min(len(self.point_data), self.idx_end) - 1]
+
+    def last_x(self):
+        return self.vertex_data[1][((self.idx_end - 1) * 2)]
+    
+    def last_y(self):
+        return self.vertex_data[1][((self.idx_end - 1) * 2) + 1]
 
     def get_status_text(self):
         #return '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>2.1f}km/h ]'.format(
