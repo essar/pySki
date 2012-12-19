@@ -10,12 +10,11 @@ import pyglet
 import io.GSDLoader
 import data.preprocessor
 import data.processor
-import data as d
-from data.skitrack import SkiTrack
-from ui.gl import GLPlotter
 
-glCfg = GLPlotter.glCfg
-glData = GLPlotter.glData
+import ui.gl.linearrenderer as renderer
+from ui.gl.plotdata import PlotData
+from ui.gl.glplot import plot
+
 
 # Load data from file
 def readData(filename):
@@ -33,24 +32,25 @@ def readData(filename):
     hdr = all_data.hdr
     hdr.print_track_header()
     
+    xyData = [(stp.x, stp.y) for stp in all_data.data]
+    vData = [stp.alt for stp in all_data.data]
+    
+    glData = PlotData.build_xy_plot(xyData, vData)
+    glData.compile_vertex_data(renderer.getColourValuef, 2)
+    
     # Calculate sensible altitude scaling
     altScale = float(abs(hdr.hiAlt - hdr.loAlt)) / 1000.0
-    glCfg.scale_z = altScale
-    glCfg.plot_drawmode = '2D'
-    glCfg.animate = True
-    glCfg.show_status_panel = True
-
-    # Generate list of coordinates
-    appData = [x.as_tuple() for x in all_data.data]
-
-    # Generate list of coordinates
-    glData.load_xy_plot(appData, d.ps_Cart_r, d.ps_Modes)
+    plot.cfg.scale_z = altScale
+    plot.cfg.drawmode = '2D'
+    plot.cfg.animate = False
+    plot.cfg.show_status_panel = False
 
     # Calculate plot size
-    glCfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
-    glCfg.plot_height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*hdr.area)
+    plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
+    plot.cfg.plot_height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*hdr.area)
     
-    print 'Draw {0} points fitting {1}x{2}'.format(len(appData), glCfg.plot_width, glCfg.plot_height)
+    print 'Draw {0} points fitting {1}x{2}'.format(len(xyData), plot.cfg.plot_width, plot.cfg.plot_height)
+    plot.show([glData])
 
 
 # Config log levels
@@ -58,6 +58,5 @@ log.basicConfig(level=log.INFO)
 
 # Code a-go-go
 readData('../data/sjr_20120211.gsd')
-GLPlotter.drawSkiGLPlot()    
 pyglet.app.run()
     
