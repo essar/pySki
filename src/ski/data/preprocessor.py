@@ -80,7 +80,6 @@ def preprocess(data):
     
     # Interpolate
     interpolate_list(firstNode)
-    print interpolator.counter
     log.info('[Preprocessor] First stage interpolation complete.')
     
     # Remove outlyers

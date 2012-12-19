@@ -126,6 +126,7 @@ def build_track_data(all_data_list):
     
 
 def process_track_point(current_mode, this_point, point_window):
+    # Validate arguments
     if type(current_mode) is not str:
         raise ValueError('Expected String at argument 1', type(current_mode))
     if type(this_point) is not InstanceType:
@@ -133,17 +134,17 @@ def process_track_point(current_mode, this_point, point_window):
     if type(point_window) is not list:
         raise ValueError('Expected list at argument 3')
     
-    # Calculate window variables
+    # Calculate window properties
     wLen = float(len(point_window))
     
     alts = map(lambda stp: stp.delta_a, point_window)
     ascent = sum(alts)
-    ascending = float(sum([1 if a > 0 else 0 for a in alts])) / wLen
-    descending = float(sum([1 if a < 0 else 0 for a in alts])) / wLen
+    ascending = float(sum([1 for a in alts if a > 0])) / wLen
+    descending = float(sum([1 for a in alts if a < 0 ])) / wLen
     
     dists = map(lambda stp: stp.distance, point_window)
-    moving = float(sum([1 if d > 0 else 0 for d in dists])) / wLen
-    stopped = float(sum([1 if d == 0 else 0 for d in dists])) / wLen
+    moving = float(sum([1 for d in dists if d > 0])) / wLen
+    stopped = float(sum([1 for d in dists if d == 0])) / wLen
     
     if current_mode == MODE_STOP:
         # Stopped, but now moving
@@ -156,7 +157,7 @@ def process_track_point(current_mode, this_point, point_window):
                 log.debug('[Processor] distance=%.1f; moving=%.2f.', this_point.distance, moving)
                 log.debug('[Processor] delta_a=%.1f, ascent=%.1f, ascending=%.2f', this_point.delta_a, ascent, ascending)
                 return MODE_LIFT
-            if this_point.delta_a > 0 and ascent < 0 and descending > 0.3:
+            if this_point.delta_a < 0 and ascent < 0 and descending > 0.3:
                 # Altitude descending
                 log.info('[Processor] %s->%s, at %s.', current_mode, MODE_SKI, this_point)
                 log.debug('[Processor] alts=%s', alts)

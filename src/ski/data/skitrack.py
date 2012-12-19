@@ -36,18 +36,12 @@ class SkiTrackHeader:
 
 
 class SkiTrack:
-    
-    hdr = SkiTrackHeader()
-    data = []
-    
-    xs = []
-    ys = []
-    alts = []
-    spds = []
-    
+
     def __init__(self, tData):
         # Validate arguments
         self.data = tData
+        
+        self.hdr = SkiTrackHeader()
         
         # First & last
         self.hdr.first = tData[0]
