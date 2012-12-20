@@ -33,16 +33,22 @@ def readData(filename):
     hdr.print_track_header()
     
     xyData = [(stp.x, stp.y) for stp in all_data.data]
-    vData = [stp.alt for stp in all_data.data]
+    vData = [stp.spd for stp in all_data.data]
     
     glData = PlotData.build_xy_plot(xyData, vData)
-    glData.compile_vertex_data(renderer.getColourValuef, 2)
+    glData.compile_vertex_data(renderer.getColourValue, 2)
+    
+    #xData = [stp.ts for stp in all_data.data]
+    #vData = [stp.alt for stp in all_data.data]
+    
+    #glData = PlotData.build_linear_plot(xData, vData)
+    #glData.compile_vertex_data(renderer.getColourValue, 2)
     
     # Calculate sensible altitude scaling
     altScale = float(abs(hdr.hiAlt - hdr.loAlt)) / 1000.0
     plot.cfg.scale_z = altScale
     plot.cfg.drawmode = '2D'
-    plot.cfg.animate = False
+    plot.cfg.animate = True
     plot.cfg.show_status_panel = False
 
     # Calculate plot size

@@ -8,7 +8,7 @@ def _relativeise(data, value=None):
     mx = min(data)
     if value is None:
         return [x - mx for x in data]
-    return x - mx
+    return value - mx
 
 def _smooth(data, smoothing):
     smoothed = []
@@ -52,6 +52,9 @@ class PlotData:
         vx_list = []
         cx_list = []
         
+        minV = min(self.v_data)
+        maxV = max(self.v_data)
+        
         for i in range(len(self.x_data)):
             # Build vertex information
             vx_list.append(self.x_data[i])
@@ -59,7 +62,7 @@ class PlotData:
             if mode == 3: vx_list.append(self.z_data[i])
             
             # Build colour
-            (r, g, b) = renderF(self.v_data[i])
+            (r, g, b) = renderF(minV, maxV, self.v_data[i])
             cx_list.append(r)
             cx_list.append(g)
             cx_list.append(b)
@@ -78,7 +81,7 @@ class PlotData:
         self.x_axis_label = label
         
         # Calculate relative position of markers
-        self.x_axis_markers = [(lbl, __relativeise(self.x_data, pos)) for (lbl, pos) in markers]
+        self.x_axis_markers = [(lbl, _relativeise(self.x_data, pos)) for (lbl, pos) in markers]
     
     
     def setup_y_axis(self, label, markers=[]):
@@ -86,7 +89,7 @@ class PlotData:
         self.y_axis_label = label
         
         # Calculate relative position of markers
-        self.y_axis_markers = [(lbl, __relativeise(self.y_data, pos)) for (lbl, pos) in markers]
+        self.y_axis_markers = [(lbl, _relativeise(self.y_data, pos)) for (lbl, pos) in markers]
     
     
     def setup_z_axis(self, label, markers=[]):
@@ -94,7 +97,7 @@ class PlotData:
         self.z_axis_label = label
         
         # Calculate relative position of markers
-        self.z_axis_markers = [(lbl, __relativeise(self.z_data, pos)) for (lbl, pos) in markers]
+        self.z_axis_markers = [(lbl, _relativeise(self.z_data, pos)) for (lbl, pos) in markers]
     
         
     

@@ -250,7 +250,7 @@ class GLPlot:
         return (last_x, last_y)
     
     
-    def get_last_xyx(self):
+    def get_last_xyz(self):
         last_x = self.plot_data[self.plot_idx].x_data[self.draw_idx]
         last_y = self.plot_data[self.plot_idx].y_data[self.draw_idx]
         last_z = self.plot_data[self.plot_idx].z_data[self.draw_idx]
@@ -258,8 +258,8 @@ class GLPlot:
     
     
     def reset(self):
-        self.draw_idx = 0
-        self._update_vertex_list(self.vlists[self.plot_idx], self.draw_idx)
+        self.draw_idx = 2
+        self._update_vertex_list(self.vlists[self.plot_idx])
     
     def show(self, plotData):
         self.plot_data = plotData
@@ -282,10 +282,11 @@ class GLPlot:
         
     def update(self, dt):
         # Update if we're running and there are indexes left
-        if self.playing and self.draw_idx < self.vlists[self.plot_idx].vertex_count():
+        if self.playing and self.draw_idx < self.vlists[self.plot_idx].get_size():
             # Increment end index
             self.draw_idx += self.cfg.animate_step
-            self._update_vertex_list(self.vlists[self.plot_idx], self.draw_idx)
+            self._update_vertex_list(self.vlists[self.plot_idx])
+            
             
             
 ###############################################################################
