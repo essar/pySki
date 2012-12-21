@@ -18,7 +18,6 @@ status_height = 30
 
 win = pyglet.window.Window()
 
-
 class GLPlot:
     '''
     classdocs
@@ -83,8 +82,8 @@ class GLPlot:
         # Scale to fit window
         gl.glScalef(*self._calc_scales())
         
-        width = self.cfg.plot_width
-        height = self.cfg.plot_height
+        width = int(self.cfg.plot_width)
+        height = int(self.cfg.plot_height)
         depth = -1
         
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)

@@ -57,8 +57,8 @@ class PlotData:
         
         for i in range(len(self.x_data)):
             # Build vertex information
-            vx_list.append(self.x_data[i])
-            vx_list.append(self.y_data[i])
+            vx_list.append(int(self.x_data[i]))
+            vx_list.append(int(self.y_data[i]))
             if mode == 3: vx_list.append(self.z_data[i])
             
             # Build colour
