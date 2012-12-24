@@ -102,11 +102,13 @@ class PlotData:
         
     
     @staticmethod
-    def build_linear_plot(xData, vData, xSmoothing = 0, ySmoothing = 0, xLabel = '', xMarkers = 0, yLabel = '', yMarkers = 0):
+    def build_linear_plot(xData, yData, vData=None, xSmoothing = 0, ySmoothing = 0, xLabel = '', xMarkers = 0, yLabel = '', yMarkers = 0):
         # Compile synthetic list of z values
         zs = [0 for _x in range(len(xData))]
         
-        plot = PlotData(xData, vData, zs, vData, xSmoothing, ySmoothing, 0)
+        if vData is None: vData = yData
+        
+        plot = PlotData(xData, yData, zs, vData, xSmoothing, ySmoothing, 0)
 
         # Set up x-axis
         ## Calculate values
@@ -118,7 +120,7 @@ class PlotData:
         
         # Set up y-axis
         ## Calculate values
-        yV = max(vData) - min(vData)
+        yV = max(yData) - min(yData)
         yMarkVals = [(i / 100.0) * yV for i in range(0, 101, (100 / (yMarkers + 1)))]
         yMarks = [(m, m) for m in yMarkVals]
         ## Set plot properties
