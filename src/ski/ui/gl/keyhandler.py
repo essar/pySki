@@ -15,13 +15,12 @@ from math import sqrt
 import pyglet.window.key as key
 
 def __centre_on_last(plot):
-    (lx, ly) = plot.get_last_xy()
-    cx = (float(plot.cfg.plot_width) / 2.0) - lx
-    cy = (float(plot.cfg.plot_height) / 2.0) - ly
+    cx = (float(plot.cfg.plot_width) / 2.0) - plot.last_x
+    cy = (float(plot.cfg.plot_height) / 2.0) - plot.last_y
     
-    sx = plot.cfg.scale_x / plot.live_zoom_x
-    sy = plot.cfg.scale_y / plot.live_zoom_y
-    sz = plot.cfg.scale_z / plot.live_zoom_z
+    sx = plot.cfg.scale_x / plot.live_scale_x
+    sy = plot.cfg.scale_y / plot.live_scale_y
+    sz = plot.cfg.scale_z / plot.live_scale_z
     
     plot.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
     
@@ -88,7 +87,8 @@ def handle_key_press(symbol, modifiers, plot):
       to find and execute defined functions.
       @param symbol: the pressed key symbol
       @param modifiers: the pressed key modifiers
-      @param plot: the current GL plot
+      @param cfg: the current GL configuration
+      @param ctl: the current GL controller
     '''
     k = (symbol, modifiers)
     log.debug('[KeyHandler] Key press %s trapped', key_str(k))
