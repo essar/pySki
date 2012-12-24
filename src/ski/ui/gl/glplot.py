@@ -14,9 +14,25 @@ from plotcfg import PlotCfg
 
 # Load fonts
 pyglet.font.add_file('../resources/saxmono.ttf')
-status_height = 30
+status_height = 20
 
 win = pyglet.window.Window()
+
+# Create label components
+lbl_fps = pyglet.text.Label(text='[FPS]'
+        , font_name='saxMono'
+        , font_size=10
+        , x=win.width - 10
+        , anchor_x='right'
+        , anchor_y='bottom'
+)
+lbl_status = pyglet.text.Label(text='pySki'
+        , font_name='saxMono'
+        , font_size=10
+        , x=10
+        , anchor_x='left'
+        , anchor_y='bottom'
+)
 
 class GLPlot:
     '''
@@ -113,12 +129,12 @@ class GLPlot:
         # Clear transforms
         gl.glLoadIdentity()
         
-        #py_fps = pyglet.app.clock.get_fps()
-        #lbl_status.text = glData.get_status_text()
-        #lbl_status.draw()
+        lbl_status.text = self.cfg.status_txt.format(*self.cfg.status_values_f(self.draw_idx))
+        lbl_status.draw()
         
-        #lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
-        #lbl_fps.draw()
+        py_fps = pyglet.app.clock.get_fps()
+        lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
+        lbl_fps.draw()
         
     def _init_window(self):
         
@@ -239,7 +255,7 @@ class GLPlot:
         # Draw plot elements as lines
         self._draw_plot()
         
-        if self.cfg.show_status_panel:
+        if self.cfg.show_status_bar:
             self._draw_status_bar()
     
     
@@ -323,6 +339,8 @@ def on_resize(width, height):
     gl.glOrtho(0, width, 0, height, -1000, 1000)
     gl.glMatrixMode(gl.GL_MODELVIEW)
     gl.glLoadIdentity()
+            
+    lbl_fps.x = win.width - 10
             
     return True
 

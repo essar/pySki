@@ -32,6 +32,9 @@ class PlotCfg:
     show_axis_markers = False
     show_status_bar = False
     
+    status_txt = ''
+    status_values_f = []
+    
     window_fullscreen = False
     window_height = 600
     window_margin_x = 2
