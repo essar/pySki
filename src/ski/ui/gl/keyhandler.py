@@ -48,6 +48,12 @@ def __reset(plot):
     # Reset view
     plot.pan_view_reset()
 
+def __show_hide_status(plot):
+    if plot.cfg.show_status_bar:
+        plot.cfg.show_status_bar = False
+    else:
+        plot.cfg.show_status_bar = True
+
 def __zoom_in(plot):
     plot.zoom_view_in(plot.cfg.zoom_step)
     
@@ -65,6 +71,7 @@ key_map = {
            (key.A, 0): __zoom_in
          , (key.A, key.MOD_SHIFT): __zoom_in_small
          , (key.C, 0): __centre_on_last
+         , (key.S, 0): __show_hide_status
          , (key.Z, 0): __zoom_out
          , (key.Z, key.MOD_SHIFT): __zoom_out_small
          , (key._0, 0): __reset

@@ -129,12 +129,17 @@ class GLPlot:
         # Clear transforms
         gl.glLoadIdentity()
         
-        lbl_status.text = self.cfg.status_txt.format(*self.cfg.status_values_f(self.draw_idx))
+        if self.cfg.status_txt is not None:
+            if self.cfg.status_values_f is None:
+                lbl_status.text = self.cfg.status_txt
+            else:
+                lbl_status.text = self.cfg.status_txt.format(*self.cfg.status_values_f(self.draw_idx))
         lbl_status.draw()
         
         py_fps = pyglet.app.clock.get_fps()
         lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
         lbl_fps.draw()
+        
         
     def _init_window(self):
         
