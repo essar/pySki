@@ -32,36 +32,44 @@ def readData(filename):
     hdr = all_data.hdr
     hdr.print_track_header()
     
-    #xyData = [(stp.x, stp.y) for stp in all_data.data]
-    #vData = [stp.spd for stp in all_data.data]
-    
-    #glData = PlotData.build_xy_plot(xyData, vData)
-    #glData.compile_vertex_data(renderer.getColourValue, 2)
-    
-    # Calculate plot size
-    #plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
-    #plot.cfg.plot_height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*hdr.area)
-    
-    
-    xData = [stp.ts for stp in all_data.data]
+    xyData = [(stp.x, stp.y) for stp in all_data.data]
     vData = [stp.spd for stp in all_data.data]
     
-    glData = PlotData.build_linear_plot(xData, vData, ySmoothing=60)
+    glData = PlotData.build_xy_plot(xyData, vData)
     glData.compile_vertex_data(renderer.getColourValue, 2)
     
     # Calculate plot size
-    plot.cfg.plot_width = max(xData) - min(xData)
-    plot.cfg.plot_height = max(vData) - min(vData)
+    plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
+    plot.cfg.plot_height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*hdr.area)
+    
+    
+    #xData = [stp.ts for stp in all_data.data]
+    #yData = [stp.angle for stp in all_data.data]
+    #vData = [stp.alt for stp in all_data.data]
+    
+    #glData = PlotData.build_linear_plot(xData, yData, vData, ySmoothing=60)
+    #glData.compile_vertex_data(renderer.getColourValue, 2)
+    
+    # Calculate plot size
+    #plot.cfg.plot_width = max(xData) - min(xData)
+    #plot.cfg.plot_height = max(yData) - min(yData)
     
     
     # Calculate sensible altitude scaling
     altScale = float(abs(hdr.hiAlt - hdr.loAlt)) / 1000.0
     plot.cfg.scale_z = altScale
     plot.cfg.drawmode = '2D'
-    plot.cfg.animate = False
-    plot.cfg.show_status_panel = False
+    plot.cfg.animate = True
+    plot.cfg.show_status_bar = False
     
-    print 'Draw {0} points fitting {1}x{2}'.format(len(xData), plot.cfg.plot_width, plot.cfg.plot_height)
+    plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>2.1f}km/h ]'
+    plot.cfg.status_values_f = lambda idx : (all_data.data[idx].loc_time
+                      , all_data.data[idx].mode
+                      , all_data.data[idx].alt
+                      , all_data.data[idx].spd
+    )
+    
+    print 'Draw {0} points fitting {1}x{2}'.format(len(xyData), plot.cfg.plot_width, plot.cfg.plot_height)
     plot.show([glData])
 
 
