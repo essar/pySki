@@ -93,7 +93,7 @@ class SkiTrackPoint:
     delta_x = delta_y = delta_a = 0
     distance = xy_distance = 0.0
     calc_speed = 0.0
-    tz_time = None
+    loc_time = None
 
     def __init__(self, d):
         self.ts = d.gps_ts

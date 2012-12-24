@@ -8,7 +8,9 @@ b_inverted = False
 
 def relPos(minV, maxV, value):
     value = min(maxV, max(minV, value))
-    return float(value - minV) / float(maxV - minV)
+    if maxV - minV > 0:
+        return float(value - minV) / float(maxV - minV)
+    return 1.0
 
 def getColourValue(minV, maxV, value):
     ''' Returns a colour 3-tuple for a value within the given range. '''

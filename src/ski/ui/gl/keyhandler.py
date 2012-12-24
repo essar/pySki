@@ -14,51 +14,51 @@ from math import sqrt
 
 import pyglet.window.key as key
 
-def __centre_on_last(cfg, ctl):
-    cx = (float(cfg.plot_width) / 2.0) - ctl.last_x
-    cy = (float(cfg.plot_height) / 2.0) - ctl.last_y
+def __centre_on_last(plot):
+    cx = (float(plot.cfg.plot_width) / 2.0) - plot.last_x
+    cy = (float(plot.cfg.plot_height) / 2.0) - plot.last_y
     
-    sx = cfg.scale_x / ctl.live_scale_x
-    sy = cfg.scale_y / ctl.live_scale_y
-    sz = cfg.scale_z / ctl.live_scale_z
+    sx = plot.cfg.scale_x / plot.live_scale_x
+    sy = plot.cfg.scale_y / plot.live_scale_y
+    sz = plot.cfg.scale_z / plot.live_scale_z
     
-    ctl.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
+    plot.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
     
-def __pan_down(cfg, ctl):
-    ctl.pan_view_down(cfg.pan_step_y / ctl.live_scale_y)
+def __pan_down(plot):
+    plot.pan_view_down(plot.cfg.pan_step_y / plot.live_zoom_y)
 
-def __pan_left(cfg, ctl):
-    ctl.pan_view_left(cfg.pan_step_x / ctl.live_scale_x)
+def __pan_left(plot):
+    plot.pan_view_left(plot.cfg.pan_step_x / plot.live_zoom_x)
     
-def __pan_right(cfg, ctl):
-    ctl.pan_view_right(cfg.pan_step_x / ctl.live_scale_x)
+def __pan_right(plot):
+    plot.pan_view_right(plot.cfg.pan_step_x / plot.live_zoom_x)
     
-def __pan_up(cfg, ctl):
-    ctl.pan_view_up(cfg.pan_step_y / ctl.live_scale_y)
+def __pan_up(plot):
+    plot.pan_view_up(plot.cfg.pan_step_y / plot.live_zoom_y)
 
-def __play_pause_animation(cfg, ctl):
-    if ctl.playing:
-        ctl.animation_pause()
+def __play_pause_animation(plot):
+    if plot.playing:
+        plot.animation_pause()
     else:
-        ctl.animation_play()
+        plot.animation_play()
 
-def __reset(cfg, ctl):
+def __reset(plot):
     # Reset zoom factor
-    ctl.zoom_view_reset()
+    plot.zoom_view_reset()
     # Reset view
-    ctl.pan_view_reset()
+    plot.pan_view_reset()
 
-def __zoom_in(cfg, ctl):
-    ctl.zoom_view_in(cfg.zoom_step)
+def __zoom_in(plot):
+    plot.zoom_view_in(plot.cfg.zoom_step)
     
-def __zoom_in_small(cfg, ctl):
-    ctl.zoom_view_in(sqrt(cfg.zoom_step))
+def __zoom_in_small(plot):
+    plot.zoom_view_in(sqrt(plot.cfg.zoom_step))
 
-def __zoom_out(cfg, ctl):
-    ctl.zoom_view_out(cfg.zoom_step)
+def __zoom_out(plot):
+    plot.zoom_view_out(plot.cfg.zoom_step)
     
-def __zoom_out_small(cfg, ctl):
-    ctl.zoom_view_out(sqrt(cfg.zoom_step))
+def __zoom_out_small(plot):
+    plot.zoom_view_out(sqrt(plot.cfg.zoom_step))
 
 # Define a dictionary pairing key stroke values with handler functions
 key_map = {
@@ -81,7 +81,7 @@ def key_str((symbol, modifiers)):
     return (key.symbol_string(symbol), key.modifiers_string(modifiers))
     
 
-def handle_key_press(symbol, modifiers, cfg, ctl):
+def handle_key_press(symbol, modifiers, plot):
     '''
       Main keystroke handing function.  Checks defined key handlers in a dict
       to find and execute defined functions.
@@ -103,7 +103,7 @@ def handle_key_press(symbol, modifiers, cfg, ctl):
             # Wrap in a try/except block to prevent bad handler functions
             # from crashing entire app
             try:
-                key_map[k](cfg, ctl)
+                key_map[k](plot)
             except:
                 # Log error details
                 log.exception('[KeyHandler] Error executing key handler %s for %s', f.__name__, key_str(k))
