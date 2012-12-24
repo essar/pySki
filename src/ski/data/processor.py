@@ -77,7 +77,7 @@ def create_st_point(datum, last_stp=None):
     p = SkiTrackPoint(datum)
     
     # Process time stamp
-    p.tz_time = as_time(p.ts)
+    p.loc_time = as_time(p.ts)
     
     # If a previous point provided, calculate additional attributes
     if last_stp is not None:
