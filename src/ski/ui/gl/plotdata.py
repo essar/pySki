@@ -45,6 +45,11 @@ class PlotData:
         
         # Store value data as-is
         self.v_data = vList
+        
+        
+        self.x_axis_markers = []
+        self.y_axis_markers = []
+        self.z_axis_markers = []
     
     
     def compile_vertex_data(self, renderF, mode=3):

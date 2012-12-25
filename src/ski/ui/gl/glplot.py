@@ -77,9 +77,11 @@ class GLPlot:
         if self.cfg.scale_stretch:
             # Update scale factors to make plot fill window
             viewWidth = float(win.width
+                              - (20 if self.cfg.show_axis else 0)
                               - (2 * self.cfg.window_margin_x)
             )
             viewHeight = float(win.height
+                              - (20 if self.cfg.show_axis else 0)
                               - (status_height if self.cfg.show_status_bar else 0)
                               - (2 * self.cfg.window_margin_y)
             )
@@ -91,6 +93,49 @@ class GLPlot:
             
         return (self.cfg.scale_x, self.cfg.scale_y, self.cfg.scale_z)
     
+    
+    def _draw_axis(self):
+        gl.glPushMatrix()
+        
+        # Scale to fit window
+        self._calc_scales()
+        #gl.glScalef(*self._calc_scales())
+        
+        width = int(self.cfg.plot_width)
+        height = int(self.cfg.plot_height)
+        
+        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+        gl.glColor4f(1.0, 1.0, 1.0, 1.0)
+        
+        gl.glBegin(gl.GL_LINES)
+        gl.glVertex3i(0, 0, 0)
+        gl.glVertex3i(width, 0, 0)
+        
+        gl.glVertex3i(0, 0, 0)
+        gl.glVertex3i(0, height, 0)
+        
+        gl.glEnd()
+        
+        for (_lbl, pos) in self.plot_data[self.plot_idx].x_axis_markers:
+            gl.glBegin(gl.GL_LINES)
+            gl.glVertex3i(int(pos), 0, 0)
+            gl.glVertex3i(int(pos), -1, 0)
+            gl.glEnd()
+            
+            if _lbl is not None:
+                gl.glPushMatrix()
+                gl.glLoadIdentity()
+                pyglet.text.Label(str(_lbl), font_name='Arial', font_size=8, x=pos, y=-0.5).draw()
+                gl.glPopMatrix()
+            
+        for (_lbl, pos) in self.plot_data[self.plot_idx].y_axis_markers:
+            gl.glBegin(gl.GL_LINES)
+            gl.glVertex3i(0, int(pos), 0)
+            gl.glVertex3i(-1, int(pos), 0)
+            gl.glEnd()
+        
+        gl.glPopMatrix()
+        
     
     def _draw_background(self):
         gl.glPushMatrix()
@@ -231,8 +276,10 @@ class GLPlot:
     def draw(self):
         # Adjust for margin
         gl.glTranslatef(self.cfg.window_margin_x, self.cfg.window_margin_y, 0.0)
+        # Adjust for axis bar
+        gl.glTranslatef((20.0 if self.cfg.show_axis else 0), (20.0 if self.cfg.show_axis else 0), 0.0)
         # Adjust for status bar
-        gl.glTranslatef(0.0, (30.0 if self.cfg.show_status_bar else 0), 0.0)
+        gl.glTranslatef(0.0, (status_height if self.cfg.show_status_bar else 0), 0.0)
             
         # Draw base plane
         self._draw_background()
@@ -256,6 +303,8 @@ class GLPlot:
         #glRotatef(-90.0, 10.0, 0.0, 0.0)
         
         # Draw axis
+        if self.cfg.show_axis:
+            self._draw_axis()
             
         # Draw plot elements as lines
         self._draw_plot()
