@@ -16,7 +16,7 @@ class LinkedNode:
         self.nxt = nxt
     
     def __str__(self):
-        return str(self.obj)
+        return 'obj={0}; nxt={1}'.format(str(self.obj), str(self.nxt.obj) if self.nxt is not None else None)
 
     def to_array(self):
         # See if this can be done with list comprehension?

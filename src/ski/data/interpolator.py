@@ -6,7 +6,9 @@
   @version: 1.0 (30 Nov 2012)
 '''
 
-import logging as log
+import logging
+
+log = logging.getLogger('ski.data.interpolator')
 
 from gpsdatum import GPSDatum
 from linkednode import LinkedNode
@@ -27,8 +29,9 @@ def linear_interpolate_pt(p1, p2):
       If the x, y and altitude change between the two points is unchanged, speed is forced to 0.
     '''
     
-    log.debug('[Interpolator] p1: %s', p1)
-    log.debug('[Interpolator] p2: %s', p2)
+    log.debug('Performing linear interpolate:')
+    log.debug('    p1: %s', p1)
+    log.debug('    p2: %s', p2)
     
     ts = linear_interpolate_i(p1.gps_ts, p2.gps_ts)
     la = linear_interpolate_f(p1.gps_la, p2.gps_la)
@@ -39,7 +42,7 @@ def linear_interpolate_pt(p1, p2):
     s = linear_interpolate_i(p1.gps_s, p2.gps_s)
     
     dp = GPSDatum((ts, (la, lo), (x, y), a, s))
-    log.debug('[Interpolator] New point: %s', dp)
+    log.debug('   new: %s', dp)
     
     return dp
 
@@ -55,6 +58,11 @@ def interpolate_list(firstNode, deltaF, interF, deDup=True):
     '''
     global count_added, count_removed, counter
     
+    log.debug('Interpolation start:')
+    log.debug('    delta_F := %s', deltaF.__name__)
+    log.debug('    interF := %s', interF.__name__)
+    log.debug('    deDup := %s', deDup)
+    
     # Reset counters
     count_added = count_removed = counter = 0
     
@@ -64,18 +72,24 @@ def interpolate_list(firstNode, deltaF, interF, deDup=True):
         nextNode = thisNode.nxt
         # Calculate distance between points
         delta = deltaF(thisNode.obj, nextNode.obj)
-        log.debug('[Interpolator] Node %d: delta %d', counter, delta)
+        log.debug('Node %d: delta %d', counter, delta)
         
         if delta < 0:
-            # Negative delta
-            log.warn('[Interpolator] Negative time delta (%d) at node %d', delta, counter)
-        if delta == 0 and deDup:
-            # Duplicate point, remove
+            # Negative delta, remove point
             thisNode.nxt = nextNode.nxt
-            log.info('[Interpolator] Removed node at %d', counter)
+            log.warn('Negative time delta (%d) at node %d', delta, counter)
+            
             # Increment counter
             count_removed += 1
-            counter -+ 1
+            counter += 1
+        if delta == 0 and deDup:
+            # Duplicate, remove point
+            thisNode.nxt = nextNode.nxt
+            log.debug('Removed duplicate node at %d', counter)
+            
+            # Increment counter
+            count_removed += 1
+            counter += 1
         while delta > 1:
             # Interpolate a new point mediating this node and next node
             newNode = LinkedNode(interF(thisNode.obj, nextNode.obj))
@@ -83,12 +97,15 @@ def interpolate_list(firstNode, deltaF, interF, deDup=True):
             newNode.nxt = nextNode
             # Set this node's next to new node
             thisNode.nxt = newNode
-            log.info('[Interpolator] Created node at %d', counter)
+            
+            log.debug('Created new node at %d:', counter)
+            log.debug('    newNode := %s', newNode)
             
             # Recalculate delta
             nextNode = thisNode.nxt
             delta = deltaF(thisNode.obj, nextNode.obj)
-            log.debug('[Interpolator] Node %d: delta %d', counter, delta)
+            log.debug('Node %d: delta %d', counter, delta)
+            
             # Increment counters
             count_added += 1
             counter += 1
@@ -98,5 +115,5 @@ def interpolate_list(firstNode, deltaF, interF, deDup=True):
         # Increment counter
         counter += 1
         
-        log.debug('[Interpolator] Counter=%d; added=%d, removed=%d', counter, count_added, count_removed)
+        log.info('Interpolation complete for %d points. %d points added; %d points removed.', counter, count_added, count_removed)
     
