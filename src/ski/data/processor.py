@@ -7,8 +7,10 @@
 '''
 
 from datetime import datetime
-import logging as log
+import logging
 from math import degrees, sqrt, atan
+
+log = logging.getLogger(__name__)
 
 from skitrack import MODE_LIFT, MODE_SKI, MODE_STOP, SkiTrack, SkiTrackPoint
 from types import InstanceType
@@ -23,7 +25,7 @@ try:
     tz = pytz.utc
     tz_support = True
 except ImportError:
-    log.warn('[Processor] Unable to enable time zone support, please add pytz package to path.')
+    log.warn('Unable to enable time zone support, please add pytz package to path.')
     tz_support = False
 
 def as_time(secs):
@@ -39,6 +41,7 @@ def as_time(secs):
         loc_dt = pytz.utc.localize(dt)
         return loc_dt.astimezone(tz)
     else:
+        log.debug('Time zone support not enabled')
         # Return non-localised time
         return dt
 
@@ -52,13 +55,13 @@ def set_tz(tz_name):
         try:
             # Set the time zone
             tz = pytz.timezone(tz_name)
-            log.info('[Processor] Timezone set: %s.', tz.zone)
+            log.debug('Time zone set: %s.', tz.zone)
         except pytz.exceptions.UnknownTimeZoneError:
-            log.warn('[Processor] Unknown time zone: %s.', tz_name)
+            log.warn('Unknown time zone: %s.', tz_name)
             # Use default time zone
             tz = pytz.utc
     else:
-        log.info('[Processor] Time zone support not available; using UTC.')
+        log.info('Time zone support not available; using UTC.')
 
 
 ###############################################################################
@@ -75,12 +78,15 @@ def create_st_point(datum, last_stp=None):
     '''
     # Create point
     p = SkiTrackPoint(datum)
+    log.debug('Datum converted to %s', p)
     
     # Process time stamp
     p.loc_time = as_time(p.ts)
     
     # If a previous point provided, calculate additional attributes
     if last_stp is not None:
+        log.debug('    last_stp: %s', last_stp)
+        
         # Calculate delta values
         p.delta_x = p.x - last_stp.x
         p.delta_y = p.y - last_stp.y
@@ -108,21 +114,29 @@ def create_st_point(datum, last_stp=None):
 window_sz = 20
 
 def build_track_data(all_data_list):
-    global track_data
+    global track_data, track_index
     
     track_data = {}
+    track_index = []
     this_track = []
     this_mode = None
     
     for stp in all_data_list:
         if this_mode is not None and this_mode <> stp.mode:
-            log.info('Completed %s track of %d points', this_mode, len(this_track))
-            track_data[this_track[0]] = SkiTrack(this_track)
+            # New mode, save previous track
+            st = SkiTrack(this_track)
+            log.debug('Compiled %s track of %d points (distance=%.1fm; dAlt=%dm)', this_mode, len(this_track), st.hdr.distance, st.hdr.dAlt)
+            track_data[this_track[0]] = st
             
+            # Create new track
             this_track = []
         
-        this_mode = stp.mode    
+        # Set track mode
+        this_mode = stp.mode
+        # Add point to current track    
         this_track.append(stp)
+        # Add track to index
+        track_index.append(this_track[0])
     
 
 def process_track_point(current_mode, this_point, point_window):
@@ -151,53 +165,53 @@ def process_track_point(current_mode, this_point, point_window):
         if this_point.distance > 0 and moving >= 0.5:
             if this_point.delta_a > 0 and ascent > 0 and ascending > 0.3:
                 # Altitude ascending
-                log.info('[Processor] %s->%s, at %s.', current_mode, MODE_LIFT, this_point)
-                log.debug('[Processor] alts=%s', alts)
-                log.debug('[Processor] dists=%s', dists)
-                log.debug('[Processor] distance=%.1f; moving=%.2f.', this_point.distance, moving)
-                log.debug('[Processor] delta_a=%.1f, ascent=%.1f, ascending=%.2f', this_point.delta_a, ascent, ascending)
+                log.debug('%s->%s, at %s.', current_mode, MODE_LIFT, this_point)
+                log.debug('    alts=%s', alts)
+                log.debug('    dists=%s', dists)
+                log.debug('    distance=%.1f; moving=%.2f.', this_point.distance, moving)
+                log.debug('    delta_a=%.1f, ascent=%.1f, ascending=%.2f', this_point.delta_a, ascent, ascending)
                 return MODE_LIFT
             if this_point.delta_a < 0 and ascent < 0 and descending > 0.3:
                 # Altitude descending
-                log.info('[Processor] %s->%s, at %s.', current_mode, MODE_SKI, this_point)
-                log.debug('[Processor] alts=%s', alts)
-                log.debug('[Processor] dists=%s', dists)
-                log.debug('[Processor] distance=%.1f; moving=%.2f.', this_point.distance, moving)
-                log.debug('[Processor] delta_a=%.1f, ascent=%.1f, descending=%.2f', this_point.delta_a, ascent, descending)
+                log.debug('%s->%s, at %s.', current_mode, MODE_SKI, this_point)
+                log.debug('    alts=%s', alts)
+                log.debug('    dists=%s', dists)
+                log.debug('    distance=%.1f; moving=%.2f.', this_point.distance, moving)
+                log.debug('    delta_a=%.1f, ascent=%.1f, descending=%.2f', this_point.delta_a, ascent, descending)
                 return MODE_SKI
         
     if current_mode == MODE_SKI:
         # Skiing, but now not moving
         if this_point.distance == 0 and stopped > 0.8:
-            log.info('[Processor] %s->%s, at %s.', current_mode, MODE_STOP, this_point)
-            log.debug('[Processor] alts=%s', alts)
-            log.debug('[Processor] dists=%s', dists)
-            log.debug('[Processor] distance=%.1f; stopped=%.2f.', this_point.distance, stopped)
+            log.debug('%s->%s, at %s.', current_mode, MODE_STOP, this_point)
+            log.debug('    alts=%s', alts)
+            log.debug('    dists=%s', dists)
+            log.debug('    distance=%.1f; stopped=%.2f.', this_point.distance, stopped)
             return MODE_STOP
 
         # Skiing, but now on a lift
         if this_point.delta_a > 0 and ascent > 0 and ascending > 0.7:
-            log.info('[Processor] %s->%s, at %s.', current_mode, MODE_LIFT, this_point)
-            log.debug('[Processor] alts=%s', alts)
-            log.debug('[Processor] dists=%s', dists)
-            log.debug('[Processor] delta_a=%.1f, ascent=%.1f, ascending=%.2f', this_point.delta_a, ascent, ascending)
+            log.debug('%s->%s, at %s.', current_mode, MODE_LIFT, this_point)
+            log.debug('    alts=%s', alts)
+            log.debug('    dists=%s', dists)
+            log.debug('    delta_a=%.1f, ascent=%.1f, ascending=%.2f', this_point.delta_a, ascent, ascending)
             return MODE_LIFT
 
     if current_mode == MODE_LIFT:
         # On a lift, but now not moving
         if this_point.distance == 0 and stopped > 0.8:
-            log.info('[Processor] %s->%s, at %s.', current_mode, MODE_STOP, this_point)
-            log.debug('[Processor] alts=%s', alts)
-            log.debug('[Processor] dists=%s', dists)
-            log.debug('[Processor] distance=%.1f; stopped=%.2f.', this_point.distance, stopped)
+            log.debug('%s->%s, at %s.', current_mode, MODE_STOP, this_point)
+            log.debug('    alts=%s', alts)
+            log.debug('    dists=%s', dists)
+            log.debug('    distance=%.1f; stopped=%.2f.', this_point.distance, stopped)
             return MODE_STOP
         
         # On a lift, but now skiing
         if this_point.delta_a <= 0 and ascent < 0 and descending > 0.7:
-            log.info('[Processor] %s->%s, at %s.', current_mode, MODE_SKI, this_point)
-            log.debug('[Processor] alts=%s', alts)
-            log.debug('[Processor] dists=%s', dists)
-            log.debug('[Processor] delta_a=%.1f, ascent=%.1f, descending=%.2f', this_point.delta_a, ascent, descending)
+            log.debug('%s->%s, at %s.', current_mode, MODE_SKI, this_point)
+            log.debug('    alts=%s', alts)
+            log.debug('    dists=%s', dists)
+            log.debug('    delta_a=%.1f, ascent=%.1f, descending=%.2f', this_point.delta_a, ascent, descending)
             return MODE_SKI
         
     # No matches, so stay in same mode
@@ -209,19 +223,29 @@ def process(data):
       Process GPS data into ski tracks and perform analytics.
       @param data: a list of GPSDatum objects that have been pre-processed.
     '''
-    global all_data, lift_data, ski_data, stop_data, track_data
+    global all_data, lift_data, ski_data, stop_data, track_data, track_index
     
-    log.info('[Processor] Starting data processing...')
-    log.info('[Processor] Time zone: %s.', tz)
+    log.info('Starting data processing of %d points.', len(data))
+    log.info('Time zone: %s.', tz)
     
     # Build list of STPs
+    log.info('----------------------------------------')
+    log.info(' POINTS')
+    log.info('----------------------------------------')
+    
     all_data_list = []
     last_stp = None
     for d in data:
         last_stp = create_st_point(d, last_stp)
         all_data_list.append(last_stp)
+    assert(len(data) == len(all_data_list))
+    log.info('Built list of %d data points.', len(all_data_list))
     
     # Process to set modes
+    log.info('----------------------------------------')
+    log.info(' MODES')
+    log.info('----------------------------------------')
+    
     window_start = 0
     cMode = MODE_STOP
     
@@ -237,20 +261,26 @@ def process(data):
     
     # Mode lists
     all_data = SkiTrack(all_data_list)
+    log.info('all_data:  %d points', len(all_data))
+    
     lift_data = SkiTrack(filter(lambda stp: stp.mode == MODE_LIFT, all_data_list))
+    log.info('lift_data: %d points', len(lift_data))
+    
     ski_data = SkiTrack(filter(lambda stp: stp.mode == MODE_SKI, all_data_list))
+    log.info('ski_data:  %d points', len(ski_data))
+    
     stop_data = SkiTrack(filter(lambda stp: stp.mode == MODE_STOP, all_data_list))
+    log.info('stop_data: %d points', len(stop_data))
     
-    #Save off:
-    # Map/dict by track
+    assert(len(all_data) == (len(lift_data) + len(ski_data) + len(stop_data)))
+    
+    # Track dict
+    log.info('----------------------------------------')
+    log.info(' TRACKS')
+    log.info('----------------------------------------')
     build_track_data(all_data_list)
+    log.info('track_data:  %d tracks', len(track_data))
+    log.info('track_index: %d points', len(track_index))
     
+    log.info('Processing completed.')
     return all_data
-
-
-
-
-
-
-
-

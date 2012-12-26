@@ -5,7 +5,8 @@
   @author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
   @version: 1.0 (11 Dec 2012)
 '''
-import logging as log
+import logging
+log = logging.getLogger(__name__)
 
 from gpsdatum import GPSDatum
 from linkednode import LinkedNode
@@ -36,7 +37,8 @@ def convert_tuples_to_linked_list(tupleList):
         # Create a new LinkedNode object
         newNode = LinkedNode(d, firstNode)
         firstNode = newNode
-        
+    
+    log.debug('%d tuples converted to linked list.', len(dList))    
     return firstNode
 
 def interpolate_list(firstNode):
@@ -73,27 +75,34 @@ def preprocess(data):
       @return: a list of pre-processed GPSDatum objects
     
     '''
+    
+    log.info('Starting data pre-processing of %d points.', len(data))
 
     # Tuples to GPS datum objects
     # Array to linked list
     firstNode = convert_tuples_to_linked_list(data)
     
     # Interpolate
+    log.info('----------------------------------------')
+    log.info(' INTERPOLATE (1/2)')
+    log.info('----------------------------------------')
     interpolate_list(firstNode)
-    log.info('[Preprocessor] First stage interpolation complete.')
+    log.info('First stage interpolation complete.')
     
     # Remove outlyers
+    log.info('----------------------------------------')
+    log.info(' REMOVE OUTLYERS')
+    log.info('----------------------------------------')
     remove_outlyers(firstNode)
-    log.info('[Preprocessor] Outlyer removal complete.')
+    log.info('Outlyer removal complete.')
     
     # Re-interpolate?
+    log.info('----------------------------------------')
+    log.info(' INTERPOLATE (2/2)')
+    log.info('----------------------------------------')
     interpolate_list(firstNode)
-    log.info('[Preprocessor] Second state interpolation complete.')
+    log.info('Second stage interpolation complete.')
     
+    log.info('Pre-processing completed.')
     return firstNode.to_array()
-    
-    # To array of ski track points - move to process
-    
-    # Create track - move to process?
-    
     

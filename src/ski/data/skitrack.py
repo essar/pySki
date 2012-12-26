@@ -77,6 +77,9 @@ class SkiTrack:
         # Speed
         self.hdr.hiSpeed = max(self.spds)
         self.hdr.avSpeed = sum(self.spds) / len(tData)
+    
+    def __len__(self):
+        return len(self.data)
         
         
 class SkiTrackPoint:

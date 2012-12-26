@@ -8,7 +8,7 @@
 
 import logging
 
-log = logging.getLogger('ski.data.interpolator')
+log = logging.getLogger(__name__)
 
 from gpsdatum import GPSDatum
 from linkednode import LinkedNode
@@ -60,8 +60,8 @@ def interpolate_list(firstNode, deltaF, interF, deDup=True):
     
     log.debug('Interpolation start:')
     log.debug('    delta_F := %s', deltaF.__name__)
-    log.debug('    interF := %s', interF.__name__)
-    log.debug('    deDup := %s', deDup)
+    log.debug('    interF  := %s', interF.__name__)
+    log.debug('    deDup   := %s', deDup)
     
     # Reset counters
     count_added = count_removed = counter = 0
@@ -112,8 +112,6 @@ def interpolate_list(firstNode, deltaF, interF, deDup=True):
         
         # Move to next node    
         thisNode = nextNode
-        # Increment counter
-        counter += 1
         
-        log.info('Interpolation complete for %d points. %d points added; %d points removed.', counter, count_added, count_removed)
+    log.info('Interpolation complete over %d points. %d points added; %d points removed.', counter, count_added, count_removed)
     
