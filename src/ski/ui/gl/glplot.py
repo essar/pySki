@@ -244,7 +244,17 @@ class GLPlot:
         self.live_tx = cX
         self.live_ty = cY
         self.live_tz = cZ
-        log.info('[GLPlot] Panning view to to (%d, %d, %d)', cX, cY, cZ)
+        log.info('[GLPlot] Panning view to (%d, %d, %d)', cX, cY, cZ)
+    
+    def step_backward(self, step):
+        self.draw_idx -= step
+        self._update_vertex_list(self.vlists[self.plot_idx])
+        log.info('[GLPlot] Stepped backward by %d', step)
+    
+    def step_forward(self, step):
+        self.draw_idx += step
+        self._update_vertex_list(self.vlists[self.plot_idx])
+        log.info('[GLPlot] Stepped forward by %d', step)
     
     def zoom_view(self, zFac):
         if zFac == 0:

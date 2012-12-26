@@ -9,7 +9,9 @@
   @version: 1.0 (3 Dec 2012)
 '''
 
-import logging as log
+import logging
+log = logging.getLogger(__name__)
+
 from math import sqrt
 
 import pyglet.window.key as key
@@ -54,6 +56,12 @@ def __show_hide_status(plot):
     else:
         plot.cfg.show_status_bar = True
 
+def __step_backward(plot):
+    plot.step_backward(plot.cfg.animate_step)
+
+def __step_forward(plot):
+    plot.step_forward(plot.cfg.animate_step)
+
 def __zoom_in(plot):
     plot.zoom_view_in(plot.cfg.zoom_step)
     
@@ -76,6 +84,8 @@ key_map = {
          , (key.Z, key.MOD_SHIFT): __zoom_out_small
          , (key._0, 0): __reset
          , (key.SPACE, 0): __play_pause_animation
+         , (key.LESS, key.MOD_SHIFT): __step_backward
+         , (key.GREATER, key.MOD_SHIFT): __step_forward
          , (key.UP, 0): __pan_up
          , (key.UP, key.MOD_SHIFT): NotImplemented
          , (key.DOWN, 0): __pan_down
@@ -98,14 +108,14 @@ def handle_key_press(symbol, modifiers, plot):
       @param ctl: the current GL controller
     '''
     k = (symbol, modifiers)
-    log.debug('[KeyHandler] Key press %s trapped', key_str(k))
+    log.debug('Key press %s trapped', key_str(k))
     if k in key_map:
         # Key handler function from dict
         f = key_map[k]
-        log.debug('[KeyHandler] Key handler found: %s', f)
+        log.debug('Key handler found: %s', f)
         
         if f is NotImplemented:
-            log.warn('[KeyHandler] Handler is %s for %s', f, key_str(k))
+            log.warn('Handler is %s for %s', f, key_str(k))
         else:
             # Wrap in a try/except block to prevent bad handler functions
             # from crashing entire app
@@ -113,6 +123,6 @@ def handle_key_press(symbol, modifiers, plot):
                 key_map[k](plot)
             except:
                 # Log error details
-                log.exception('[KeyHandler] Error executing key handler %s for %s', f.__name__, key_str(k))
+                log.exception('Error executing key handler %s for %s', f.__name__, key_str(k))
                 # Exit method
                 return
