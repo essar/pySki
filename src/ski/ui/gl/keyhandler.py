@@ -17,8 +17,9 @@ from math import sqrt
 import pyglet.window.key as key
 
 def __centre_on_last(plot):
-    cx = (float(plot.cfg.plot_width) / 2.0) - plot.plot_data[plot.plot_idx].x_data[plot.draw_idx]
-    cy = (float(plot.cfg.plot_height) / 2.0) - plot.plot_data[plot.plot_idx].y_data[plot.draw_idx]
+    (lastx, lasty) = plot.get_last_xy()
+    cx = (float(plot.cfg.plot_width) / 2.0) - lastx
+    cy = (float(plot.cfg.plot_height) / 2.0) - lasty
     
     sx = plot.cfg.scale_x / plot.live_zoom_x
     sy = plot.cfg.scale_y / plot.live_zoom_y
