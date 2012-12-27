@@ -126,7 +126,7 @@ def build_track_data(all_data_list):
             # New mode, save previous track
             st = SkiTrack(this_track)
             log.debug('Compiled %s track of %d points (distance=%.1fm; dAlt=%dm)', this_mode, len(this_track), st.hdr.distance, st.hdr.dAlt)
-            track_data[this_track[0]] = (st, None)
+            track_data[this_track[0]] = st
             
             # Create new track
             this_track = []
@@ -148,7 +148,7 @@ def find_nearby_tracks(radius=20):
         if k1.mode == MODE_STOP:
             continue
         
-        k_nears = []
+        track_data[k1].near_tracks = []
         for k2 in track_data.keys():
             # Pass if is the same track
             if k2.ts == k1.ts:
@@ -166,12 +166,10 @@ def find_nearby_tracks(radius=20):
             if dst <= radius:
                 log.debug('%d: Found track nearby (%d, (%d, %d)); distance=%.2fm', k1.ts, k2.ts, k2.x, k2.y, dst)
                 # Save track
-                k_nears.append(k2)
+                track_data[k1].near_tracks.append(k2)
         
-        if len(k_nears) > 0:
-            (track, _nears) = track_data[k1]
-            track_data[k1] = (track, k_nears)
-            log.debug('%d: (%d, %d) found %d %s tracks within %dm radius', k1.ts, k1.x, k1.y, len(k_nears), k1.mode, radius)
+        if len(track_data[k1].near_tracks) > 0:
+            log.debug('%d: (%d, %d) found %d %s tracks within %dm radius', k1.ts, k1.x, k1.y, len(track_data[k1].near_tracks), k1.mode, radius)
         
 
 def process_track_point(current_mode, this_point, point_window):
