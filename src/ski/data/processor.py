@@ -126,7 +126,7 @@ def build_track_data(all_data_list):
             # New mode, save previous track
             st = SkiTrack(this_track)
             log.debug('Compiled %s track of %d points (distance=%.1fm; dAlt=%dm)', this_mode, len(this_track), st.hdr.distance, st.hdr.dAlt)
-            track_data[this_track[0]] = st
+            track_data[this_track[0]] = (st, None)
             
             # Create new track
             this_track = []
@@ -137,7 +137,42 @@ def build_track_data(all_data_list):
         this_track.append(stp)
         # Add track to index
         track_index.append(this_track[0])
+
+
+def find_nearby_tracks(radius=20):
+    # Look through track_data dictionary key list for near by points of same mode
+    log.debug('Looking for tracks within %dm', radius)
     
+    for k1 in track_data.keys():
+        # Ignore STOP tracks
+        if k1.mode == MODE_STOP:
+            continue
+        
+        k_nears = []
+        for k2 in track_data.keys():
+            # Pass if is the same track
+            if k2.ts == k1.ts:
+                continue
+            # Pass if modes are not the same
+            if k2.mode != k1.mode:
+                continue
+         
+            # Calculate distance between two points
+            dx = k2.x - k1.x
+            dy = k2.y - k1.y
+            da = k2.alt - k1.alt
+            dst = sqrt((dx ** 2) + (dy ** 2) + (da ** 2))
+    
+            if dst <= radius:
+                log.debug('%d: Found track nearby (%d, (%d, %d)); distance=%.2fm', k1.ts, k2.ts, k2.x, k2.y, dst)
+                # Save track
+                k_nears.append(k2)
+        
+        if len(k_nears) > 0:
+            (track, _nears) = track_data[k1]
+            track_data[k1] = (track, k_nears)
+            log.debug('%d: (%d, %d) found %d %s tracks within %dm radius', k1.ts, k1.x, k1.y, len(k_nears), k1.mode, radius)
+        
 
 def process_track_point(current_mode, this_point, point_window):
     # Validate arguments
@@ -274,11 +309,12 @@ def process(data):
     
     assert(len(all_data) == (len(lift_data) + len(ski_data) + len(stop_data)))
     
-    # Track dict
+    # Track processing
     log.info('----------------------------------------')
     log.info(' TRACKS')
     log.info('----------------------------------------')
     build_track_data(all_data_list)
+    find_nearby_tracks()
     log.info('track_data:  %d tracks', len(track_data))
     log.info('track_index: %d points', len(track_index))
     

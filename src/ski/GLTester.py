@@ -44,10 +44,10 @@ def readData(filename):
     
     
     #xData = [stp.ts for stp in all_data.data]
-    #yData = [stp.angle for stp in all_data.data]
+    #yData = [stp.spd for stp in all_data.data]
     #vData = [stp.alt for stp in all_data.data]
     
-    #glData = PlotData.build_linear_plot(xData, yData, vData, ySmoothing=60)
+    #glData = PlotData.build_linear_plot(xData, yData, vData, ySmoothing=60, xMarkers=1)
     #glData.compile_vertex_data(renderer.getColourValue, 2)
     
     # Calculate plot size
@@ -62,7 +62,7 @@ def readData(filename):
     plot.cfg.animate = True
     plot.cfg.show_status_bar = False
     
-    plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>2.1f}km/h ]'
+    plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>4.1f}km/h ]'
     plot.cfg.status_values_f = lambda idx : (all_data.data[idx].loc_time
                       , all_data.data[idx].mode
                       , all_data.data[idx].alt
@@ -75,6 +75,7 @@ def readData(filename):
 
 # Config log levels
 log.basicConfig(level=log.INFO)
+log.getLogger('ski').setLevel(log.INFO)
 
 # Code a-go-go
 readData('../data/sjr_20120211.gsd')

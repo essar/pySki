@@ -175,7 +175,7 @@ class GLPlot:
         gl.glLoadIdentity()
         
         if self.cfg.status_txt is not None:
-            if self.cfg.status_values_f is None:
+            if self.cfg.status_values_f is NotImplemented:
                 lbl_status.text = self.cfg.status_txt
             else:
                 lbl_status.text = self.cfg.status_txt.format(*self.cfg.status_values_f(self.draw_idx))
@@ -191,8 +191,12 @@ class GLPlot:
         win.set_fullscreen(self.cfg.window_fullscreen)
         if not self.cfg.window_fullscreen:
             win.set_size(self.cfg.window_width, self.cfg.window_height)
-    
-    
+
+
+    def _set_draw_idx(self, idx):
+        self.draw_idx = max(2, min(len(self.plot_data[self.plot_idx].v_data) - 1, idx))
+
+
     def _update_vertex_list(self, vertex_list):
         # Update vertex data
         idxs = range(self.draw_idx)
@@ -247,12 +251,12 @@ class GLPlot:
         log.info('[GLPlot] Panning view to (%d, %d, %d)', cX, cY, cZ)
     
     def step_backward(self, step):
-        self.draw_idx -= step
+        self._set_draw_idx(self.draw_idx - step)
         self._update_vertex_list(self.vlists[self.plot_idx])
         log.info('[GLPlot] Stepped backward by %d', step)
     
     def step_forward(self, step):
-        self.draw_idx += step
+        self._set_draw_idx(self.draw_idx + step)
         self._update_vertex_list(self.vlists[self.plot_idx])
         log.info('[GLPlot] Stepped forward by %d', step)
     
@@ -363,7 +367,7 @@ class GLPlot:
         # Update if we're running and there are indexes left
         if self.playing and self.draw_idx < self.vlists[self.plot_idx].get_size():
             # Increment end index
-            self.draw_idx += self.cfg.animate_step
+            self._set_draw_idx(self.draw_idx + self.cfg.animate_step)
             self._update_vertex_list(self.vlists[self.plot_idx])
             
             

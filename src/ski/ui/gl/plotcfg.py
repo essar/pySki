@@ -14,7 +14,7 @@ class PlotCfg:
     animate_step = 10
     
     bg_colour_4f = (0.1, 0.1, 0.15, 0.1)
-    
+
     pan_step_x = 50
     pan_step_y = 50
     
@@ -33,7 +33,7 @@ class PlotCfg:
     show_status_bar = False
     
     status_txt = ''
-    status_values_f = []
+    status_values_f = NotImplemented
     
     window_fullscreen = False
     window_height = 600
