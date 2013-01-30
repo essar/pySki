@@ -60,7 +60,7 @@ def readData(filename):
     plot.cfg.scale_z = altScale
     plot.cfg.drawmode = '2D'
     plot.cfg.animate = True
-    plot.cfg.show_status_bar = False
+    plot.cfg.show_status_bar = True
     
     plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>4.1f}km/h ]'
     plot.cfg.status_values_f = lambda idx : (all_data.data[idx].loc_time

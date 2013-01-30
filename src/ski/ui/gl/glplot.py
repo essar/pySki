@@ -51,7 +51,7 @@ class GLPlot:
         self.plot_idx = 0
         
         self.ct = 0
-        self.glBatch = pyglet.graphics.Batch()
+        self.vx_dom = pyglet.graphics.vertexdomain.create_domain('v2i','c3f')
         
         # Live transformations
         self.live_zoom_x = self.live_zoom_y = self.live_zoom_z = 1
@@ -69,19 +69,17 @@ class GLPlot:
         assert(vlen == clen)
         
         # Create GL vertex list
-        #vertex_list = self.glBatch.add_indexed(vlen
-        #                 , gl.GL_LINE_STRIP
-        #                 , None
-        #                 , range(vlen)
-        #                 , ('v2i', vs)
-        #                 , ('c3f', cs)
+        #vertex_list = pyglet.graphics.vertex_list_indexed(vlen
+        #                , range(vlen)
+        #                , ('v2i', vs)
+        #                , ('c3f', cs)
         #)
-        vertex_list = pyglet.graphics.vertex_list_indexed(vlen
-                        , range(vlen)
-                        , ('v2i', vs)
-                        , ('c3f', cs)
-        )
-        log.info('[glplot] Compiled vertex list of %d indices', vlen)
+        #vertex_list = self.vx_dom.create(vlen, vlen)
+        vertex_list = self.vx_dom.create(vlen)
+        vertex_list.vertices = vs
+        vertex_list.colors = cs
+        
+        log.info('[glplot] Compiled vertex list of %d vertices', vlen)
         return vertex_list
     
     
@@ -173,12 +171,8 @@ class GLPlot:
     
     
     def _draw_plot(self):
-        #vl = self.vlists[self.plot_idx]
-        #gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-        #self.glBatch.draw()
-        
-        for i in range(len(self.vlists)):
-            self.vlists[i].draw(gl.GL_LINE_STRIP)
+        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+        self.vx_dom.draw(gl.GL_LINE_STRIP)
         
         
     def _draw_status_bar(self):
@@ -209,28 +203,55 @@ class GLPlot:
         min_idx = 2
         max_idx = max([len(p.v_data) for p in self.plot_data]) - 1
         
-        #self.draw_idx = max(2, min(len(self.plot_data[self.plot_idx].v_data) - 1, idx))
         self.draw_idx = max(min_idx, min(max_idx, idx))
+        log.debug('[glplot] draw_idx=%d', self.draw_idx)
 
 
-    def _update_vertex_list(self, vl_idx):
-        # Update vertex data
-        idxs = range(self.draw_idx)
+    def _update_all_vertex_lists(self):
+        for i in range(len(self.vlists)):
+            # Update if we're running and there are indexes left
+            if self.draw_idx < self.plot_data[i].vertices_list[0]:
+                self._update_vertex_list(i)
                 
-        # Calculate lengths
-        vLen = self.vlists[vl_idx].get_size()
-        iLen = len(idxs)  #iLen = self.draw_idx?
-        log.debug('Updating vertex list %d, vLen=%d, iLen=%d', vl_idx, vLen, iLen)
+
+    def _update_vertex_list(self, vlix):
+        # NON INDEXED VERSION
+        
+        dx = self.draw_idx * 2
+        vLen = self.draw_idx
+        
+        # Get vertex data
+        vData = self.plot_data[vlix].vertices_list[1][:dx]
+        assert(len(vData) == dx)
+        log.debug('[glplot] Resizing vertex list %d, vLen=%d', vlix, vLen)
         
         # Resize vertex list
-        self.vlists[vl_idx].resize(vLen, iLen)
-        log.debug('Resized %d times.', self.ct)
-        self.ct += 1
+        vl = self.vlists[vlix]
+        vl.resize(vLen)
+        log.debug('[glplot] Vertex list %d length: %d', vlix, vl.get_size())
+        
+        # Set list elements
+        vl.vertices = vData
+        
+        # INDEXED VERSION
+        
+        # Update vertex data
+        #idxs = range(self.draw_idx)
+                
+        # Calculate lengths
+        #vLen = self.vlists[vlix].get_size()
+        #iLen = min(len(idxs), vLen)  #iLen = self.draw_idx?
+        #log.debug('Updating vertex list %d, vLen=%d, iLen=%d', vlix, vLen, iLen)
+        
+        # Resize vertex list
+        #self.vlists[vlix].resize(vLen, iLen)
+        #log.debug('Resized %d times.', self.ct)
+        #self.ct += 1
             
         # Set list elements
-        #self.vlists[vl_idx].vertices = self.vlists[vl_idx].vertices[:self.draw_idx]
-        #self.vlists[vl_idx].indices = self.vlists[vl_idx].indices[:self.draw_idx]
-        #self.vlists[vl_idx].indices = idxs
+        #self.vlists[vlix].vertices = self.vlists[vlix].vertices[:self.draw_idx]
+        #self.vlists[vlix].indices = self.vlists[vlix].indices[:self.draw_idx]
+        #self.vlists[vlix].indices = idxs
 
     def animation_pause(self):
         self.playing = False
@@ -272,16 +293,12 @@ class GLPlot:
     
     def step_backward(self, step):
         self._set_draw_idx(self.draw_idx - step)
-        for i in range(len(self.vlists)):
-            #self._update_vertex_list(self.vlists[self.plot_idx])
-            self._update_vertex_list(i)
+        self._update_all_vertex_lists()
         log.info('[GLPlot] Stepped backward by %d', step)
     
     def step_forward(self, step):
         self._set_draw_idx(self.draw_idx + step)
-        for i in range(len(self.vlists)):
-            #self._update_vertex_list(self.vlists[self.plot_idx])
-            self._update_vertex_list(i)
+        self._update_all_vertex_lists()
         log.info('[GLPlot] Stepped forward by %d', step)
     
     def zoom_view(self, zFac):
@@ -366,8 +383,7 @@ class GLPlot:
     
     def reset(self):
         self.draw_idx = 2
-        for i in range(len(self.vlists)):
-            self._update_vertex_list(i)
+        self._update_all_vertex_lists()
     
     def show(self, plotData):
         self.plot_data = plotData
@@ -381,6 +397,7 @@ class GLPlot:
         
         # If in animate mode, call update function
         if self.cfg.animate:
+            log.info('[glplot] Starting animation')
             self.reset()
             pyglet.clock.schedule_interval(self.update, 1.0 / self.cfg.animate_fps)
     
@@ -392,11 +409,8 @@ class GLPlot:
         if self.playing:
             # Increment end index
             self._set_draw_idx(self.draw_idx + self.cfg.animate_step)
-
-            for i in range(len(self.vlists)):
-                # Update if we're running and there are indexes left
-                if self.draw_idx < self.vlists[i].get_size():
-                    self._update_vertex_list(i)
+            # Update if we're running and there are indexes left
+            self._update_all_vertex_lists()
                 
             
             

@@ -35,25 +35,25 @@ def readData(filename1, filename2):
     hdr = all_data.hdr
     hdr.print_track_header()
     
-    #(minX, minY) = hdr.area[0]
+    (minX, minY) = hdr.area[0]
     
-    #xyData1 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 0]
-    #vData1 = [stp.setID for stp in all_data.data if stp.setID == 0]
-    #glData1 = PlotData.build_xy_plot(xyData1, vData1, minX, minY)
-    #glData1.compile_vertex_data(renderer.absColourValue, 2)
+    xyData1 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 0]
+    vData1 = [stp.setID for stp in all_data.data if stp.setID == 0]
+    glData1 = PlotData.build_xy_plot(xyData1, vData1, minX, minY)
+    glData1.compile_vertex_data(renderer.absColourValue, 2)
     
-    #xyData2 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 1]
-    #vData2 = [stp.setID for stp in all_data.data if stp.setID == 1]
-    #glData2 = PlotData.build_xy_plot(xyData2, vData2, minX, minY)
-    #glData2.compile_vertex_data(renderer.absColourValue, 2)
+    xyData2 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 1]
+    vData2 = [stp.setID for stp in all_data.data if stp.setID == 1]
+    glData2 = PlotData.build_xy_plot(xyData2, vData2, minX, minY)
+    glData2.compile_vertex_data(renderer.absColourValue, 2)
     
     
-    xyData = [(stp.x, stp.y) for stp in all_data.data]
-    vData = [stp.setID for stp in all_data.data]
+    #xyData = [(stp.x, stp.y) for stp in all_data.data]
+    #vData = [stp.setID for stp in all_data.data]
     #vData = [stp.spd for stp in all_data.data]
     #vData = [stp.mode for stp in all_data.data]
-    glData = PlotData.build_xy_plot(xyData, vData)
-    glData.compile_vertex_data(renderer.relColourValue, 2)
+    #glData = PlotData.build_xy_plot(xyData, vData)
+    #glData.compile_vertex_data(renderer.relColourValue, 2)
     
     # Calculate plot size
     plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
@@ -74,8 +74,8 @@ def readData(filename1, filename2):
     #                  , all_data.data[idx].spd
     #)
     
-    plot.show([glData]) 
-    #plot.show([glData1, glData2]) 
+    #plot.show([glData]) 
+    plot.show([glData1, glData2]) 
 
 
 # Config log levels
