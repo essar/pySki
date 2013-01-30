@@ -88,6 +88,7 @@ class SkiTrack:
 class SkiTrackPoint:
     
     mode = None
+    setID = 0
     
     # Static values
     x = y = alt = 0

@@ -4,11 +4,13 @@ Created on 19 Dec 2012
 @author: sroberts
 '''
 
-def _relativeise(data, value=None):
-    mx = min(data)
+def _relativeise(data, value=None, minValue=None):
+    if minValue is None:
+        minValue = min(data)
     if value is None:
-        return [x - mx for x in data]
-    return value - mx
+        return [x - minValue for x in data]
+    return value - minValue
+
 
 def _smooth(data, smoothing):
     smoothed = []
@@ -23,7 +25,7 @@ class PlotData:
     '''
       Class containing data elements required for drawing a graphical plot.
     '''
-    def __init__(self, xList, yList, zList, vList, xSmoothing=0, ySmoothing=0, zSmoothing=0):
+    def __init__(self, xList, yList, zList, vList, minX=None, minY=None, minZ=None, xSmoothing=0, ySmoothing=0, zSmoothing=0):
         '''
         Constructor
         '''
@@ -32,20 +34,19 @@ class PlotData:
         if type(yList) is not list:
             raise ValueError('List expected for yList')
         if type(zList) is not list:
-            raise ValueError('List expexted for zList')
+            raise ValueError('List expected for zList')
         if type(vList) is not list:
             raise ValueError('List expected for vList')
         if len(xList) <> len(yList) or len(yList) <> len(zList) or len(zList) <> len(vList):
             raise ValueError('Lists not same length')
         
         # Convert x,y,z data into relative smoothed lists
-        self.x_data = _smooth(_relativeise(xList), xSmoothing)
-        self.y_data = _smooth(_relativeise(yList), ySmoothing)
-        self.z_data = _smooth(_relativeise(zList), zSmoothing)
+        self.x_data = _smooth(_relativeise(xList, minValue=minX), xSmoothing)
+        self.y_data = _smooth(_relativeise(yList, minValue=minY), ySmoothing)
+        self.z_data = _smooth(_relativeise(zList, minValue=minZ), zSmoothing)
         
         # Store value data as-is
         self.v_data = vList
-        
         
         self.x_axis_markers = []
         self.y_axis_markers = []
@@ -135,7 +136,7 @@ class PlotData:
     
     
     @staticmethod
-    def build_xy_plot(xyData, vData):
+    def build_xy_plot(xyData, vData, minX=None, minY=None):
         # Compile list of x values
         xs = [x for (x, _y) in xyData]
         # Compile list of y values
@@ -143,7 +144,7 @@ class PlotData:
         # Compile synthetic list of z values
         zs = [0 for _x in range(len(xyData))]
         
-        return PlotData(xs, ys, zs, vData)
+        return PlotData(xs, ys, zs, vData, minX=minX, minY=minY)
         
         
     @staticmethod

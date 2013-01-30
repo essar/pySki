@@ -5,6 +5,7 @@ Created on 19 Dec 2012
 '''
 
 import logging as log
+#log.basicConfig(level=log.DEBUG)
 
 import pyglet
 import pyglet.graphics as gl
@@ -49,6 +50,9 @@ class GLPlot:
         self.draw_idx = 0
         self.plot_idx = 0
         
+        self.ct = 0
+        self.glBatch = pyglet.graphics.Batch()
+        
         # Live transformations
         self.live_zoom_x = self.live_zoom_y = self.live_zoom_z = 1
         self.live_tx = self.live_ty = self.live_tz = 0
@@ -65,14 +69,22 @@ class GLPlot:
         assert(vlen == clen)
         
         # Create GL vertex list
+        #vertex_list = self.glBatch.add_indexed(vlen
+        #                 , gl.GL_LINE_STRIP
+        #                 , None
+        #                 , range(vlen)
+        #                 , ('v2i', vs)
+        #                 , ('c3f', cs)
+        #)
         vertex_list = pyglet.graphics.vertex_list_indexed(vlen
                         , range(vlen)
                         , ('v2i', vs)
                         , ('c3f', cs)
         )
-        return vertex_list    
+        log.info('[glplot] Compiled vertex list of %d indices', vlen)
+        return vertex_list
     
-        
+    
     def _calc_scales(self):
         if self.cfg.scale_stretch:
             # Update scale factors to make plot fill window
@@ -161,11 +173,12 @@ class GLPlot:
     
     
     def _draw_plot(self):
+        #vl = self.vlists[self.plot_idx]
+        #gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
+        #self.glBatch.draw()
         
-        vl = self.vlists[self.plot_idx]
-        
-        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
-        vl.draw(gl.GL_LINE_STRIP)
+        for i in range(len(self.vlists)):
+            self.vlists[i].draw(gl.GL_LINE_STRIP)
         
         
     def _draw_status_bar(self):
@@ -187,31 +200,38 @@ class GLPlot:
         
         
     def _init_window(self):
-        
         win.set_fullscreen(self.cfg.window_fullscreen)
         if not self.cfg.window_fullscreen:
             win.set_size(self.cfg.window_width, self.cfg.window_height)
 
 
     def _set_draw_idx(self, idx):
-        self.draw_idx = max(2, min(len(self.plot_data[self.plot_idx].v_data) - 1, idx))
+        min_idx = 2
+        max_idx = max([len(p.v_data) for p in self.plot_data]) - 1
+        
+        #self.draw_idx = max(2, min(len(self.plot_data[self.plot_idx].v_data) - 1, idx))
+        self.draw_idx = max(min_idx, min(max_idx, idx))
 
 
-    def _update_vertex_list(self, vertex_list):
+    def _update_vertex_list(self, vl_idx):
         # Update vertex data
         idxs = range(self.draw_idx)
                 
         # Calculate lengths
-        vLen = vertex_list.get_size()
-        iLen = len(idxs)
-            
+        vLen = self.vlists[vl_idx].get_size()
+        iLen = len(idxs)  #iLen = self.draw_idx?
+        log.debug('Updating vertex list %d, vLen=%d, iLen=%d', vl_idx, vLen, iLen)
+        
         # Resize vertex list
-        vertex_list.resize(vLen, iLen)
+        self.vlists[vl_idx].resize(vLen, iLen)
+        log.debug('Resized %d times.', self.ct)
+        self.ct += 1
             
         # Set list elements
-        vertex_list.indices = idxs
+        #self.vlists[vl_idx].vertices = self.vlists[vl_idx].vertices[:self.draw_idx]
+        #self.vlists[vl_idx].indices = self.vlists[vl_idx].indices[:self.draw_idx]
+        #self.vlists[vl_idx].indices = idxs
 
-    
     def animation_pause(self):
         self.playing = False
         log.info('[GLPlot] Animation paused')
@@ -252,12 +272,16 @@ class GLPlot:
     
     def step_backward(self, step):
         self._set_draw_idx(self.draw_idx - step)
-        self._update_vertex_list(self.vlists[self.plot_idx])
+        for i in range(len(self.vlists)):
+            #self._update_vertex_list(self.vlists[self.plot_idx])
+            self._update_vertex_list(i)
         log.info('[GLPlot] Stepped backward by %d', step)
     
     def step_forward(self, step):
         self._set_draw_idx(self.draw_idx + step)
-        self._update_vertex_list(self.vlists[self.plot_idx])
+        for i in range(len(self.vlists)):
+            #self._update_vertex_list(self.vlists[self.plot_idx])
+            self._update_vertex_list(i)
         log.info('[GLPlot] Stepped forward by %d', step)
     
     def zoom_view(self, zFac):
@@ -342,7 +366,8 @@ class GLPlot:
     
     def reset(self):
         self.draw_idx = 2
-        self._update_vertex_list(self.vlists[self.plot_idx])
+        for i in range(len(self.vlists)):
+            self._update_vertex_list(i)
     
     def show(self, plotData):
         self.plot_data = plotData
@@ -364,12 +389,15 @@ class GLPlot:
     
         
     def update(self, dt):
-        # Update if we're running and there are indexes left
-        if self.playing and self.draw_idx < self.vlists[self.plot_idx].get_size():
+        if self.playing:
             # Increment end index
             self._set_draw_idx(self.draw_idx + self.cfg.animate_step)
-            self._update_vertex_list(self.vlists[self.plot_idx])
-            
+
+            for i in range(len(self.vlists)):
+                # Update if we're running and there are indexes left
+                if self.draw_idx < self.vlists[i].get_size():
+                    self._update_vertex_list(i)
+                
             
             
 ###############################################################################
