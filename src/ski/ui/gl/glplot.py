@@ -5,7 +5,6 @@ Created on 19 Dec 2012
 '''
 
 import logging as log
-#log.basicConfig(level=log.DEBUG)
 
 import pyglet
 import pyglet.graphics as gl
@@ -192,6 +191,17 @@ class GLPlot:
         lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
         lbl_fps.draw()
         
+    
+    def _get_current_track(self):
+        if self.index_data is None:
+            return None
+        # Calculate current track
+        currentTrack = 0
+        while(self.index_data[currentTrack].idx < self.draw_idx):
+            currentTrack += 1
+        
+        log.debug('[glPlot] Currently in track %d/%d', currentTrack, len(self.index_data))
+        return currentTrack
         
     def _init_window(self):
         win.set_fullscreen(self.cfg.window_fullscreen)
@@ -301,6 +311,40 @@ class GLPlot:
         self._update_all_vertex_lists()
         log.info('[GLPlot] Stepped forward by %d', step)
     
+    def step_track_backward(self, step=1):
+        # Calculate current track
+        currentTrack = self._get_current_track()
+        if currentTrack is None:
+            log.warn('[GLPlot] Cannot step track backward without track index')
+            return
+            
+        newTrack = currentTrack - step
+            
+        # Get index of next track
+        newIndex = self.index_data[newTrack].idx
+        log.debug('[GLPlot] Stepping from track %d to %d', currentTrack, newTrack)
+
+        self._set_draw_idx(newIndex)
+        self._update_all_vertex_lists()
+        log.info('[GLPlot] Stepped backward to %d', newIndex)
+        
+    def step_track_forward(self, step=1):
+        # Calculate current track
+        currentTrack = self._get_current_track()
+        if currentTrack is None:
+            log.warn('[GLPlot] Cannot step track forward without track index')
+            return
+
+        newTrack = currentTrack + step
+            
+        # Get index of next track
+        newIndex = self.index_data[newTrack].idx
+        log.debug('[GLPlot] Stepping from track %d to %d', currentTrack, newTrack)
+
+        self._set_draw_idx(newIndex)
+        self._update_all_vertex_lists()
+        log.info('[GLPlot] Stepped forward to %d', newIndex)
+    
     def zoom_view(self, zFac):
         if zFac == 0:
             # Reset zoom factors to 1
@@ -385,8 +429,9 @@ class GLPlot:
         self.draw_idx = 2
         self._update_all_vertex_lists()
     
-    def show(self, plotData):
+    def show(self, plotData, plotIndex=None):
         self.plot_data = plotData
+        self.index_data = plotIndex
         self.vlists = [self._build_vertex_list(d) for d in plotData]
         
         self._init_window()

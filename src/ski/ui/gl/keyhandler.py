@@ -62,6 +62,12 @@ def __step_backward(plot):
 
 def __step_forward(plot):
     plot.step_forward(plot.cfg.animate_step)
+    
+def __step_track_backward(plot):
+    plot.step_track_backward(1)
+
+def __step_track_forward(plot):
+    plot.step_track_forward(1)
 
 def __zoom_in(plot):
     plot.zoom_view_in(plot.cfg.zoom_step)
@@ -86,7 +92,9 @@ key_map = {
          , (key._0, 0): __reset
          , (key.SPACE, 0): __play_pause_animation
          , (key.LESS, key.MOD_SHIFT): __step_backward
+         , (key.LESS, key.MOD_SHIFT + key.MOD_CTRL): __step_track_backward
          , (key.GREATER, key.MOD_SHIFT): __step_forward
+         , (key.GREATER, key.MOD_SHIFT + key.MOD_CTRL): __step_track_forward
          , (key.UP, 0): __pan_up
          , (key.UP, key.MOD_SHIFT): NotImplemented
          , (key.DOWN, 0): __pan_down

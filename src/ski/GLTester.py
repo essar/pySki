@@ -70,12 +70,13 @@ def readData(filename):
     )
     
     print 'Draw {0} points fitting {1}x{2}'.format(len(xyData), plot.cfg.plot_width, plot.cfg.plot_height)
-    plot.show([glData])
+    plot.show([glData], data.processor.track_index)
 
 
 # Config log levels
 log.basicConfig(level=log.INFO)
 log.getLogger('ski').setLevel(log.INFO)
+log.getLogger('data.processor').setLevel(log.DEBUG)
 
 # Code a-go-go
 readData('../data/sjr_20120211.gsd')

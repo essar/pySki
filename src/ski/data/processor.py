@@ -67,7 +67,7 @@ def set_tz(tz_name):
 ###############################################################################
 # SKI TRACK BUILDING
 ###############################################################################
-def create_st_point(datum, last_stp=None, setID=0):
+def create_st_point(datum, last_stp=None, idx=0, setID=0):
     '''
       Create a SkiTrackPoint out of a GPSDatum object. If a previous
       SkiTrackPoint is provided, aggregate values (distance, speed, angle) etc.
@@ -79,6 +79,7 @@ def create_st_point(datum, last_stp=None, setID=0):
     '''
     # Create point
     p = SkiTrackPoint(datum)
+    p.idx = idx
     p.setID = setID
     log.debug('Datum converted to %s', p)
     
@@ -87,24 +88,26 @@ def create_st_point(datum, last_stp=None, setID=0):
     
     # If a previous point provided, calculate additional attributes
     if last_stp is not None:
-        log.debug('    last_stp: %s', last_stp)
-        
         # Calculate delta values
         p.delta_x = p.x - last_stp.x
         p.delta_y = p.y - last_stp.y
         p.delta_a = p.alt - last_stp.alt
         p.delta_ts = p.ts - last_stp.ts
+        log.debug('    Deltas: x=%d, y=%d, a=%d, ts=%d', p.delta_x, p.delta_y, p.delta_a, p.delta_ts)
         
         # Distances
         p.distance = sqrt((p.delta_x ** 2) + (p.delta_y ** 2) + (p.delta_a ** 2))
         p.xy_distance = sqrt((p.delta_x ** 2) + (p.delta_y ** 2))
+        log.debug('    Distances: xya=%.2f, xy=%.2f', p.distance, p.xy_distance)
         
         # Re-calculate speed
         p.calc_speed = (p.distance / p.delta_ts) * 3.6
+        log.debug('    Speeds: raw=%.2f, calc=%.2f (%.1f%%)', p.spd, p.calc_speed, (p.calc_speed / p.spd) * 100.0)
         
         # Angle
         p.angle = degrees(atan(p.delta_a / p.xy_distance)) if p.xy_distance > 0 else 0.0
-
+        log.debug('    Angle: %.2f', p.angle)
+        
     return p
     
     
@@ -129,6 +132,8 @@ def build_track_data(all_data_list):
             st = SkiTrack(this_track)
             log.debug('Compiled %s track of %d points (distance=%.1fm; dAlt=%dm)', this_mode, len(this_track), st.hdr.distance, st.hdr.dAlt)
             track_data[this_track[0]] = (st, None)
+            # Add track to index
+            track_index.append(this_track[0])
             
             # Create new track
             this_track = []
@@ -137,8 +142,6 @@ def build_track_data(all_data_list):
         this_mode = stp.mode
         # Add point to current track
         this_track.append(stp)
-        # Add track to index
-        track_index.append(this_track[0])
 
 
 def find_markers():
@@ -154,7 +157,9 @@ def find_markers():
     
 
 def find_nearby_tracks(radius=20):
-    # Look through track_data dictionary key list for near by points of same mode
+    '''
+        Look through track_data dictionary key list for near by points of same mode
+    '''
     log.debug('Looking for tracks within %dm', radius)
     
     for k1 in track_data.keys():
@@ -287,9 +292,11 @@ def process(*data):
     for dl in data:
         log.info('Loading data set of %d points.', len(dl))
         last_stp = None
+        idx = 0
         for d in dl:
-            last_stp = create_st_point(d, last_stp, setID)
+            last_stp = create_st_point(d, last_stp, idx, setID)
             all_data_list.append(last_stp)
+            idx += 1
         setID += 1
         
     log.info('Built list of %d data points.', len(all_data_list))
