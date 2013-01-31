@@ -46,7 +46,7 @@ class PlotCfg:
     zoom_step = 2
     
     
-    def _calc_scales(self):
+    def _update_scaling(self):
         if self.scale_stretch:
             # Update scale factors to make plot fill window
             viewWidth = float(self.window_width

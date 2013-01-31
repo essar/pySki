@@ -15,6 +15,9 @@ log = logging.getLogger(__name__)
 from skitrack import MODE_LIFT, MODE_SKI, MODE_STOP, SkiTrack, SkiTrackPoint
 from types import InstanceType
 
+track_data = {}
+track_index = []
+
 ###############################################################################
 # TIMEZONE SUPPORT
 ###############################################################################

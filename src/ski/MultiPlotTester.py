@@ -55,9 +55,8 @@ def readData(filename1, filename2):
     #glData = PlotData.build_xy_plot(xyData, vData)
     #glData.compile_vertex_data(renderer.relColourValue, 2)
     
-    # Create plot window
-    win = glplot.create_plot_window()
-    plot = win.plot
+    # Create plot
+    plot = glplot.GLPlot()
     
     # Calculate plot size
     plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
@@ -67,7 +66,8 @@ def readData(filename1, filename2):
     altScale = float(abs(hdr.hiAlt - hdr.loAlt)) / 1000.0
     plot.cfg.scale_z = altScale
     plot.cfg.drawmode = '2D'
-    plot.cfg.animate = True
+    plot.cfg.animate = False
+    plot.cfg.window_fullscreen = True
     plot.cfg.show_status_bar = False
     
     #plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>4.1f}km/h ]'
@@ -77,9 +77,13 @@ def readData(filename1, filename2):
     #                  , all_data.data[idx].spd
     #)
     
-    win.init_window()
+    #win.init_window()
     #plot.show([glData]) 
-    plot.show([glData1, glData2]) 
+    #plot.show() 
+    
+    # Create plot window
+    glplot.create_plot_window(plot, [glData1, glData2])
+    
 
 
 # Config log levels

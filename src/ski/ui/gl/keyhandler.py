@@ -25,6 +25,9 @@ def __centre_on_last(win):
     sz = win.plot.cfg.scale_z / win.plot.live_zoom_z
     
     win.plot.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
+
+def __close_window(win):
+    win.close()
     
 def __pan_down(win):
     win.plot.pan_view_down(win.plot.cfg.pan_step_y / win.plot.live_zoom_y)
@@ -85,6 +88,7 @@ key_map = {
            (key.A, 0): __zoom_in
          , (key.A, key.MOD_SHIFT): __zoom_in_small
          , (key.C, 0): __centre_on_last
+         , (key.Q, key.MOD_CTRL): __close_window
          , (key.S, 0): __show_hide_status
          , (key.Z, 0): __zoom_out
          , (key.Z, key.MOD_SHIFT): __zoom_out_small
@@ -100,6 +104,7 @@ key_map = {
          , (key.DOWN, key.MOD_SHIFT): NotImplemented
          , (key.LEFT, 0): __pan_left
          , (key.RIGHT, 0): __pan_right
+         , (key.ESCAPE, 0): __close_window
 }
 
 def key_str((symbol, modifiers)):

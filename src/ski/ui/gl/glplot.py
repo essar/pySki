@@ -5,6 +5,7 @@ Created on 19 Dec 2012
 '''
 
 import logging as log
+log.basicConfig(level=log.DEBUG)
 
 import pyglet
 import pyglet.graphics as gl
@@ -60,7 +61,8 @@ class GLPlot:
         return vertex_list
     
     
-    def _calc_scales(self):
+    def _update_scaling(self):
+        #return self.cfg._update_scaling()
         if self.cfg.scale_stretch:
             # Update scale factors to make plot fill window
             viewWidth = float(self.cfg.window_width
@@ -79,6 +81,7 @@ class GLPlot:
             # Update scale factors so they scale x:X
             self.cfg.scale_x = self.cfg.scale_y = min(self.cfg.scale_x, self.cfg.scale_y)
             
+        log.debug('[glPlot] scales updated: x=%.3f, y=%.3f, z=%.3f', self.cfg.scale_x, self.cfg.scale_y, self.cfg.scale_z)
         return (self.cfg.scale_x, self.cfg.scale_y, self.cfg.scale_z)
     
     
@@ -86,11 +89,12 @@ class GLPlot:
         gl.glPushMatrix()
         
         # Scale to fit window
-        self._calc_scales()
-        #gl.glScalef(*self._calc_scales())
+        self._update_scaling()
+        #gl.glScalef(*self._update_scaling())
         
         width = int(self.cfg.plot_width)
         height = int(self.cfg.plot_height)
+        log.debug('[glPlot] Drawing axis; width=%d, height=%d', width, height)
         
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         gl.glColor4f(1.0, 1.0, 1.0, 1.0)
@@ -109,6 +113,7 @@ class GLPlot:
             gl.glVertex3i(int(pos), 0, 0)
             gl.glVertex3i(int(pos), -1, 0)
             gl.glEnd()
+            log.debug('[glPlot] Drawing x-axis marker at %d', int(pos))
             
             if _lbl is not None:
                 gl.glPushMatrix()
@@ -121,6 +126,7 @@ class GLPlot:
             gl.glVertex3i(0, int(pos), 0)
             gl.glVertex3i(-1, int(pos), 0)
             gl.glEnd()
+            log.debug('[glPlot] Drawing y-axis marker at %d', int(pos))
         
         gl.glPopMatrix()
         
@@ -129,11 +135,12 @@ class GLPlot:
         gl.glPushMatrix()
         
         # Scale to fit window
-        gl.glScalef(*self._calc_scales())
+        gl.glScalef(*self._update_scaling())
         
         width = int(self.cfg.plot_width)
         height = int(self.cfg.plot_height)
         depth = -1
+        log.debug('[glPlot] Drawing background; width=%d, height=%d, depth=%d', width, height, depth)
         
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         gl.glColor4f(*self.cfg.bg_colour_4f)
@@ -331,7 +338,7 @@ class GLPlot:
         # Adjust for view
         gl.glTranslatef(self.live_tx, self.live_ty, self.live_tz)
         # Scale to fit window
-        gl.glScalef(*self._calc_scales())
+        gl.glScalef(*self._update_scaling())
         
         # Compute centre point
         cx = float((self.cfg.plot_width / 2.0) - (self.live_tx / self.cfg.scale_x))
@@ -449,13 +456,11 @@ class GLPlotWindow(pyglet.window.Window):
         super(GLPlotWindow, self).__init__()
         self.plot = plot
 
-
-    def init_window(self):
         self.set_fullscreen(self.plot.cfg.window_fullscreen)
         if not self.plot.cfg.window_fullscreen:
             self.set_size(self.plot.cfg.window_width, self.plot.cfg.window_height)
     
-
+    
     ###############################################################################
     # WINDOW EVENT FUNCTIONS
     ###############################################################################
@@ -479,6 +484,9 @@ class GLPlotWindow(pyglet.window.Window):
     
         
     def on_resize(self, width, height):
+        self.plot.cfg.window_width = width
+        self.plot.cfg.window_height = height
+        
         gl.glViewport(0, 0, width, height)
                 
         gl.glMatrixMode(gl.GL_PROJECTION)
@@ -493,10 +501,10 @@ class GLPlotWindow(pyglet.window.Window):
         return True
 
 
-def create_plot_window(plotData=None, plotIndex=None):
-    plot = GLPlot()
+def create_plot_window(plot=GLPlot(), plotData=None, plotIndex=None):
     win = GLPlotWindow(plot)
     if plotData is not None:
+        log.info('[glPlot] Showing plot')
         plot.show(plotData, plotIndex)
     
     return win
