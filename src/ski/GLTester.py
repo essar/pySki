@@ -12,8 +12,8 @@ import data.preprocessor
 import data.processor
 
 import ui.gl.linearrenderer as renderer
+import ui.gl.glplot as glplot
 from ui.gl.plotdata import PlotData
-from ui.gl.glplot import plot
 
 
 # Load data from file
@@ -37,6 +37,11 @@ def readData(filename):
     
     glData = PlotData.build_xy_plot(xyData, vData)
     glData.compile_vertex_data(renderer.getColourValue, 2)
+    
+    # Create plot window
+    win = glplot.create_plot_window()
+    plot = win.plot
+    
     
     # Calculate plot size
     plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
@@ -69,6 +74,7 @@ def readData(filename):
                       , all_data.data[idx].spd
     )
     
+    win.init_window()
     print 'Draw {0} points fitting {1}x{2}'.format(len(xyData), plot.cfg.plot_width, plot.cfg.plot_height)
     plot.show([glData], data.processor.track_index)
 
@@ -76,7 +82,7 @@ def readData(filename):
 # Config log levels
 log.basicConfig(level=log.INFO)
 log.getLogger('ski').setLevel(log.INFO)
-log.getLogger('data.processor').setLevel(log.DEBUG)
+#log.getLogger('data.processor').setLevel(log.DEBUG)
 
 # Code a-go-go
 readData('../data/sjr_20120211.gsd')

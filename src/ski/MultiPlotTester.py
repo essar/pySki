@@ -13,8 +13,8 @@ import data.processor
 
 #import ui.gl.moderenderer as renderer
 import ui.gl.ninepointrenderer as renderer
+import ui.gl.glplot as glplot
 from ui.gl.plotdata import PlotData
-from ui.gl.glplot import plot
 
 
 # Load data from file
@@ -55,10 +55,13 @@ def readData(filename1, filename2):
     #glData = PlotData.build_xy_plot(xyData, vData)
     #glData.compile_vertex_data(renderer.relColourValue, 2)
     
+    # Create plot window
+    win = glplot.create_plot_window()
+    plot = win.plot
+    
     # Calculate plot size
     plot.cfg.plot_width = (lambda (x1, y1), (x2, y2): abs(x2 - x1))(*hdr.area)
     plot.cfg.plot_height = (lambda (x1, y1), (x2, y2): abs(y2 - y1))(*hdr.area)
-    
     
     # Calculate sensible altitude scaling
     altScale = float(abs(hdr.hiAlt - hdr.loAlt)) / 1000.0
@@ -74,6 +77,7 @@ def readData(filename1, filename2):
     #                  , all_data.data[idx].spd
     #)
     
+    win.init_window()
     #plot.show([glData]) 
     plot.show([glData1, glData2]) 
 

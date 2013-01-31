@@ -16,40 +16,24 @@ from plotcfg import PlotCfg
 pyglet.font.add_file('../resources/saxmono.ttf')
 status_height = 20
 
-win = pyglet.window.Window()
-
-# Create label components
-lbl_fps = pyglet.text.Label(text='[FPS]'
-        , font_name='saxMono'
-        , font_size=10
-        , x=win.width - 10
-        , anchor_x='right'
-        , anchor_y='bottom'
-)
-lbl_status = pyglet.text.Label(text='pySki'
-        , font_name='saxMono'
-        , font_size=10
-        , x=10
-        , anchor_x='left'
-        , anchor_y='bottom'
-)
 
 class GLPlot:
     '''
-    classdocs
+      Holds data relating to a plot to draw within a GL window.
     '''
     
-    def __init__(self):
+    def __init__(self, cfg=PlotCfg()):
         '''
         Constructor
         '''
+        self.cfg = cfg
         self.cfg = PlotCfg()
+        self.status = GLPlotStatusBar(self.cfg.window_width)
         
         self.playing = True
         self.draw_idx = 0
         self.plot_idx = 0
         
-        self.ct = 0
         self.vx_dom = pyglet.graphics.vertexdomain.create_domain('v2i','c3f')
         
         # Live transformations
@@ -68,12 +52,6 @@ class GLPlot:
         assert(vlen == clen)
         
         # Create GL vertex list
-        #vertex_list = pyglet.graphics.vertex_list_indexed(vlen
-        #                , range(vlen)
-        #                , ('v2i', vs)
-        #                , ('c3f', cs)
-        #)
-        #vertex_list = self.vx_dom.create(vlen, vlen)
         vertex_list = self.vx_dom.create(vlen)
         vertex_list.vertices = vs
         vertex_list.colors = cs
@@ -85,17 +63,18 @@ class GLPlot:
     def _calc_scales(self):
         if self.cfg.scale_stretch:
             # Update scale factors to make plot fill window
-            viewWidth = float(win.width
+            viewWidth = float(self.cfg.window_width
                               - (20 if self.cfg.show_axis else 0)
                               - (2 * self.cfg.window_margin_x)
             )
-            viewHeight = float(win.height
+            viewHeight = float(self.cfg.window_height
                               - (20 if self.cfg.show_axis else 0)
                               - (status_height if self.cfg.show_status_bar else 0)
                               - (2 * self.cfg.window_margin_y)
             )
             self.cfg.scale_x = float(viewWidth / float(max(1, self.cfg.plot_width)))
             self.cfg.scale_y = float(viewHeight / float(max(1, self.cfg.plot_height)))
+        
         if self.cfg.scale_constrain:
             # Update scale factors so they scale x:X
             self.cfg.scale_x = self.cfg.scale_y = min(self.cfg.scale_x, self.cfg.scale_y)
@@ -175,21 +154,13 @@ class GLPlot:
         
         
     def _draw_status_bar(self):
-        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
-    
-        # Clear transforms
-        gl.glLoadIdentity()
-        
         if self.cfg.status_txt is not None:
             if self.cfg.status_values_f is NotImplemented:
-                lbl_status.text = self.cfg.status_txt
+                status_text = self.cfg.status_txt
             else:
-                lbl_status.text = self.cfg.status_txt.format(*self.cfg.status_values_f(self.draw_idx))
-        lbl_status.draw()
+                status_text = self.cfg.status_txt.format(*self.cfg.status_values_f(self.draw_idx))
         
-        py_fps = pyglet.app.clock.get_fps()
-        lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
-        lbl_fps.draw()
+        self.status.draw(status_text)
         
     
     def _get_current_track(self):
@@ -203,12 +174,7 @@ class GLPlot:
         log.debug('[glPlot] Currently in track %d/%d', currentTrack, len(self.index_data))
         return currentTrack
         
-    def _init_window(self):
-        win.set_fullscreen(self.cfg.window_fullscreen)
-        if not self.cfg.window_fullscreen:
-            win.set_size(self.cfg.window_width, self.cfg.window_height)
-
-
+        
     def _set_draw_idx(self, idx):
         min_idx = 2
         max_idx = max([len(p.v_data) for p in self.plot_data]) - 1
@@ -225,8 +191,6 @@ class GLPlot:
                 
 
     def _update_vertex_list(self, vlix):
-        # NON INDEXED VERSION
-        
         dx = self.draw_idx * 2
         vLen = self.draw_idx
         
@@ -243,25 +207,6 @@ class GLPlot:
         # Set list elements
         vl.vertices = vData
         
-        # INDEXED VERSION
-        
-        # Update vertex data
-        #idxs = range(self.draw_idx)
-                
-        # Calculate lengths
-        #vLen = self.vlists[vlix].get_size()
-        #iLen = min(len(idxs), vLen)  #iLen = self.draw_idx?
-        #log.debug('Updating vertex list %d, vLen=%d, iLen=%d', vlix, vLen, iLen)
-        
-        # Resize vertex list
-        #self.vlists[vlix].resize(vLen, iLen)
-        #log.debug('Resized %d times.', self.ct)
-        #self.ct += 1
-            
-        # Set list elements
-        #self.vlists[vlix].vertices = self.vlists[vlix].vertices[:self.draw_idx]
-        #self.vlists[vlix].indices = self.vlists[vlix].indices[:self.draw_idx]
-        #self.vlists[vlix].indices = idxs
 
     def animation_pause(self):
         self.playing = False
@@ -429,12 +374,13 @@ class GLPlot:
         self.draw_idx = 2
         self._update_all_vertex_lists()
     
+    
     def show(self, plotData, plotIndex=None):
         self.plot_data = plotData
         self.index_data = plotIndex
         self.vlists = [self._build_vertex_list(d) for d in plotData]
         
-        self._init_window()
+        #self._init_window()
         
         # One-time GL setup functions
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
@@ -446,9 +392,6 @@ class GLPlot:
             self.reset()
             pyglet.clock.schedule_interval(self.update, 1.0 / self.cfg.animate_fps)
     
-        # Start pyglet main thread
-        pyglet.app.run()
-    
         
     def update(self, dt):
         if self.playing:
@@ -456,48 +399,105 @@ class GLPlot:
             self._set_draw_idx(self.draw_idx + self.cfg.animate_step)
             # Update if we're running and there are indexes left
             self._update_all_vertex_lists()
+   
+   
+class GLPlotStatusBar():
+    
+    def __init__(self, win_width):
+        # Create label components
+        self.lbl_fps = pyglet.text.Label(text='[FPS]'
+                , font_name='saxMono'
+                , font_size=10
+                , x=win_width - 10
+                , anchor_x='right'
+                , anchor_y='bottom'
+        )
+        self.lbl_status = pyglet.text.Label(text='pySki'
+                , font_name='saxMono'
+                , font_size=10
+                , x=10
+                , anchor_x='left'
+                , anchor_y='bottom'
+        ) 
+    
+    
+    def draw(self, status_text):
+        gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+    
+        # Clear transforms
+        gl.glLoadIdentity()
+        
+        # Update status label
+        if status_text is not None:
+            self.lbl_status.text = status_text
+        self.lbl_status.draw()
+        
+        # Update FPS label
+        py_fps = pyglet.app.clock.get_fps()
+        self.lbl_fps.text =  '[{0:3.3f}fps]'.format(py_fps)
+        self.lbl_fps.draw()
+   
+   
+    def set_width(self, win_width):
+        # Move FPS label to stay right aligned
+        self.lbl_fps.x = win_width - 10
+ 
+ 
+class GLPlotWindow(pyglet.window.Window):
+    
+    def __init__(self, plot):
+        super(GLPlotWindow, self).__init__()
+        self.plot = plot
+
+
+    def init_window(self):
+        self.set_fullscreen(self.plot.cfg.window_fullscreen)
+        if not self.plot.cfg.window_fullscreen:
+            self.set_size(self.plot.cfg.window_width, self.plot.cfg.window_height)
+    
+
+    ###############################################################################
+    # WINDOW EVENT FUNCTIONS
+    ###############################################################################
                 
+    def on_draw(self):
+        # Clear buffers and reset transforms
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+        gl.glLoadIdentity()
+                
+        self.plot.draw()
             
-            
-###############################################################################
-# WINDOW EVENT FUNCTIONS
-###############################################################################
-            
-@win.event
-def on_draw():
-    # Clear buffers and reset transforms
-    gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-    gl.glLoadIdentity()
-            
-    plot.draw()
+        gl.glFlush()    
         
-    gl.glFlush()    
+            
+    def on_key_press(self, symbol, modifiers):
+        keyhandler.handle_key_press(symbol, modifiers, self)
+    
+    
+    def on_key_release(self, symbol, mods):
+        pass
     
         
-@win.event
-def on_key_press(symbol, modifiers):
-    keyhandler.handle_key_press(symbol, modifiers, plot)
+    def on_resize(self, width, height):
+        gl.glViewport(0, 0, width, height)
+                
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        #gluPerspective(70, 1.0 * width/height, 0.1, 1000.0)
+        gl.glOrtho(0, width, 0, height, -1000, 1000)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
+        gl.glLoadIdentity()
+        
+        self.plot.status.set_width(width)        
+                
+        return True
 
 
-@win.event
-def on_key_release(symbol, mods):
-    pass
-
+def create_plot_window(plotData=None, plotIndex=None):
+    plot = GLPlot()
+    win = GLPlotWindow(plot)
+    if plotData is not None:
+        plot.show(plotData, plotIndex)
     
-@win.event
-def on_resize(width, height):
-    gl.glViewport(0, 0, width, height)
-            
-    gl.glMatrixMode(gl.GL_PROJECTION)
-    gl.glLoadIdentity()
-    #gluPerspective(70, 1.0 * width/height, 0.1, 1000.0)
-    gl.glOrtho(0, width, 0, height, -1000, 1000)
-    gl.glMatrixMode(gl.GL_MODELVIEW)
-    gl.glLoadIdentity()
-            
-    lbl_fps.x = win.width - 10
-            
-    return True
+    return win
 
-
-plot = GLPlot()
