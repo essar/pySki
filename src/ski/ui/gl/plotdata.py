@@ -108,14 +108,17 @@ class PlotData:
         
     
     @staticmethod
-    def build_linear_plot(xData, yData, vData=None, xSmoothing = 0, ySmoothing = 0, xLabel = '', xMarkers = 0, yLabel = '', yMarkers = 0):
+    def build_linear_plot(xData, yData, vData=None, xSmoothing=0, ySmoothing=0, xLabel='', xMarkers=0, yLabel='', yMarkers=0):
         # Compile synthetic list of z values
         zs = [0 for _x in range(len(xData))]
         
+        # Use y-scale data if no values are provided
         if vData is None: vData = yData
         
-        plot = PlotData(xData, yData, zs, vData, xSmoothing, ySmoothing, 0)
-
+        plot = PlotData(xData, yData, zs, vData, xSmoothing=xSmoothing, ySmoothing=ySmoothing, zSmoothing=0)
+        print min(plot.x_data), max(plot.x_data)
+        print min(plot.y_data), max(plot.y_data)
+        
         # Set up x-axis
         ## Calculate values
         xV = max(xData) - min(xData)
