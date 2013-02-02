@@ -18,42 +18,47 @@ from ui.gl.plotdata import PlotData
 
 
 # Load data from file
-def readData(filename1, filename2):
+def readData(filename1, filename2, filename3, filename4):
+    
+    
     # Read GSD data from file
     gsdData1 = io.GSDLoader.load_gsd_file(filename1)
     gsdData2 = io.GSDLoader.load_gsd_file(filename2)
+    gsdData3 = io.GSDLoader.load_gsd_file(filename3)
+    gsdData4 = io.GSDLoader.load_gsd_file(filename4)
     
     # Pre-process
     dList1 = data.preprocessor.preprocess(gsdData1)
     dList2 = data.preprocessor.preprocess(gsdData2)
+    dList3 = data.preprocessor.preprocess(gsdData3)
+    dList4 = data.preprocessor.preprocess(gsdData4)
 
     # Set time zone
     data.processor.set_tz('US/Mountain')
     
     # Process data
-    all_data = data.processor.process(dList1, dList2)
+    all_data = data.processor.process(dList1, dList2, dList3, dList4)
     hdr = all_data.hdr
     hdr.print_track_header()
     
-    (minX, minY) = hdr.area[0]
+    #(minX, minY) = hdr.area[0]
     
-    xyData1 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 0]
-    vData1 = [stp.setID for stp in all_data.data if stp.setID == 0]
-    glData1 = PlotData.build_xy_plot(xyData1, vData1, minX, minY)
-    glData1.compile_vertex_data(renderer.absColourValue, 2)
+    #xyData1 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 0]
+    #vData1 = [stp.setID for stp in all_data.data if stp.setID == 0]
+    #glData1 = PlotData.build_xy_plot(xyData1, vData1, minX, minY)
+    #glData1.compile_vertex_data(renderer.absColourValue, 2)
     
-    xyData2 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 1]
-    vData2 = [stp.setID for stp in all_data.data if stp.setID == 1]
-    glData2 = PlotData.build_xy_plot(xyData2, vData2, minX, minY)
-    glData2.compile_vertex_data(renderer.absColourValue, 2)
+    #xyData2 = [(stp.x, stp.y) for stp in all_data.data if stp.setID == 1]
+    #vData2 = [stp.setID for stp in all_data.data if stp.setID == 1]
+    #glData2 = PlotData.build_xy_plot(xyData2, vData2, minX, minY)
+    #glData2.compile_vertex_data(renderer.absColourValue, 2)
     
-    
-    #xyData = [(stp.x, stp.y) for stp in all_data.data]
-    #vData = [stp.setID for stp in all_data.data]
+    xyData = [(stp.x, stp.y) for stp in all_data.data]
+    vData = [stp.setID for stp in all_data.data]
     #vData = [stp.spd for stp in all_data.data]
     #vData = [stp.mode for stp in all_data.data]
-    #glData = PlotData.build_xy_plot(xyData, vData)
-    #glData.compile_vertex_data(renderer.relColourValue, 2)
+    glData = PlotData.build_xy_plot(xyData, vData)
+    glData.compile_vertex_data(renderer.absColourValue, 2)
     
     # Create plot
     plot = glplot.GLPlot()
@@ -82,7 +87,7 @@ def readData(filename1, filename2):
     #plot.show() 
     
     # Create plot window
-    glplot.create_plot_window(plot, [glData1, glData2])
+    glplot.create_plot_window(plot, [glData])
     
 
 
@@ -91,6 +96,6 @@ log.basicConfig(level=log.INFO)
 log.getLogger('ski').setLevel(log.INFO)
 
 # Code a-go-go
-readData('../data/sjr_20120211.gsd', '../data/sjr_20120212.gsd')
+readData('../data/sjr_20120211.gsd', '../data/sjr_20120212.gsd', '../data/sjr_20120216.gsd', '../data/sjr_20120217.gsd')
 pyglet.app.run()
     
