@@ -18,26 +18,21 @@ from ui.gl.plotdata import PlotData
 
 
 # Load data from file
-def readData(filename1, filename2, filename3, filename4):
+def readData(*files):
+    dList = []
+    for filename in files:
     
-    
-    # Read GSD data from file
-    gsdData1 = io.GSDLoader.load_gsd_file(filename1)
-    gsdData2 = io.GSDLoader.load_gsd_file(filename2)
-    gsdData3 = io.GSDLoader.load_gsd_file(filename3)
-    gsdData4 = io.GSDLoader.load_gsd_file(filename4)
-    
-    # Pre-process
-    dList1 = data.preprocessor.preprocess(gsdData1)
-    dList2 = data.preprocessor.preprocess(gsdData2)
-    dList3 = data.preprocessor.preprocess(gsdData3)
-    dList4 = data.preprocessor.preprocess(gsdData4)
+        # Read GSD data from file
+        gsdData = io.GSDLoader.load_gsd_file(filename)
+        
+        # Pre-process
+        dList.append(data.preprocessor.preprocess(gsdData))
 
     # Set time zone
     data.processor.set_tz('US/Mountain')
     
     # Process data
-    all_data = data.processor.process(dList1, dList2, dList3, dList4)
+    all_data = data.processor.process(dList)
     hdr = all_data.hdr
     hdr.print_track_header()
     
@@ -96,6 +91,6 @@ log.basicConfig(level=log.INFO)
 log.getLogger('ski').setLevel(log.INFO)
 
 # Code a-go-go
-readData('../data/sjr_20120211.gsd', '../data/sjr_20120212.gsd', '../data/sjr_20120216.gsd', '../data/sjr_20120217.gsd')
+readData('../data/sjr_20120216.gsd', '../data/20120216.gsd')
 pyglet.app.run()
     
