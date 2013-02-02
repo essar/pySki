@@ -4,8 +4,8 @@ Created on 19 Dec 2012
 @author: sroberts
 '''
 
-import logging as log
-log.basicConfig(level=log.DEBUG)
+import logging
+log = logging.getLogger(__name__)
 
 import pyglet
 import pyglet.graphics as gl
@@ -15,7 +15,6 @@ from plotcfg import PlotCfg
 
 # Load fonts
 pyglet.font.add_file('../resources/saxmono.ttf')
-status_height = 20
 
 
 class GLPlot:
@@ -57,44 +56,19 @@ class GLPlot:
         vertex_list.vertices = vs
         vertex_list.colors = cs
         
-        log.info('[glplot] Compiled vertex list of %d vertices', vlen)
+        log.info('Compiled vertex list of %d vertices', vlen)
         return vertex_list
-    
-    
-    def _update_scaling(self):
-        #return self.cfg._update_scaling()
-        if self.cfg.scale_stretch:
-            # Update scale factors to make plot fill window
-            viewWidth = float(self.cfg.window_width
-                              - (20 if self.cfg.show_axis else 0)
-                              - (2 * self.cfg.window_margin_x)
-            )
-            viewHeight = float(self.cfg.window_height
-                              - (20 if self.cfg.show_axis else 0)
-                              - (status_height if self.cfg.show_status_bar else 0)
-                              - (2 * self.cfg.window_margin_y)
-            )
-            self.cfg.scale_x = float(viewWidth / float(max(1, self.cfg.plot_width)))
-            self.cfg.scale_y = float(viewHeight / float(max(1, self.cfg.plot_height)))
-        
-        if self.cfg.scale_constrain:
-            # Update scale factors so they scale x:X
-            self.cfg.scale_x = self.cfg.scale_y = min(self.cfg.scale_x, self.cfg.scale_y)
-            
-        log.debug('[glPlot] scales updated: x=%.3f, y=%.3f, z=%.3f', self.cfg.scale_x, self.cfg.scale_y, self.cfg.scale_z)
-        return (self.cfg.scale_x, self.cfg.scale_y, self.cfg.scale_z)
     
     
     def _draw_axis(self):
         gl.glPushMatrix()
         
         # Scale to fit window
-        self._update_scaling()
-        #gl.glScalef(*self._update_scaling())
+        self.cfg._update_scaling()
         
         width = int(self.cfg.plot_width)
         height = int(self.cfg.plot_height)
-        log.debug('[glPlot] Drawing axis; width=%d, height=%d', width, height)
+        log.debug('Drawing axis; width=%d, height=%d', width, height)
         
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
         gl.glColor4f(1.0, 1.0, 1.0, 1.0)
@@ -113,7 +87,7 @@ class GLPlot:
             gl.glVertex3i(int(pos), 0, 0)
             gl.glVertex3i(int(pos), -1, 0)
             gl.glEnd()
-            log.debug('[glPlot] Drawing x-axis marker at %d', int(pos))
+            log.debug('Drawing x-axis marker at %d', int(pos))
             
             if _lbl is not None:
                 gl.glPushMatrix()
@@ -126,7 +100,7 @@ class GLPlot:
             gl.glVertex3i(0, int(pos), 0)
             gl.glVertex3i(-1, int(pos), 0)
             gl.glEnd()
-            log.debug('[glPlot] Drawing y-axis marker at %d', int(pos))
+            log.debug('Drawing y-axis marker at %d', int(pos))
         
         gl.glPopMatrix()
         
@@ -135,12 +109,12 @@ class GLPlot:
         gl.glPushMatrix()
         
         # Scale to fit window
-        gl.glScalef(*self._update_scaling())
+        gl.glScalef(*self.cfg._update_scaling())
         
         width = int(self.cfg.plot_width)
         height = int(self.cfg.plot_height)
         depth = -1
-        log.debug('[glPlot] Drawing background; width=%d, height=%d, depth=%d', width, height, depth)
+        log.debug('Drawing background; width=%d, height=%d, depth=%d', width, height, depth)
         
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
         gl.glColor4f(*self.cfg.bg_colour_4f)
@@ -178,7 +152,7 @@ class GLPlot:
         while(self.index_data[currentTrack].idx < self.draw_idx):
             currentTrack += 1
         
-        log.debug('[glPlot] Currently in track %d/%d', currentTrack, len(self.index_data))
+        log.debug('Currently in track %d/%d', currentTrack, len(self.index_data))
         return currentTrack
         
         
@@ -187,7 +161,7 @@ class GLPlot:
         max_idx = max([len(p.v_data) for p in self.plot_data]) - 1
         
         self.draw_idx = max(min_idx, min(max_idx, idx))
-        log.debug('[glplot] draw_idx=%d', self.draw_idx)
+        log.debug('draw_idx=%d', self.draw_idx)
 
 
     def _update_all_vertex_lists(self):
@@ -204,12 +178,12 @@ class GLPlot:
         # Get vertex data
         vData = self.plot_data[vlix].vertices_list[1][:dx]
         assert(len(vData) == dx)
-        log.debug('[glplot] Resizing vertex list %d, vLen=%d', vlix, vLen)
+        log.debug('Resizing vertex list %d, vLen=%d', vlix, vLen)
         
         # Resize vertex list
         vl = self.vlists[vlix]
         vl.resize(vLen)
-        log.debug('[glplot] Vertex list %d length: %d', vlix, vl.get_size())
+        log.debug('Vertex list %d length: %d', vlix, vl.get_size())
         
         # Set list elements
         vl.vertices = vData
@@ -217,17 +191,17 @@ class GLPlot:
 
     def animation_pause(self):
         self.playing = False
-        log.info('[GLPlot] Animation paused')
+        log.info('Animation paused')
     
     def animation_play(self):
         self.playing = True
-        log.info('[GLPlot] Animation playing')
+        log.info('Animation playing')
     
     def pan_view(self, xShift, yShift, zShift):
         self.live_tx += xShift
         self.live_ty += yShift
         self.live_tz += zShift
-        log.info('[GLPlot] Panning by (%d, %d, %d) to (%d, %d, %d)', xShift, yShift, zShift, self.live_tx, self.live_ty, self.live_tz)
+        log.info('Panning by (%d, %d, %d) to (%d, %d, %d)', xShift, yShift, zShift, self.live_tx, self.live_ty, self.live_tz)
     
     def pan_view_down(self, shift):
         self.pan_view(0, shift, 0)  
@@ -245,18 +219,18 @@ class GLPlot:
         self.live_tx = 0
         self.live_ty = 0
         self.live_tz = 0
-        log.info('[GLPlot] Panning values reset')
+        log.info('Panning values reset')
         
     def pan_view_to(self, cX, cY, cZ):
         self.live_tx = cX
         self.live_ty = cY
         self.live_tz = cZ
-        log.info('[GLPlot] Panning view to (%d, %d, %d)', cX, cY, cZ)
+        log.info('Panning view to (%d, %d, %d)', cX, cY, cZ)
     
     def step_backward(self, step):
         self._set_draw_idx(self.draw_idx - step)
         self._update_all_vertex_lists()
-        log.info('[GLPlot] Stepped backward by %d', step)
+        log.info('Stepped backward by %d', step)
     
     def step_forward(self, step):
         self._set_draw_idx(self.draw_idx + step)
@@ -267,35 +241,35 @@ class GLPlot:
         # Calculate current track
         currentTrack = self._get_current_track()
         if currentTrack is None:
-            log.warn('[GLPlot] Cannot step track backward without track index')
+            log.warn('Cannot step track backward without track index')
             return
             
         newTrack = currentTrack - step
             
         # Get index of next track
         newIndex = self.index_data[newTrack].idx
-        log.debug('[GLPlot] Stepping from track %d to %d', currentTrack, newTrack)
+        log.debug('Stepping from track %d to %d', currentTrack, newTrack)
 
         self._set_draw_idx(newIndex)
         self._update_all_vertex_lists()
-        log.info('[GLPlot] Stepped backward to %d', newIndex)
+        log.info('Stepped backward to %d', newIndex)
         
     def step_track_forward(self, step=1):
         # Calculate current track
         currentTrack = self._get_current_track()
         if currentTrack is None:
-            log.warn('[GLPlot] Cannot step track forward without track index')
+            log.warn('Cannot step track forward without track index')
             return
 
         newTrack = currentTrack + step
             
         # Get index of next track
         newIndex = self.index_data[newTrack].idx
-        log.debug('[GLPlot] Stepping from track %d to %d', currentTrack, newTrack)
+        log.debug('Stepping from track %d to %d', currentTrack, newTrack)
 
         self._set_draw_idx(newIndex)
         self._update_all_vertex_lists()
-        log.info('[GLPlot] Stepped forward to %d', newIndex)
+        log.info('Stepped forward to %d', newIndex)
     
     def zoom_view(self, zFac):
         if zFac == 0:
@@ -303,12 +277,12 @@ class GLPlot:
             self.live_zoom_x = 1.0
             self.live_zoom_y = 1.0
             self.live_zoom_z = 1.0
-            log.info('[GLPlot] Zoom factors reset')
+            log.info('Zoom factors reset')
         else:
             self.live_zoom_x *= zFac
             self.live_zoom_y *= zFac
             self.live_zoom_z *= zFac
-            log.info('[GLPlot] Zooming by %.1f to (%.1f, %.1f, %.1f)', zFac, self.live_zoom_x, self.live_zoom_y, self.live_zoom_z)
+            log.info('Zooming by %.1f to (%.1f, %.1f, %.1f)', zFac, self.live_zoom_x, self.live_zoom_y, self.live_zoom_z)
 
     def zoom_view_in(self, zFac = 2.0):
         self.zoom_view(zFac)
@@ -330,7 +304,7 @@ class GLPlot:
         # Adjust for axis bar
         gl.glTranslatef((20.0 if self.cfg.show_axis else 0), (20.0 if self.cfg.show_axis else 0), 0.0)
         # Adjust for status bar
-        gl.glTranslatef(0.0, (status_height if self.cfg.show_status_bar else 0), 0.0)
+        gl.glTranslatef(0.0, (self.cfg.status_height if self.cfg.show_status_bar else 0), 0.0)
             
         # Draw base plane
         self._draw_background()
@@ -338,7 +312,7 @@ class GLPlot:
         # Adjust for view
         gl.glTranslatef(self.live_tx, self.live_ty, self.live_tz)
         # Scale to fit window
-        gl.glScalef(*self._update_scaling())
+        gl.glScalef(*self.cfg._update_scaling())
         
         # Compute centre point
         cx = float((self.cfg.plot_width / 2.0) - (self.live_tx / self.cfg.scale_x))
@@ -395,7 +369,7 @@ class GLPlot:
         
         # If in animate mode, call update function
         if self.cfg.animate:
-            log.info('[glplot] Starting animation')
+            log.info('Starting animation')
             self.reset()
             pyglet.clock.schedule_interval(self.update, 1.0 / self.cfg.animate_fps)
     
@@ -504,7 +478,7 @@ class GLPlotWindow(pyglet.window.Window):
 def create_plot_window(plot=GLPlot(), plotData=None, plotIndex=None):
     win = GLPlotWindow(plot)
     if plotData is not None:
-        log.info('[glPlot] Showing plot')
+        log.info('Showing plot')
         plot.show(plotData, plotIndex)
     
     return win
