@@ -2,8 +2,7 @@
   Module for handling key events within a PySki drawing window.
   Key functions are defined in an internal dictionary (key_map), matching
   keystroke symbol/modifier tuples to function names.
-  Key handler functions should accept two arguments, a SkiGLConfig and
-  SkiGLController.
+  Key handler functions should accept one argument, a GLPlotWindow.
 
   @author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
   @version: 1.0 (3 Dec 2012)
@@ -16,97 +15,109 @@ from math import sqrt
 
 import pyglet.window.key as key
 
-def __centre_on_last(plot):
-    (lastx, lasty) = plot.get_last_xy()
-    cx = (float(plot.cfg.plot_width) / 2.0) - lastx
-    cy = (float(plot.cfg.plot_height) / 2.0) - lasty
+def __centre_on_last(win):
+    (lastx, lasty) = win.plot.get_last_xy()
+    cx = (float(win.plot.cfg.plot_width) / 2.0) - lastx
+    cy = (float(win.plot.cfg.plot_height) / 2.0) - lasty
     
-    sx = plot.cfg.scale_x / plot.live_zoom_x
-    sy = plot.cfg.scale_y / plot.live_zoom_y
-    sz = plot.cfg.scale_z / plot.live_zoom_z
+    sx = win.plot.cfg.scale_x / win.plot.live_zoom_x
+    sy = win.plot.cfg.scale_y / win.plot.live_zoom_y
+    sz = win.plot.cfg.scale_z / win.plot.live_zoom_z
     
-    plot.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
-    
-def __pan_down(plot):
-    plot.pan_view_down(plot.cfg.pan_step_y / plot.live_zoom_y)
+    win.plot.pan_view_to(cx * sx, cy * sy, 0.0 * sz)
 
-def __pan_left(plot):
-    plot.pan_view_left(plot.cfg.pan_step_x / plot.live_zoom_x)
+def __close_window(win):
+    win.close()
     
-def __pan_right(plot):
-    plot.pan_view_right(plot.cfg.pan_step_x / plot.live_zoom_x)
-    
-def __pan_up(plot):
-    plot.pan_view_up(plot.cfg.pan_step_y / plot.live_zoom_y)
+def __pan_down(win):
+    win.plot.pan_view_down(win.plot.cfg.pan_step_y / win.plot.live_zoom_y)
 
-def __play_pause_animation(plot):
-    if plot.playing:
-        plot.animation_pause()
+def __pan_left(win):
+    win.plot.pan_view_left(win.plot.cfg.pan_step_x / win.plot.live_zoom_x)
+    
+def __pan_right(win):
+    win.plot.pan_view_right(win.plot.cfg.pan_step_x / win.plot.live_zoom_x)
+    
+def __pan_up(win):
+    win.plot.pan_view_up(win.plot.cfg.pan_step_y / win.plot.live_zoom_y)
+
+def __play_pause_animation(win):
+    if win.plot.playing:
+        win.plot.animation_pause()
     else:
-        plot.animation_play()
+        win.plot.animation_play()
 
-def __reset(plot):
+def __reset(win):
     # Reset zoom factor
-    plot.zoom_view_reset()
+    win.plot.zoom_view_reset()
     # Reset view
-    plot.pan_view_reset()
+    win.plot.pan_view_reset()
 
-def __show_hide_status(plot):
-    if plot.cfg.show_status_bar:
-        plot.cfg.show_status_bar = False
+def __show_hide_status(win):
+    if win.plot.cfg.show_status_bar:
+        win.plot.cfg.show_status_bar = False
     else:
-        plot.cfg.show_status_bar = True
+        win.plot.cfg.show_status_bar = True
 
-def __step_backward(plot):
-    plot.step_backward(plot.cfg.animate_step)
+def __step_backward(win):
+    win.plot.step_backward(win.plot.cfg.animate_step)
 
-def __step_forward(plot):
-    plot.step_forward(plot.cfg.animate_step)
-
-def __zoom_in(plot):
-    plot.zoom_view_in(plot.cfg.zoom_step)
+def __step_forward(win):
+    win.plot.step_forward(win.plot.cfg.animate_step)
     
-def __zoom_in_small(plot):
-    plot.zoom_view_in(sqrt(plot.cfg.zoom_step))
+def __step_track_backward(win):
+    win.plot.step_track_backward(win.plot.cfg.animate_track_step)
 
-def __zoom_out(plot):
-    plot.zoom_view_out(plot.cfg.zoom_step)
+def __step_track_forward(win):
+    win.plot.step_track_forward(win.plot.cfg.animate_track_step)
+
+def __zoom_in(win):
+    win.plot.zoom_view_in(win.plot.cfg.zoom_step)
     
-def __zoom_out_small(plot):
-    plot.zoom_view_out(sqrt(plot.cfg.zoom_step))
+def __zoom_in_small(win):
+    win.plot.zoom_view_in(sqrt(win.plot.cfg.zoom_step))
+
+def __zoom_out(win):
+    win.plot.zoom_view_out(win.plot.cfg.zoom_step)
+    
+def __zoom_out_small(win):
+    win.plot.zoom_view_out(sqrt(win.plot.cfg.zoom_step))
 
 # Define a dictionary pairing key stroke values with handler functions
 key_map = {
            (key.A, 0): __zoom_in
          , (key.A, key.MOD_SHIFT): __zoom_in_small
          , (key.C, 0): __centre_on_last
+         , (key.Q, key.MOD_CTRL): __close_window
          , (key.S, 0): __show_hide_status
          , (key.Z, 0): __zoom_out
          , (key.Z, key.MOD_SHIFT): __zoom_out_small
          , (key._0, 0): __reset
          , (key.SPACE, 0): __play_pause_animation
          , (key.LESS, key.MOD_SHIFT): __step_backward
+         , (key.LESS, key.MOD_SHIFT + key.MOD_CTRL): __step_track_backward
          , (key.GREATER, key.MOD_SHIFT): __step_forward
+         , (key.GREATER, key.MOD_SHIFT + key.MOD_CTRL): __step_track_forward
          , (key.UP, 0): __pan_up
          , (key.UP, key.MOD_SHIFT): NotImplemented
          , (key.DOWN, 0): __pan_down
          , (key.DOWN, key.MOD_SHIFT): NotImplemented
          , (key.LEFT, 0): __pan_left
          , (key.RIGHT, 0): __pan_right
+         , (key.ESCAPE, 0): __close_window
 }
 
 def key_str((symbol, modifiers)):
     return (key.symbol_string(symbol), key.modifiers_string(modifiers))
     
 
-def handle_key_press(symbol, modifiers, plot):
+def handle_key_press(symbol, modifiers, win):
     '''
       Main keystroke handing function.  Checks defined key handlers in a dict
       to find and execute defined functions.
       @param symbol: the pressed key symbol
       @param modifiers: the pressed key modifiers
-      @param cfg: the current GL configuration
-      @param ctl: the current GL controller
+      @param win: the current GL window
     '''
     k = (symbol, modifiers)
     log.debug('Key press %s trapped', key_str(k))
@@ -121,7 +132,7 @@ def handle_key_press(symbol, modifiers, plot):
             # Wrap in a try/except block to prevent bad handler functions
             # from crashing entire app
             try:
-                key_map[k](plot)
+                key_map[k](win)
             except:
                 # Log error details
                 log.exception('Error executing key handler %s for %s', f.__name__, key_str(k))

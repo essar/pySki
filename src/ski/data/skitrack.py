@@ -86,15 +86,18 @@ class SkiTrack:
         
         
 class SkiTrackPoint:
+
+    # Meta values
+    idx = 0
+    setID = 0
     
-    mode = None
-    
-    # Static values
+    # Static data values
     x = y = alt = 0
+    mode = None
     spd = 0.0
     ts = 0
     
-    # Calculated values
+    # Calculated data values
     angle = 0.0
     delta_x = delta_y = delta_a = 0
     distance = xy_distance = 0.0
@@ -109,7 +112,7 @@ class SkiTrackPoint:
         self.spd = d.gps_s
         
     def __str__(self):
-        return '{:s} ({:.2f}m, {:+.1f}m)'.format(self.as_tuple(), self.distance, self.delta_a)
+        return '[{:d}:{:d}] {:s} ({:.2f}m, {:+.1f}m)'.format(self.setID, self.idx, self.as_tuple(), self.distance, self.delta_a)
     
     def as_tuple(self):
         return (self.mode, (self.ts, (self.x, self.y), self.alt, self.spd))

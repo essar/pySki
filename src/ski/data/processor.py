@@ -15,6 +15,9 @@ log = logging.getLogger(__name__)
 from skitrack import MODE_LIFT, MODE_SKI, MODE_STOP, SkiTrack, SkiTrackPoint
 from types import InstanceType
 
+track_data = {}
+track_index = []
+
 ###############################################################################
 # TIMEZONE SUPPORT
 ###############################################################################
@@ -67,17 +70,20 @@ def set_tz(tz_name):
 ###############################################################################
 # SKI TRACK BUILDING
 ###############################################################################
-def create_st_point(datum, last_stp=None):
+def create_st_point(datum, last_stp=None, idx=0, setID=0):
     '''
       Create a SkiTrackPoint out of a GPSDatum object. If a previous
       SkiTrackPoint is provided, aggregate values (distance, speed, angle) etc.
       are calculated.
       @param datum: the GPSDatum to convert.
       @param last_stp: the last SkiTrackPoint converted.
+      @param setID: index of the data set this point belongs to.
       @return: a SkiTrackPoint, containing data captured from this datum.
     '''
     # Create point
     p = SkiTrackPoint(datum)
+    p.idx = idx
+    p.setID = setID
     log.debug('Datum converted to %s', p)
     
     # Process time stamp
@@ -85,24 +91,26 @@ def create_st_point(datum, last_stp=None):
     
     # If a previous point provided, calculate additional attributes
     if last_stp is not None:
-        log.debug('    last_stp: %s', last_stp)
-        
         # Calculate delta values
         p.delta_x = p.x - last_stp.x
         p.delta_y = p.y - last_stp.y
         p.delta_a = p.alt - last_stp.alt
         p.delta_ts = p.ts - last_stp.ts
+        log.debug('    Deltas: x=%d, y=%d, a=%d, ts=%d', p.delta_x, p.delta_y, p.delta_a, p.delta_ts)
         
         # Distances
         p.distance = sqrt((p.delta_x ** 2) + (p.delta_y ** 2) + (p.delta_a ** 2))
         p.xy_distance = sqrt((p.delta_x ** 2) + (p.delta_y ** 2))
+        log.debug('    Distances: xya=%.2f, xy=%.2f', p.distance, p.xy_distance)
         
         # Re-calculate speed
         p.calc_speed = (p.distance / p.delta_ts) * 3.6
+        log.debug('    Speeds: raw=%.2f, calc=%.2f (%.1f%%)', p.spd, p.calc_speed, (p.calc_speed / p.spd) * 100.0)
         
         # Angle
         p.angle = degrees(atan(p.delta_a / p.xy_distance)) if p.xy_distance > 0 else 0.0
-
+        log.debug('    Angle: %.2f', p.angle)
+        
     return p
     
     
@@ -126,21 +134,35 @@ def build_track_data(all_data_list):
             # New mode, save previous track
             st = SkiTrack(this_track)
             log.debug('Compiled %s track of %d points (distance=%.1fm; dAlt=%dm)', this_mode, len(this_track), st.hdr.distance, st.hdr.dAlt)
-            track_data[this_track[0]] = st
+            track_data[this_track[0]] = st #(st, None)
+            # Add track to index
+            track_index.append(this_track[0])
             
             # Create new track
             this_track = []
         
         # Set track mode
         this_mode = stp.mode
-        # Add point to current track    
+        # Add point to current track
         this_track.append(stp)
-        # Add track to index
-        track_index.append(this_track[0])
 
+
+def find_markers():
+    log.debug('Looking for highest altitude marker')
+    
+    hi_alt_mkr = all_data.alts.index(max(all_data.alts))
+    print hi_alt_mkr
+    
+    log.debug('Looking for highest speed marker')
+    
+    hi_spd_mkr = all_data.spds.index(max(all_data.spds))
+    print hi_spd_mkr
+    
 
 def find_nearby_tracks(radius=20):
-    # Look through track_data dictionary key list for near by points of same mode
+    '''
+        Look through track_data dictionary key list for near by points of same mode
+    '''
     log.debug('Looking for tracks within %dm', radius)
     
     for k1 in track_data.keys():
@@ -251,14 +273,14 @@ def process_track_point(current_mode, this_point, point_window):
     return current_mode
 
 
-def process(data):
+def process(*data):
     '''
       Process GPS data into ski tracks and perform analytics.
       @param data: a list of GPSDatum objects that have been pre-processed.
     '''
     global all_data, lift_data, ski_data, stop_data, track_data, track_index
     
-    log.info('Starting data processing of %d points.', len(data))
+    log.info('Starting processing of %d data sets.', len(data))
     log.info('Time zone: %s.', tz)
     
     # Build list of STPs
@@ -267,11 +289,17 @@ def process(data):
     log.info('----------------------------------------')
     
     all_data_list = []
-    last_stp = None
-    for d in data:
-        last_stp = create_st_point(d, last_stp)
-        all_data_list.append(last_stp)
-    assert(len(data) == len(all_data_list))
+    setID = 0
+    for dl in data:
+        log.info('Loading data set of %d points.', len(dl))
+        last_stp = None
+        idx = 0
+        for d in dl:
+            last_stp = create_st_point(d, last_stp, idx, setID)
+            all_data_list.append(last_stp)
+            idx += 1
+        setID += 1
+        
     log.info('Built list of %d data points.', len(all_data_list))
     
     # Process to set modes
