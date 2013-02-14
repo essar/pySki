@@ -70,7 +70,7 @@ class SkiTrack:
         self.hdr.hiAngle = max(anglesD)
         
         # Distance & duration
-        distsD = [p.xy_distance for p in tData]
+        distsD = [p.distance for p in tData]
         self.hdr.distance = sum(distsD)
         self.hdr.duration = len(tData)
         
