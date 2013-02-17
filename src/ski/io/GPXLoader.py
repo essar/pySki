@@ -53,7 +53,8 @@ def __process_trackpt_elem(elem):
         
         # Speed & Altitude
         alt = int(float(xml_alt))
-        spd = float(xml_spd)
+        # GPX speed is m/s, convert to km/h
+        spd = (float(xml_spd) * 3600.0) / 1000.0
             
     except ValueError:
         log.error('Could not parse point')
