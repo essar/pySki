@@ -7,7 +7,8 @@ Created on 16 Nov 2012
 import logging as log
 
 import pyglet
-import io.GSDLoader
+#import io.GSDLoader
+import io.GPXLoader
 import data.preprocessor
 import data.processor
 
@@ -19,10 +20,11 @@ from ui.gl.plotdata import PlotData
 # Load data from file
 def readData(filename):
     # Read GSD data from file
-    gsdData = io.GSDLoader.load_gsd_file(filename)
+    #gsdData = io.GSDLoader.load_gsd_file(filename)
+    gpxData = io.GPXLoader.load_gpx_file(filename)
     
     # Pre process
-    dList = data.preprocessor.preprocess(gsdData)
+    dList = data.preprocessor.preprocess(gpxData)
 
     # Set time zone
     data.processor.set_tz('US/Mountain')
@@ -104,8 +106,7 @@ def show_speed_plot(all_data):
 
 def show_xy_plot(all_data):
     # Create plot window
-    win = glplot.create_plot_window()
-    plot = win.plot
+    plot = glplot.GLPlot()
     
     xyData = [(stp.x, stp.y) for stp in all_data.data]
     vData = [stp.spd for stp in all_data.data]
@@ -122,6 +123,8 @@ def show_xy_plot(all_data):
     plot.cfg.scale_z = altScale
     plot.cfg.drawmode = '2D'
     plot.cfg.animate = True
+    plot.cfg.window_fullscreen = True
+    plot.cfg.show_marker = True
     plot.cfg.show_status_bar = True
     
     plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>4.1f}km/h ]'
@@ -132,7 +135,10 @@ def show_xy_plot(all_data):
     )
     
     print 'Draw {0} points fitting {1}x{2}'.format(len(xyData), plot.cfg.plot_width, plot.cfg.plot_height)
-    plot.show([glData], data.processor.track_index)
+    
+    # Create plot window
+    glplot.create_plot_window(plot, [glData], data.processor.track_index)
+    #plot.show([glData], data.processor.track_index)
 
 
 # Config log levels
@@ -141,8 +147,9 @@ log.getLogger('ski').setLevel(log.INFO)
 #log.getLogger('data.processor').setLevel(log.DEBUG)
 
 # Code a-go-go
-all_data = readData('../data/sjr_20120211.gsd')
+#all_data = readData('../data/sjr_20120211.gsd')
+all_data = readData('../data/ski_20130222_sjr.gpx')
 #show_altitude_plot(all_data)
-show_speed_plot(all_data)
+#show_speed_plot(all_data)
+show_xy_plot(all_data)
 pyglet.app.run()
-    

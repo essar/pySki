@@ -90,7 +90,7 @@ def create_st_point(datum, last_stp=None, idx=0, setID=0):
     p.loc_time = as_time(p.ts)
     
     # If a previous point provided, calculate additional attributes
-    if last_stp is not None:
+    if last_stp is not None and p.setID == last_stp.setID:
         # Calculate delta values
         p.delta_x = p.x - last_stp.x
         p.delta_y = p.y - last_stp.y

@@ -48,6 +48,7 @@ class PlotData:
         # Store value data as-is
         self.v_data = vList
         
+        self.c_data = []
         self.x_axis_markers = []
         self.y_axis_markers = []
         self.z_axis_markers = []
@@ -69,9 +70,11 @@ class PlotData:
             
             # Build colour
             (r, g, b) = renderF(minV, maxV, self.v_data[i])
+            self.c_data.append((r, g, b))
             cx_list.append(r)
             cx_list.append(g)
             cx_list.append(b)
+            
 
         # Verify and update vertices
         assert(len(vx_list) / mode == len(self.x_data))    

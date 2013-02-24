@@ -27,7 +27,7 @@ class GLPlot:
         Constructor
         '''
         self.cfg = cfg
-        self.cfg = PlotCfg()
+        #self.cfg = PlotCfg()
         self.status = GLPlotStatusBar(self.cfg.window_width)
         
         self.playing = True
@@ -125,6 +125,37 @@ class GLPlot:
         gl.glVertex3i(width, height, depth)
         gl.glVertex3i(width, 0, depth)
         gl.glEnd()
+        
+        gl.glPopMatrix()
+
+    
+    def _draw_marker(self):
+        gl.glPushMatrix()
+
+        ws = [50.0, 25.0, 25.0, 25.0]
+        hs = [100.0, -50.0, 50.0, -50.0]
+        
+        for i in range(len(self.plot_data)):
+            # Calculate dimensions of marker
+            mkr_width = int(ws[i] * self.cfg.scale_x)
+            mkr_height = int(hs[i] * self.cfg.scale_y)
+            
+            # Get last plotted x/y
+            mkr_x = self.plot_data[i].x_data[self.draw_idx]
+            mkr_y = self.plot_data[i].y_data[self.draw_idx]
+        
+            # Get last plotted colour
+            (cr, cg, cb) = self.plot_data[i].c_data[self.draw_idx]
+
+            gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+            gl.glColor4f(cr, cg, cb, 0.5)
+            
+            # Draw marker triangle
+            gl.glBegin(gl.GL_TRIANGLES)
+            gl.glVertex3i(mkr_x, mkr_y, 0)
+            gl.glVertex3i((mkr_x - mkr_width), (mkr_y + mkr_height), 0)
+            gl.glVertex3i((mkr_x + mkr_width), (mkr_y + mkr_height), 0)
+            gl.glEnd()
         
         gl.glPopMatrix()
     
@@ -333,6 +364,9 @@ class GLPlot:
             
         # Draw plot elements as lines
         self._draw_plot()
+        
+        if self.cfg.show_marker:
+            self._draw_marker()
         
         if self.cfg.show_status_bar:
             self._draw_status_bar()

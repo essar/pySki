@@ -7,10 +7,11 @@ Created on 16 Nov 2012
 import logging as log
 
 import pyglet
-import io.GSDLoader
+import io.GPXLoader
 import data.preprocessor
 import data.processor
 
+#import ui.gl.linearrenderer as renderer
 #import ui.gl.moderenderer as renderer
 import ui.gl.ninepointrenderer as renderer
 import ui.gl.glplot as glplot
@@ -23,16 +24,19 @@ def readData(*files):
     for filename in files:
     
         # Read GSD data from file
-        gsdData = io.GSDLoader.load_gsd_file(filename)
+        gpxData = io.GPXLoader.load_gpx_file(filename)
         
         # Pre-process
-        dList.append(data.preprocessor.preprocess(gsdData))
+        dList.append(data.preprocessor.preprocess(gpxData))
+        
+    # Synchronise two plots
+    (dList[0], dList[1]) = data.preprocessor.synchronize(dList[0], dList[1])
 
     # Set time zone
     data.processor.set_tz('US/Mountain')
     
     # Process data
-    all_data = data.processor.process(dList)
+    all_data = data.processor.process(*dList)
     hdr = all_data.hdr
     hdr.print_track_header()
     
@@ -50,6 +54,7 @@ def readData(*files):
     
     xyData = [(stp.x, stp.y) for stp in all_data.data]
     vData = [stp.setID for stp in all_data.data]
+    #vData = [stp.alt for stp in all_data.data]
     #vData = [stp.spd for stp in all_data.data]
     #vData = [stp.mode for stp in all_data.data]
     glData = PlotData.build_xy_plot(xyData, vData)
@@ -68,6 +73,7 @@ def readData(*files):
     plot.cfg.drawmode = '2D'
     plot.cfg.animate = False
     plot.cfg.window_fullscreen = True
+    plot.cfg.show_marker = False
     plot.cfg.show_status_bar = False
     
     #plot.cfg.status_txt = '[ {:%d/%m/%Y %H:%M:%S %Z} ] [ Mode: {:4s} ] [ Altitude: {:4,d}m ] [ Speed: {:>4.1f}km/h ]'
@@ -83,6 +89,7 @@ def readData(*files):
     
     # Create plot window
     glplot.create_plot_window(plot, [glData])
+    #glplot.create_plot_window(plot, [glData1, glData2])
     
 
 
@@ -91,6 +98,19 @@ log.basicConfig(level=log.INFO)
 log.getLogger('ski').setLevel(log.INFO)
 
 # Code a-go-go
-readData('../data/sjr_20120216.gsd', '../data/20120216.gsd')
+#readData('../data/ski_20130210_sjr.gpx'
+#         , '../data/ski_20130211_sjr.gpx'
+#         , '../data/ski_20130212_sjr.gpx'
+#         , '../data/ski_20130213_sjr.gpx'
+#         , '../data/ski_20130214_sjr.gpx'
+#         , '../data/ski_20130215_sjr.gpx'
+#         , '../data/ski_20130216_sjr.gpx')
+readData('../data/ski_20130217_sjr.gpx'
+         , '../data/ski_20130218_sjr.gpx'
+         , '../data/ski_20130219_sjr.gpx'
+         , '../data/ski_20130220_sjr.gpx'
+         , '../data/ski_20130221_sjr.gpx'
+         , '../data/ski_20130222_sjr.gpx')
+#readData('../data/ski_20130220_sjr.gpx', '../data/ski_20130220_mr.gpx')
 pyglet.app.run()
     

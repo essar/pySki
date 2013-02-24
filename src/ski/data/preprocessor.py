@@ -110,25 +110,44 @@ def synchronize(nodeList1, nodeList2):
     d1 = nodeList1[0]
     d2 = nodeList2[0]
     
+    log.info('----------------------------------------')
+    log.info(' SYNCHRONIZE')
+    log.info('----------------------------------------')
+    log.debug('Before synchronization')
+    log.debug('  List 1 (%d points):', len(nodeList1))
+    log.debug('    Start: %s', nodeList1[0].gps_ts)
+    log.debug('    End  : %s', nodeList1[-1].gps_ts)
+    log.debug('  List 2 (%d points):', len(nodeList2))
+    log.debug('    Start: %s', nodeList2[0].gps_ts)
+    log.debug('    End  : %s', nodeList2[-1].gps_ts)    
+    
     ll1 = convert_tuples_to_linked_list([d.as_tuple() for d in nodeList1])
     ll2 = convert_tuples_to_linked_list([d.as_tuple() for d in nodeList1])
     
     if d1.gps_ts < d2.gps_ts:
         # Add points to start of list 2
+        log.debug('Extending list 2')
         newD = GPSDatum((d1.gps_ts, (d2.gps_la, d2.gps_lo), (d2.gps_x, d2.gps_y), d2.gps_a, d2.gps_s))
+        log.debug('New datum: %s', newD)
         firstNode = LinkedNode(newD, ll2)
         interpolate_list(firstNode)
-        return (nodeList1, firstNode.to_array())
-        
+        nodeList2 = firstNode.to_array()
     
     if d1.gps_ts > d2.gps_ts:
         # Add points to start of list 1
+        log.debug('Extending list 1')
         newD = GPSDatum((d2.gps_ts, (d1.gps_la, d1.gps_lo), (d1.gps_x, d1.gps_y), d1.gps_a, d1.gps_s))
+        log.debug('New datum: %s', newD)
         firstNode = LinkedNode(newD, ll1)
         interpolate_list(firstNode)
-        return (firstNode.to_array(), nodeList2)
-    
+        nodeList1 = firstNode.to_array()
+
+    log.debug('After synchronization:')
+    log.debug('  List 1 (%d points):', len(nodeList1))
+    log.debug('    Start: %s', nodeList1[0].gps_ts)
+    log.debug('    End  : %s', nodeList1[-1].gps_ts)
+    log.debug('  List 2 (%d points):', len(nodeList2))
+    log.debug('    Start: %s', nodeList2[0].gps_ts)
+    log.debug('    End  : %s', nodeList2[-1].gps_ts)    
     return (nodeList1, nodeList2)
-    
-    
     

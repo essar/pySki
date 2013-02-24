@@ -11,7 +11,7 @@ class PlotCfg:
 
     animate = False
     animate_fps = 25.0
-    animate_step = 10
+    animate_step = 5
     animate_track_step = 1
     
     bg_colour_4f = (0.1, 0.1, 0.15, 0.1)
@@ -31,6 +31,7 @@ class PlotCfg:
     show_axis = False
     show_axis_labels = False
     show_axis_markers = False
+    show_marker = False
     show_status_bar = False
     
     status_height = 20
