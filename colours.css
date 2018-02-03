@@ -1,0 +1,84 @@
+
+.dark_blue {
+
+  background-color : #404080;
+  border-color     : #000080;
+
+}
+
+.light_blue {
+
+  background-color : #C0C0FF;
+  border-color     : #0000FF;
+
+}
+
+.dark_red {
+
+  background-color : #804040;
+  border-color     : #400000;
+
+}
+
+.light_red {
+
+  background-color : #FFC0C0;
+  border-color     : #FF0000;
+
+}
+
+.dark_magenta {
+
+  background-color : #804080;
+  border-color     : #400040;
+
+}
+
+.magenta {
+
+  background-color : #FFC0FF;
+  border-color     : #FF00FF;
+
+}
+
+.dark_cyan {
+
+  background-color : #408080;
+  border-color     : #004040;
+
+}
+
+.cyan {
+
+  background-color : #C0FFFF;
+  border-color     : #00FFFF;
+
+}
+
+.dark_yellow{
+
+  background-color : #808040;
+  border-color     : #404000;
+
+}
+
+.yellow{
+
+  background-color : #FFFFC0;
+  border-color     : #FFFF00;
+
+}
+
+.dark_green {
+
+  background-color : #408040;
+  border-color     : #004000;
+
+}
+
+.light_green {
+
+  background-color : #C0FFC0;
+  border-color     : #00FF00;
+
+}

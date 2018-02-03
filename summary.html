@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <title>Essar Ski Data Summary</title>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" type="text/css" href="colours.css" />
+  <link rel="stylesheet" type="text/css" href="divs.css" />
+
+  <style>
+
+  </style>
+
+  <!-- Load jQuery -->
+  <script language="Javascript" src="jquery-2.1.3.js"></script>
+
+  <!-- Load JSON data -->
+  <script language="Javascript" src="src/ski/test/20170316.json"></script>
+  <script language="Javascript" src="data.js"></script>
+
+  <!-- Drawing scripts -->
+  <script language="Javascript" src="drawing.js"></script>
+  <script language="Javascript" src="events.js"></script>
+
+  <script language="Javascript"><!--
+
+  var activityData = {};
+  var actOpts = { legend : true
+                , labelFormatX : function(p) { return _asModeString(p.x); }
+                };
+
+  var altitudeData = {};
+  var altQ = 15;
+  var altTX = 0;
+  var altZX = 1;
+
+  var locationData = {};
+  var locOpts = { drawMode : "line" };
+  var locQ = 15;
+  var locTX = 0;
+  var locTY = 0;
+  var locZX = 1;
+  var locZY = 1;
+
+  var speedData = {};
+  var spdQ = 15;
+  var spdTX = 0;
+  var spdZX = 1;
+
+
+  // Shorthand for $( document ).ready()
+  $(function() {
+
+    setTimeout(function() {
+
+      updateMeta();
+      loadAndDrawActivity();
+      loadAndDrawAltitude();
+      loadAndDrawLocation();
+      loadAndDrawSpeed();
+
+    }, 250);
+
+/*
+    $.getScript( "src/ski/test/20130214.json", function( data, textStatus, jqxhr ) {
+
+      console.log( data ); // Data returned
+      console.log( textStatus ); // Success
+      console.log( jqxhr.status ); // 200
+      console.log( "Load was performed." );
+
+      updateMeta();
+      loadAndDrawActivity();
+      loadAndDrawAltitude();
+      loadAndDrawLocation();
+      loadAndDrawSpeed();
+
+    });
+*/
+
+  });
+
+  function loadAndDrawActivity() {
+
+    $( "#activity_canvas_box div.canvas_loading" ).show();
+
+    try {
+
+      // Load activity data
+      activityData = buildActData(0);
+      piePoints(activityData, document.getElementById("activity_canvas"), actOpts);
+
+      $( "#activity_canvas_box div.canvas_loading" ).hide();
+
+    } catch(err) {
+
+      $( "#activity_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+      throw err;
+
+    }
+  }
+
+
+  function loadAndDrawAltitude() {
+
+    $( "#altitude_canvas_box div.canvas_loading" ).show();
+
+    try {
+
+      // Load altitude data
+      altitudeData = buildAltData(altQ);
+      graphPoints(altitudeData, document.getElementById("altitude_canvas"), altTX, altZX, {});
+
+      $( "#altitude_canvas_box div.canvas_loading" ).hide();
+
+    } catch(err) {
+
+      $( "#altitude_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+
+    }
+  }
+
+
+  function loadAndDrawLocation() {
+
+    $( "#location_canvas_box div.canvas_loading" ).show();
+
+    try {
+
+      locationData = buildLocationData(64, locQ);
+      plotCurves(locationData, document.getElementById("location_canvas"), locTX, locTY, locZX, locZY, locOpts);
+
+      $( "#location_canvas_box div.canvas_loading" ).hide();
+
+    } catch(err) {
+
+      $( "#location_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+
+    }
+  }
+
+  function loadAndDrawSpeed() {
+
+    $( "#speed_canvas_box div.canvas_loading" ).show();
+
+    try {
+
+      // Load altitude data
+      speedData = buildSpdData(spdQ);
+      graphPoints(speedData, document.getElementById("speed_canvas"), spdTX, spdZX, {});
+
+      $( "#speed_canvas_box div.canvas_loading" ).hide();
+
+    } catch(err) {
+
+      $( "#speed_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+
+    }
+  }
+
+  //--></script>
+
+</head>
+<body>
+
+  <div class="header">
+    <div class="header_text_l">ESSAR SKIDATA &lt;<span id="file_name">20130214.json</span>&gt; (<span id="point_count">30273 points</span>)</div>
+    <div class="header_text_r">Track start : [ <span id="start_date">13 February 2013 08:44:21 MST</span> ]</div>
+  </div>
+
+  <div class="content">
+
+  <div class="metas">
+
+    <div class="row">
+
+      <div class="meta_box magenta" id="start_time">
+        <span class="meta_title">Start time</span>
+        <span class="meta_content">00:00</span>
+      </div>
+
+      <div class="meta_box light_red" id="end_time">
+        <span class="meta_title">Finish time</span>
+        <span class="meta_content">00:00</span>
+      </div>
+
+      <div class="meta_box yellow" id="low_alt">
+        <span class="meta_title">Low alt.</span>
+        <span class="meta_content">0m</span>
+      </div>
+
+      <div class="meta_box light_green" id="hi_alt">
+        <span class="meta_title">Hi alt.</span>
+        <span class="meta_content">0m</span>
+      </div>
+
+      <div class="meta_box cyan" id="top_speed">
+        <span class="meta_title">Top speed</span>
+        <span class="meta_content">0.00kph</span>
+      </div>
+
+      <div class="meta_box light_blue" id="avg_speed">
+        <span class="meta_title">Avg. speed</span>
+        <span class="meta_content">0.00kph</span>
+      </div>
+
+    </div>
+
+    <div class="row">
+
+      <div class="meta_box dark_magenta" id="total_distance">
+        <span class="meta_title">Total distance</span>
+        <span class="meta_content">0.00km</span>
+      </div>
+
+      <div class="meta_box dark_red" id="ski_distance">
+        <span class="meta_title">Ski distance</span>
+        <span class="meta_content">0.00km</span>
+      </div>
+
+      <div class="meta_box dark_yellow" id="vertical_distance">
+        <span class="meta_title">Vert. descent</span>
+        <span class="meta_content">0,000m</span>
+      </div>
+
+      <div class="meta_box dark_green" id="lift_count">
+        <span class="meta_title">Lift count</span>
+        <span class="meta_content">0</span>
+      </div>
+
+      <div class="meta_box dark_cyan" id="sus_speed">
+        <span class="meta_title">Sust. speed</span>
+        <span class="meta_content">0.00kph</span>
+      </div>
+
+
+    </div>
+
+  </div>
+
+  <div class="row">
+
+    <div class="canvas_box" id="altitude_canvas_box">
+
+      <div class="canvas_title"><div class="canvas_title_text">Altitude</div></div>
+      <div><a href="altitude.html"><canvas id="altitude_canvas" width="396" height="150"></canvas></a></div> <!-- Old width: 810 -->
+      <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+    </div>
+
+    <div class="canvas_box" id="speed_canvas_box">
+
+      <div class="canvas_title"><div class="canvas_title_text">Speed</div></div>
+      <div><a href="speed.html"><canvas id="speed_canvas" width="396" height="150"></canvas></a></div> <!-- Old width: 810 -->
+      <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+    </div>
+
+  </div>
+
+  <div class="row">
+
+    <div class="canvas_box" id="location_canvas_box">
+
+      <div class="canvas_title"><div class="canvas_title_text">Location</div></div>
+      <div><a href="location.html"><canvas id="location_canvas" width="396" height="396"></canvas></a></div>
+      <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+
+    </div>
+
+    <div class="canvas_box" id="activity_canvas_box">
+
+      <div class="canvas_title"><div class="canvas_title_text">Activity</div></div>
+      <div><canvas id="activity_canvas" width="396" height="396"></canvas></div>
+      <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,268 @@
+<html>
+<head>
+  <title>Ski Data Location Plot</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" type="text/css" href="colours.css" />
+  <link rel="stylesheet" type="text/css" href="divs.css" />
+
+  <style></style>
+
+  <!-- Load jQuery -->
+  <script language="Javascript" src="jquery-2.1.3.js"></script>
+  
+  <!-- Load JSON data -->
+  <script language="Javascript" src="src/ski/test/20170309.json"></script>
+  <script language="Javascript" src="data.js"></script>
+
+  <!-- Drawing scripts -->
+  <script language="Javascript" src="drawing.js"></script>
+  <script language="Javascript" src="events.js"></script>
+
+  <script language="Javascript"><!--
+
+    var locationData = {};
+    var locDataEnd = locationData.length;
+    var locDataStart = 0;
+    var locDragging = false;
+    var locOpts = { autoQ : false, drawMode : "curve", zoomLabel : true };
+    var locQ = 15;
+    var locTX = 0;
+    var locTY = 0;
+    var locZX = 1;
+    var locZY = 1;
+
+    var locationUL = {};
+    locationUL.poi = [];
+
+    var timelineData = {};
+    var timeDragging = false;
+    var timeHighlightX1 = 0;
+    var timeHighlightX2 = 0;
+    var timeOpts = { drawCircle : false
+                   , markerLabel : true
+                   , labelFormatX : function(p) { return _asTimeStringTZ(new Date((trackData.startT + p.x) * 1000), trackInfo.tzOffset / 100); }
+                   , labelFormatY : function(p) { return _asAltString(p.y); } };
+    var timePlaying = false;
+    var timePlayingSpeed = 100.0;
+    var timeTX = 0;
+    var timeZX = 1;
+
+    // Shorthand for $( document ).ready()
+    $(function() {
+
+        // Add key handler
+        $( "body" ).keydown( locationPageKeyDown );
+
+        loadAndDrawLocation();
+        loadAndDrawTimeline();
+
+        // If workers are supported, add the controls
+        if(typeof(Worker) !== "undefined") {
+
+          try {
+
+            var w = new Worker("location_timeline_worker.js");
+
+            console.log("Enabling workers...");
+            $( "#timeline_canvas_action_play" ).show();
+
+          } catch(err) { console.log(err); }
+        }
+
+    });
+
+    function drawLocation() {
+
+        plotCurves(locationData, document.getElementById("location_canvas"), locTX, locTY, locZX, locZY, locOpts);
+
+    }
+
+    function drawLocationMarker(point) {
+
+      // Draw XY intersect on location canvas
+      drawXYIntersect(locationData, document.getElementById("location_canvas"), locTX, locTY, locZX, locZY, point);
+
+    }
+
+    function drawLocationPOI() {
+
+      // Draw points of interest on location canvas
+      drawXYIntersect(locationData, document.getElementById("location_canvas"), locTX, locTY, locZX, locZY, locationUL.poi);
+
+    }
+
+    function drawTimeline() {
+
+        graphPoints(timelineData, document.getElementById("timeline_canvas"), timeTX, timeZX, timeOpts);
+
+    }
+
+    function drawTimelineHighlight() {
+
+      // Draw highlight on timeline canvas
+      drawHighlight(timeHighlightX1, timeHighlightX2, document.getElementById("timeline_canvas"));
+
+    }
+
+    function drawTimelineMarker(point) {
+
+      // Draw X intersect on timeline canvas
+      drawXIntersect(timelineData, document.getElementById("timeline_canvas"), timeTX, timeZX, timeOpts, point);
+
+    }
+
+
+    function loadAndDrawLocation() {
+
+      $( "#location_canvas_box div.canvas_loading" ).show();
+
+      try {
+
+        locationData = buildLocationData(256, locQ, locDataStart, locDataEnd);
+        drawLocation();
+
+        $( "#location_canvas_box div.canvas_loading" ).hide();
+
+      } catch(err) {
+
+        $( "#location_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+        throw err;
+
+      }
+    }
+
+    function loadAndDrawTimeline() {
+
+      $( "#timeline_canvas_box div.canvas_loading" ).show();
+
+      try {
+
+        timelineData = buildTimelineData(locQ, locDataStart, locDataEnd);
+        drawTimeline();
+
+        $( "#timeline_canvas_box div.canvas_loading" ).hide();
+
+      } catch(err) {
+
+        $( "#timeline_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+        throw err;
+
+      }
+    }
+
+
+    function redraw() {
+
+        drawLocation();
+        drawTimeline();
+
+    }
+
+  
+  //--></script>
+
+</head>
+<body>
+
+  <div class="header">
+    <div class="header_text_l">ESSAR SKIDATA &lt;<span id="file_name">20130214.json</span>&gt; (<span id="point_count">30273 points</span>)</div>
+    <div class="header_text_r">Track start : [ <span id="start_date">13 February 2013 08:44:21 MST</span> ]</div>
+  </div>
+
+  <div class="content">
+
+    <div class="row">
+
+        <div class="canvas_box" id="location_canvas_box">
+
+            <div class="canvas_title">
+
+                <div class="canvas_title_text">Location</div>
+                <div class="canvas_title_action"><a href="#" onclick="locationZoomInClick(event);redraw();return false;" title="Zoom in">[+]</a></div>
+                <div class="canvas_title_action"><a href="#" onclick="locationZoomOutClick(event);redraw();return false;" title="Zoom out">[-]</a></div>
+                <div class="canvas_title_action"><a href="#" onclick="locationResetClick(event);redraw();return false;" title="Reset">[x]</a></div>
+                <div class="canvas_title_action"><a href="#" onclick="locationShowOptionsClick(event);return false;" title="Options">[o]</a></div>
+
+            </div>
+
+            <div><canvas id="location_canvas" width="1400" height="1400"
+                         onmousedown="locationCanvasMouseDown(event);"
+                         onmousemove="locationCanvasMouseMove(event, this);"
+                         onmouseout="locationCanvasMouseOut(event, this);"
+                         onmouseup="locationCanvasMouseUp(event);"></canvas></div>
+
+            <div class="canvas_options"><form action="#">
+
+                <div class="option">
+
+                    <input type="checkbox" id="chkFullQuality"></input>
+                    <span class="option_text">Full quality</span>
+
+                </div>
+                <div class="option">
+
+                    <input type="checkbox" id="chkAutoRotate"></input>
+                    <span class="option_text">Auto rotate</span>
+
+                </div>
+                <div class="canvas_options_action"><a href="#" onclick="locationOptionsCloseClick(event);return false;" title="Close">[x]</a></div>
+
+            </form></div>
+
+            <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+
+        </div>
+
+    </div>
+
+    <!--<div class="row">
+
+        <div class="canvas_box" id="timeline_canvas_box">
+
+            <div class="canvas_title">
+                <div class="canvas_title_text">Timeline</div> &lt;!&ndash; Webdings chars 51-59 &ndash;&gt; &lt;!&ndash; And this!: python -m http.server &ndash;&gt;
+                <div class="hidden canvas_title_action" id="timeline_canvas_action_play"><a href="#" onclick="timelinePlay(event, document.getElementById('timeline_canvas'), document.getElementById('location_canvas'));return false;" title="Play">[&gt;]</a></div>
+                <div class="canvas_title_action"><a href="#" onclick="timelineResetClick(event);redraw();return false;" title="Reset">[x]</a></div>
+            </div>
+
+            <div><canvas id="timeline_canvas" width="1000" height="50"
+                         onmousedown="timelineCanvasMouseDown(event);"
+                         onmousemove="timelineCanvasMouseMove(event, this);"
+                         onmouseout="timelineCanvasMouseOut(event);"
+                         onmouseup="timelineCanvasMouseUp(event, this);"></canvas></div>
+
+            <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+
+        </div>
+
+    </div>-->
+
+    <div class="row">
+
+        <div class="info_box">
+
+            <div class="info_text">[<span id="time">13 February 2013 08:44:21 MST</span>]</div>
+            <div class="info_text">[Latitude: <span id="lat">-38.0000</span>]</div>
+            <div class="info_text">[Longitude: <span id="lon">15.0000</span>]</div>
+            <div class="info_text">[Altitude: <span id="alt">2,435</span>]</div>
+            <div class="info_text">[Speed: <span id="speed">44.32</span>]</div>
+
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div class="command_box">
+
+            <div class="command" onclick="window.location='summary.html';">&lt; Back to Summary</div>
+
+        </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

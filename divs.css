@@ -1,0 +1,318 @@
+
+@font-face {
+    font-family: candal;
+    src: url('Candal.ttf');
+}
+
+@font-face {
+    font-family: sax;
+    src: url('saxmono.ttf');
+}
+
+.canvas_body {
+
+  margin : 0px;
+  padding : 0px;
+
+}
+
+.canvas_box {
+
+  border       : solid 2px;
+  border-color : #808080;
+
+  display  : inline-block;
+  position : relative;
+  margin   : 5px;
+
+}
+
+.canvas_loading {
+
+  display : block;
+
+  background-color : RGBA(192, 192, 192, 0.5);
+
+  position: absolute;
+  top : 0px;
+  left : 0px;
+  width : 100%;
+  height : 100%;
+
+}
+
+.canvas_loading_error {
+
+  background-color : RGBA(192, 0, 0, 0.5);
+
+  color : #800000;
+
+}
+
+.canvas_loading_text {
+
+  display : block;
+  margin : 0 auto;
+
+  font-family : "Candal", "Arial Black", "Arial";
+  font-size   : 12pt;
+  color       : #000000;
+  text-align  : center;
+
+}
+
+.canvas_options {
+
+  display : none;
+
+  background-color : RGBA(96, 96, 96, 0.8);
+
+  position : absolute;
+  top      : 0px;
+  left     : 0px;
+  width    : 100%;
+  height   : 100%;
+
+}
+
+.canvas_options form {
+
+  display : block;
+
+  position : relative;
+
+  background-color : RGBA(255, 255, 255, 0.8);
+
+  margin : 30px;
+
+}
+
+.canvas_options_action {
+
+  display  : inline-block;
+  float    : right;
+
+  position : absolute;
+  top      : 15px;
+  right    : 15px;
+
+  color       : #808080;
+  font-family : "sax", "Courier New", monospace;
+  font-size   : 10pt;
+}
+
+.canvas_options_action a {
+
+  color           : #808080;
+  text-decoration : none;
+
+}
+
+.canvas_title {
+
+  background-color: #808080;
+
+  padding : 2px;
+
+}
+
+.canvas_title_action {
+
+  display : inline-block;
+  float   : right;
+
+  color       : #C0C0C0;
+  font-family : "sax", "Courier New", monospace;
+  font-size   : 10pt;
+
+}
+
+.canvas_title_action a {
+
+  color           : #C0C0C0;
+  text-decoration : none;
+
+}
+
+.canvas_title_text {
+
+  display : inline-block;
+
+  color       : #FFFFFF;
+  font-family : "Candal", "Arial";
+  font-size   : 10pt;
+
+}
+
+.command {
+
+  display : inline-block;
+  margin  : 20px;
+  padding : 20px;
+
+  border : solid black 4px;
+
+  font-family : "Candal", "Arial Black", "Arial";
+  font-size   : 10pt;
+
+  background-color: #C0C0C0;
+
+}
+
+.command:hover {
+
+  background-color : #E0E0E0;
+  cursor : pointer;
+
+}
+
+.command_box {
+
+  position : relative;
+  margin   : 5px;
+
+}
+
+.content {
+
+  clear    : both;
+  position : relative;
+  margin-top: 25px;
+  margin-bottom: 25px;
+
+}
+
+.header {
+
+  position    : fixed;
+  top         : 0px;
+  left        : 0px;
+  width       : 100%;
+  padding     : 2px 2px 5px 2px;
+  z-index     : 99;
+
+  background-color: RGBA(96, 96, 96, 0.9);
+
+  color       : #FFFFFF;
+  font-family : "sax", "Courier New" monospace;
+  font-size   : 9pt;
+  font-weight : bolder;
+
+}
+
+.header_text_l {
+
+  display  : inline-block;
+  position : relative;
+  left     : 15px;
+  float    : left;
+
+}
+
+.header_text_r {
+
+  display  : inline-block;
+  position : relative;
+  right    : 15px;
+  float    : right;
+
+}
+
+.hidden {
+
+  display : none;
+
+}
+
+.info_box {
+
+  background-color : #E0E0E0;
+  width : 1004px;
+
+  position : relative;
+  margin   : 0px;
+
+  position    : fixed;
+  bottom      : 0px;
+  left        : 0px;
+  width       : 100%;
+  padding     : 2px 2px 5px 2px;
+  z-index     : 99;
+
+}
+
+.info_text {
+
+  display : inline-block;
+ 
+  font-family : "sax", "Courier New" monospace;
+  font-size   : 9pt;
+
+  padding : 5px;
+
+}
+
+.meta_box {
+
+  border: solid black 5px;
+
+  font-family: "Candal", "Arial Black", "Arial";
+
+  display  : inline-block;
+  position : relative;
+  top      : 0px;
+  left     : 0px;
+  width    : 120px;
+  height   : 50px;
+  margin   : 5px;
+  padding  : 10px;
+
+}
+
+.meta_content {
+
+  display    : block;
+  text-align : center;
+
+  font-size  : 16pt;
+  color      : #000000;
+
+}
+
+.meta_title {
+
+  font-size : 10pt;
+  color     : #000000;
+
+}
+
+.option {
+
+  padding : 10px;
+
+}
+
+.option input {
+ 
+  border : solid black 1px;
+
+  padding : 5px;
+
+}
+
+.option_text {
+
+  display : inline-block;
+
+  color       : #000000;
+  font-family : "sax", "Courier New", monospace;
+  font-size   : 10pt;
+
+}
+
+.row {
+
+  position : relative;
+  width    : 100%;
+
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<script src="src/ski/test/20130214.json"></script>
+<script src="demo_canvas.js"></script>
+<body onload="init(); draw_curve();">
+
+<canvas id="myCanvas" width="600" height="600" style="border: solid green 2px" onmousedown="mouseDown(event);" onmouseup="mouseUp(event);" onmousemove="mouseMove(event);"></canvas>
+
+<div id="controls" style="float:right;">
+    <form id="control_form"><table>
+        <tr>
+            <th>Start point</th>
+            <td><input id="start_point" value="0" size="10" /></td>
+        </tr>
+        <tr>
+            <th>Max points</th>
+            <td><input id="max_points" value="0" size="10" /></td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input name="draw_mode" type="radio" value="line" id="draw_mode_line" /><label for="draw_mode_line">Lines</label>
+                <input name="draw_mode" type="radio" value="curve" id="draw_mode_curve" checked="true" /><label for="draw_mode_curve">Curves</label>
+            </td>
+        </tr>
+        <tr>
+            <th>Draw quality</th>
+            <td><input id="draw_ql" value="1" size="4" /></td>
+        </tr>
+        <tr>
+            <th>Zoom</th>
+            <td><input type="button" value="&lt;" onclick="z_out()" /><input id="z_factor" value="1.00" size="2" /><input type="button" value="&gt;" onclick="z_in()" /></td>
+        </tr>
+
+        <tr>
+            <td colspan="2"><input type="button" value="Update" onclick="update(); return false;" /><input type="button" value="Reset" onclick="reset();" /></td>
+        </tr>
+    </table></form>
+</div>
+
+</body>
+</html>

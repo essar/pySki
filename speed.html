@@ -1,0 +1,170 @@
+<html>
+<head>
+  <title>Ski Data Speed Graph</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" type="text/css" href="colours.css" />
+  <link rel="stylesheet" type="text/css" href="divs.css" />
+
+  <style></style>
+
+  <!-- Load jQuery -->
+  <script language="Javascript" src="jquery-2.1.3.js"></script>
+  
+  <!-- Load JSON data -->
+  <script language="Javascript" src="src/ski/test/20170316.json"></script>
+  <script language="Javascript" src="data.js"></script>
+
+  <!-- Drawing scripts -->
+  <script language="Javascript" src="drawing.js"></script>
+  <script language="Javascript" src="events.js"></script>
+
+  <script language="Javascript"><!--
+
+    var speedData = {};
+    var spdDragging = false;
+    var spdOpts = { axisLabels : true
+                  , drawCircle : true
+                  , zoomLabel : true
+                  , labelFormatX : function(p) { return _asTimeStringTZ(new Date((trackData.startT + p.x) * 1000), trackInfo.tzOffset / 100); }
+                  , labelFormatY : function(p) { return _asSpeedString(p.y); } }
+
+    var spdTX = 0;
+    var spdZX = 1;
+
+    // Shorthand for $( document ).ready()
+    $(function() {
+
+
+        $( "#top_spd" ).html(trackInfo.topSpeedStr);
+        $( "#avg_spd" ).html(trackInfo.avgSpeedStr);
+
+        loadAndDrawSpeed();
+
+    });
+
+
+    function loadAndDrawSpeed() {
+
+      $( "#speed_canvas_box div.canvas_loading" ).show();
+
+      try {
+
+        // Load speed data
+        speedData = buildSpdData(8);
+        drawSpeed();
+
+        $( "#speed_canvas_box div.canvas_loading" ).hide();
+
+      } catch(err) {
+
+        $( "#speed_canvas_box div.canvas_loading" ).addClass("canvas_loading_error").html("Error: " + err);
+        throw err;
+
+      }
+    }
+
+
+    function drawSpeed() {
+
+        graphPoints(speedData, document.getElementById("speed_canvas"), spdTX, spdZX, spdOpts);
+
+    }
+
+    function drawSpeedMarker(point) {
+
+      // Draw X intersect on speed canvas
+      drawXIntersect(speedData, document.getElementById("speed_canvas"), spdTX, spdZX, spdOpts, point);
+
+    }
+
+    function redraw() {
+
+        drawSpeed();
+
+    }
+
+  
+  //--></script>
+
+</head>
+<body>
+
+  <div class="header">
+    <div class="header_text_l">ESSAR SKIDATA &lt;<span id="file_name">20130214.json</span>&gt; (<span id="point_count">30273 points</span>)</div>
+    <div class="header_text_r">Track start : [ <span id="start_date">13 February 2013 08:44:21 MST</span> ]</div>
+  </div>
+
+  <div class="content">
+
+    <div class="row">
+
+        <div class="canvas_box" id="speed_canvas_box">
+
+            <div class="canvas_title">
+
+                <div class="canvas_title_text">Speed [Max: <span id="top_spd">0.0kph</span> | Avg: <span id="avg_spd">0.0kph</span>]</div>
+                <div class="canvas_title_action"><a href="#" onclick="speedZoomInClick(event);redraw();return false;" title="Zoom in">[+]</a></div>
+                <div class="canvas_title_action"><a href="#" onclick="speedZoomOutClick(event);redraw();return false;" title="Zoom out">[-]</a></div>
+                <div class="canvas_title_action"><a href="#" onclick="speedResetClick(event);redraw();return false;" title="Reset">[x]</a></div>
+                <!--<div class="canvas_title_action"><a href="#" onclick="speedShowOptionsClick(event);return false;" title="Options">[o]</a></div>-->
+
+            </div>
+            <div><canvas id="speed_canvas" width="1000" height="350"
+                         onmousedown="speedCanvasMouseDown(event);"
+                         onmousemove="speedCanvasMouseMove(event, this);"
+                         onmouseout="speedCanvasMouseOut(event, this);"
+                         onmouseup="speedCanvasMouseUp(event);"></canvas></div>
+
+            <div class="canvas_options"><form action="#" id="location_canvas_options">
+
+                <div class="option">
+
+                    <input type="checkbox" name="chkFullQuality"></input>
+                    <span class="option_text">Full quality</span>
+
+                </div>
+                <div class="option">
+
+                  <input type="button" value="OK" onclick="locationOptionsOKClick(event);return false;"></input>
+                  <input type="button" value="Cancel" onclick="locationOptionsCancelClick(event);return false;"></input>
+
+                </div>
+
+            </form></div>
+
+            <div class="canvas_loading"><span class="canvas_loading_text">Loading...</span></div>
+
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div class="info_box">
+
+            <div class="info_text">[<span id="time">13 February 2013 08:44:21 MST</span>]</div>
+            <div class="info_text">[Latitude: <span id="lat">00.0000</span>]</div>
+            <div class="info_text">[Longitude: <span id="lon">00.0000</span>]</div>
+            <div class="info_text">[Altitude: <span id="alt">0,000</span>]</div>
+            <div class="info_text">[Speed: <span id="speed">00.00</span>]</div>
+            <div class="info_text">[Mode: <span id="mode">STOP</span>]</div>
+
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div class="command_box">
+
+            <div class="command" onclick="window.location='summary.html';">&lt; Back to Summary</div>
+
+        </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>
