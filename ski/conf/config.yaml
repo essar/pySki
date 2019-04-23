@@ -1,0 +1,4 @@
+
+dataloader:
+  gps:
+    convert_coords: Yes
