@@ -1,4 +1,6 @@
 
 dataloader:
+  aws:
+    source_bucket: essar-zephyr-test
   gps:
     convert_coords: Yes

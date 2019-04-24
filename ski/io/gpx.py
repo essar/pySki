@@ -6,6 +6,7 @@
 import logging
 
 from datetime import datetime
+from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
 from xml.dom.minidom import parse, parseString
 

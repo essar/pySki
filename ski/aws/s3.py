@@ -3,14 +3,20 @@
 @author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
 '''
 
-import boto3
+import logging
+from boto3 import resource
 from io import BytesIO, TextIOWrapper
+from ski.config import config
 
-#https://s3.eu-west-2.amazonaws.com/essar-zephyr-test/gsd/testdata.gsd
-bucket = 'essar-zephyr-test'
+# Set up logger
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+bucket = config['dataloader']['aws']['source_bucket']
 testkey = 'gsd/testdata.gsd'
 
-s3 = boto3.resource('s3')
+# Initialise s3 resource
+s3 = resource('s3')
 
 class S3File:
 

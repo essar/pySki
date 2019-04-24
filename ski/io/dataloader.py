@@ -4,30 +4,18 @@
 '''
 
 import logging
-import yaml
 
 from datetime import datetime
 from pytz import timezone
 from ski.data.commons import BasicTrackPoint, Track
-from ski.data.coordinate import UTMCoordinate, WGSCoordinate, WGStoUTM
 from ski.io.db import TestDataStore
 from ski.io.gpx import GPXStringLoader
 from ski.io.gsd import GSDFileLoader, GSDS3Loader
-import xml.dom.minidom as xml
 
 # Set up logger
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
-
-# Load config
-with open('ski/conf/config.yaml', 'r') as ymlfile:
-    config = yaml.load(ymlfile)
-
-
-convert_coords = config['dataloader']['gps']['convert_coords']
-
 
 def load_point_to_db(loader, db, track):
 
@@ -40,6 +28,7 @@ def load_point_to_db(loader, db, track):
 
 	#track_point = BasicTrackPoint(track_id='TEST', ts=point.ts, lat=point.lat, lon=point.lon, alt=point.alt, spd=point.spd)
 
+	# convert_coords = config['dataloader']['gps']['convert_coords']
 	# Cartesian X & Y
 	# if convert_coords:
 	#	wgs = WGSCoordinate(track_point.lat, track_point.lon)
@@ -66,12 +55,12 @@ def load_all_points(loader, db, track):
 def tester():
 	test_data = '<track><trkpt lat="51.0000" lon="01.0000"><time>2019-04-16T17:00:00Z</time><ele>149</ele><speed>4.5</speed></trkpt>\
 				 <trkpt lat="51.2345" lon="-01.2345"><time>2019-04-16T17:00:05Z</time><ele>135</ele><speed>3.25</speed></trkpt></track>'
-	log.info('Testing\n%s', test_data)
+	log.debug('Testing data:\n%s', test_data)
 
 	# Create loader
-	loader = GPXStringLoader(test_data)
+	#loader = GPXStringLoader(test_data)
 	#loader = GSDFileLoader('tests/testdata.gsd', section_offset=15, section_limit=2)
-	#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
+	loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
 
 	# Create data store
 	db = TestDataStore()
