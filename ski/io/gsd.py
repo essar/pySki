@@ -9,10 +9,11 @@ from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import addSeconds, DMSCoordinate, DMStoWGS
 from datetime import datetime
+from decimal import Decimal
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 

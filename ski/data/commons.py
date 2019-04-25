@@ -7,14 +7,14 @@ from datetime import datetime
 
 class Track:
 
-	def __init__(self, track_id, group_id, track_zdt):
+	def __init__(self, track_id, track_group, track_zdt):
 		self.track_id = track_id
-		self.group_id = group_id
+		self.track_group = track_group
 		self.track_zdt = track_zdt
 
 
 	def __str__(self):
-		return '[{:s}] group={:s} zdt={:s}'.format(self.track_id, self.group_id, self.track_zdt)
+		return '[{:s}] group={:s} zdt={:s}'.format(self.track_id, self.track_group, self.track_zdt)
 
 
 class BasicGPSPoint:
@@ -23,8 +23,8 @@ class BasicGPSPoint:
 		self.ts = ts
 		self.lat = lat
 		self.lon = lon
-		self.alt = alt
 		self.spd = spd
+		self.alt = alt
 
 
 	def vals(self):

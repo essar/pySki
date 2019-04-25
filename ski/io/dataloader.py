@@ -7,6 +7,7 @@ import logging
 
 from datetime import datetime
 from pytz import timezone
+from ski.aws.dynamo import DynamoDataStore
 from ski.data.commons import BasicTrackPoint, Track
 from ski.io.db import TestDataStore
 from ski.io.gpx import GPXStringLoader
@@ -59,11 +60,12 @@ def tester():
 
 	# Create loader
 	#loader = GPXStringLoader(test_data)
-	#loader = GSDFileLoader('tests/testdata.gsd', section_offset=15, section_limit=2)
-	loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
+	loader = GSDFileLoader('tests/testdata.gsd', section_offset=0, section_limit=1)
+	#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
 
 	# Create data store
-	db = TestDataStore()
+	#db = TestDataStore()
+	db = DynamoDataStore()
 
 	# Create track
 	tz = timezone('UTC')
