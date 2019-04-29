@@ -49,7 +49,7 @@ def load_all_points(loader, db, track):
 	while load_point_to_db(loader, db, track):
 		pass
 
-	log.info('Load complete: %d points loaded', db.count)
+	log.info('Load complete: %d points loaded', db.insert_count)
 
 
 

@@ -1,4 +1,6 @@
-
+aws:
+  dynamo:
+    points_table_name: zephyr-points
 dataloader:
   aws:
     source_bucket: essar-zephyr-test
