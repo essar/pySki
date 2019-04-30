@@ -5,7 +5,6 @@
 
 import logging
 
-from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import addSeconds, DMSCoordinate, DMStoWGS
 from datetime import datetime
@@ -13,7 +12,7 @@ from decimal import Decimal
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 
@@ -97,18 +96,17 @@ class GSDLoader:
 
 		# Constrain section list according to offset and limit
 		self.sections = self.sections[off:lim]
+		log.info('Loaded %d GSD sections', len(self.sections))
 
 
 class GSDFileLoader(GSDLoader):
 
-	def __init__(self, gsd_file, batch_mode=True, section_offset=None, section_limit=None):
+	def __init__(self, gsd_file, batch_mode=False, section_offset=None, section_limit=None):
 		super().__init__(gsd_file)
 
 		log.info('Loading from local GSD file (%s)', gsd_file.name)
 		self.load_sections(section_offset, section_limit)
 		
-		log.info('Found %d sections', len(self.sections))
-
 		if not self.batch_mode:
 			# Load all sections (within bounds) into lines array
 			for section in self.sections:
@@ -117,11 +115,16 @@ class GSDFileLoader(GSDLoader):
 
 class GSDS3Loader(GSDLoader):
 
-	def __init__(self, s3f, section_offset=None, section_limit=None):
-		super().__init__()
+	def __init__(self, s3f, batch_mode=False, section_offset=None, section_limit=None):
+		super().__init__(s3f.body)
 
 		log.info('Loading from S3 GSD file (%s)', s3f)
-		self.load_data(s3f.body, section_offset, section_limit)
+		self.load_sections(section_offset, section_limit)
+
+		if not self.batch_mode:
+			# Load all sections (within bounds) into lines array
+			for section in self.sections:
+				load_gsd_section(self.data, section, self.lines)
 
 
 def __get_alt(line):

@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 from pytz import timezone
 from ski.aws.dynamo import DynamoDataStore
+from ski.aws.s3 import S3File
 from ski.data.commons import BasicTrackPoint, Track
 from ski.io.db import TestDataStore
 from ski.io.gpx import GPXStringLoader
@@ -45,6 +46,7 @@ def batch_load_point_to_db(loader, db, track):
 
 	return True
 
+
 def load_point_to_db(loader, db, track):
 
 	point = loader.load_point()
@@ -80,30 +82,47 @@ def load_all_points(loader, db, track):
 
 
 
-def tester():
+def load_from_file(db, track):
+	# Create loader
+	with open('tests/testdata.gsd', mode='r') as f:
+		loader = GSDFileLoader(f, batch_mode=True, section_offset=0, section_limit=1)
+		
+		# Load points
+		load_all_points(loader, db, track)
+
+
+def load_from_s3(db, track):
+	s3f = S3File('gsd/testdata.gsd', True)
+	loader = GSDS3Loader(s3f, batch_mode=True, section_limit=1)
+
+	# Load points
+	load_all_points(loader, db, track)
+
+
+def load_from_string(db, track):
 	test_data = '<track><trkpt lat="51.0000" lon="01.0000"><time>2019-04-16T17:00:00Z</time><ele>149</ele><speed>4.5</speed></trkpt>\
 				 <trkpt lat="51.2345" lon="-01.2345"><time>2019-04-16T17:00:05Z</time><ele>135</ele><speed>3.25</speed></trkpt></track>'
 	log.debug('Testing data:\n%s', test_data)
 
-	# s3f = S3File(s3_object, True)
-	#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=1)
+	loader = GPXStringLoader(test_data)
 
-	# Create loader
-	#loader = GPXStringLoader(test_data)
-	with open('tests/testdata.gsd', mode='r') as f:
-		loader = GSDFileLoader(f, section_offset=0, section_limit=1)
-		#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
+	# Create data store
+	db = TestDataStore()
 
-		# Create data store
-		#db = TestDataStore()
-		db = DynamoDataStore()
+	# Load points
+	load_all_points(loader, db, track)
+	
 
-		# Create track
-		tz = timezone('UTC')
-		track = Track('abcdefg','TEST', datetime.now(tz))
+def tester():
+	# Create data store
+	db = DynamoDataStore()
 
-		# Load points
-		load_all_points(loader, db, track)
+	# Create track
+	tz = timezone('UTC')
+	track = Track('abcdefg','TEST', datetime.now(tz))
+
+	load_from_file(db, track)
+	#load_from_s3(db, track)
 
 
 if __name__ == "__main__":

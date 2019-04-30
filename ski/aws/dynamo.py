@@ -13,7 +13,7 @@ from ski.io.db import DataStore
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 db_points = config['aws']['dynamo']['points_table_name']
 
