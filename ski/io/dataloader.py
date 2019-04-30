@@ -18,6 +18,33 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+
+def batch_load_point_to_db(loader, db, track):
+
+	points = loader.load_points(section_limit=2)
+		
+	if points == None:
+		# End of data
+		log.debug('Reached end of data')
+		return False
+
+	#track_point = BasicTrackPoint(track_id='TEST', ts=point.ts, lat=point.lat, lon=point.lon, alt=point.alt, spd=point.spd)
+
+	# convert_coords = config['dataloader']['gps']['convert_coords']
+	# Cartesian X & Y
+	# if convert_coords:
+	#	wgs = WGSCoordinate(track_point.lat, track_point.lon)
+	#	utm = WGStoUTM(wgs)
+	#	log.debug('wgs: %s', wgs)
+	#	log.debug('utm: %s', utm)
+	#	track_point.x = utm.x
+	#	track_point.y = utm.y
+	
+	# Load points to data store
+	db.add_points_to_track(track, points)
+
+	return True
+
 def load_point_to_db(loader, db, track):
 
 	point = loader.load_point()
@@ -46,7 +73,7 @@ def load_point_to_db(loader, db, track):
 
 
 def load_all_points(loader, db, track):
-	while load_point_to_db(loader, db, track):
+	while batch_load_point_to_db(loader, db, track):
 		pass
 
 	log.info('Load complete: %d points loaded', db.insert_count)
@@ -58,21 +85,25 @@ def tester():
 				 <trkpt lat="51.2345" lon="-01.2345"><time>2019-04-16T17:00:05Z</time><ele>135</ele><speed>3.25</speed></trkpt></track>'
 	log.debug('Testing data:\n%s', test_data)
 
+	# s3f = S3File(s3_object, True)
+	#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=1)
+
 	# Create loader
 	#loader = GPXStringLoader(test_data)
-	loader = GSDFileLoader('tests/testdata.gsd', section_offset=0, section_limit=1)
-	#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
+	with open('tests/testdata.gsd', mode='r') as f:
+		loader = GSDFileLoader(f, section_offset=0, section_limit=1)
+		#loader = GSDS3Loader('gsd/testdata.gsd', section_limit=3)
 
-	# Create data store
-	#db = TestDataStore()
-	db = DynamoDataStore()
+		# Create data store
+		#db = TestDataStore()
+		db = DynamoDataStore()
 
-	# Create track
-	tz = timezone('UTC')
-	track = Track('abcdefg','TEST', datetime.now(tz))
+		# Create track
+		tz = timezone('UTC')
+		track = Track('abcdefg','TEST', datetime.now(tz))
 
-	# Load points
-	load_all_points(loader, db, track)
+		# Load points
+		load_all_points(loader, db, track)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ from ski.io.db import DataStore
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 db_points = config['aws']['dynamo']['points_table_name']
 
@@ -88,9 +88,22 @@ class DynamoDataStore(DataStore):
 							}
 						}
 					)
+					self.insert_count += 1
 					log.debug('put_item %s=%s', track.track_id, response)
 				except Exception as e:
 					log.error(e)
+
+
+def count_points():
+	try:
+		# Get Dynamo table
+		table = dynamodb.Table(db_points)
+		response = table.scan(
+			Select='COUNT'
+		)
+		log.info('Point count=%s', response['Count'])
+	except Exception as e:
+		log.error(e)
 
 
 def create_table_tracks():
@@ -189,4 +202,5 @@ def float_to_decimal(float_value):
 if __name__ == "__main__":
 	logging.basicConfig()
 	init_db()
+	count_points()
 

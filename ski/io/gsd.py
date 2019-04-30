@@ -13,34 +13,36 @@ from decimal import Decimal
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 
 class GSDLoader:
 
-	def __init__(self, gsd_file, section_offset=None, section_limit=None):
+	def __init__(self, data, batch_mode=False):
+		# Store data reference
+		self.data = data
 		# Set up array and internal pointer
 		self.lines = []
 		self.linePtr = 0
+		self.sections = []
+		self.sectionPtr = 0
+		self.batch_mode = batch_mode
 
 	
 	def load_data(self, f, section_offset, section_limit):
-		sections = []
+		# Load list of GSD sections from the file header
+		load_gsd_header(f, sections=self.sections)
+		log.info('%d GSD sections found', len(self.sections))
 
-		load_gsd_header(f, sections=sections)
-		log.info('%d GSD sections found', len(sections))
-		
-		# Set bounds on the number of sections to parse
-		off = 0 if section_offset is None else min(section_offset, len(sections))
-		lim = len(sections) if section_limit is None else off + section_limit
+		if not self.batch_mode:
+			# Set bounds on the number of sections to parse
+			off = 0 if section_offset is None else min(section_offset, len(self.sections))
+			lim = len(self.sections) if section_limit is None else off + section_limit
 
-		for section in sections[off:lim]:
-			# Reconstruct the section name
-			si, sname = section
-			section_name = '{:03d},{:s}'.format(si, sname)
-
-			load_gsd_section(f, section_name, self.lines)
+			# Load all sections (within bounds)
+			for section in self.sections[off:lim]:
+				load_gsd_section(f, section, self.lines)
 
 
 	def load_point(self, limit=-1):
@@ -57,23 +59,68 @@ class GSDLoader:
 		return parse_gsd_line(line)
 
 
+	def load_points(self, section_limit=-1):
+		# Create a new array
+		points = []
+
+		# Get next section from array, return if no sections remain
+		if self.sectionPtr < len(self.sections) and (section_limit < 0 or self.sectionPtr < section_limit):
+			# Get the next section
+			section = self.sections[self.sectionPtr]
+			log.debug('Loading GSD section %d (%s)', self.sectionPtr, section)
+			# Increment pointer
+			self.sectionPtr += 1
+		else:
+			return None
+
+		# Load section data into array
+		lines = []
+		load_gsd_section(self.data, section, lines)
+
+		# Get all lines in the section
+		for line in lines:
+			points.append(parse_gsd_line(line))
+
+		log.info('Loaded GSD section %s (%d points)', section, len(points))
+
+		# Return points array
+		return points
+
+
+	def load_sections(self, section_offset, section_limit):
+		# Load list of GSD sections from the file header
+		load_gsd_header(self.data, sections=self.sections)
+		# Set bounds on the number of sections to parse
+		off = 0 if section_offset is None else min(section_offset, len(self.sections))
+		lim = len(self.sections) if section_limit is None else off + section_limit
+		log.debug('%d GSD sections found; offset=%d, limit=%d', len(self.sections), off, lim)
+
+		# Constrain section list according to offset and limit
+		self.sections = self.sections[off:lim]
+
+
 class GSDFileLoader(GSDLoader):
 
-	def __init__(self, gsd_file, section_offset=None, section_limit=None):
-		super().__init__(self)
+	def __init__(self, gsd_file, batch_mode=True, section_offset=None, section_limit=None):
+		super().__init__(gsd_file)
 
-		with open(gsd_file, 'r') as f:
-			log.info('Loading local GSD file (%s)', gsd_file)
-			self.load_data(f, section_offset, section_limit)
+		log.info('Loading from local GSD file (%s)', gsd_file.name)
+		self.load_sections(section_offset, section_limit)
+		
+		log.info('Found %d sections', len(self.sections))
+
+		if not self.batch_mode:
+			# Load all sections (within bounds) into lines array
+			for section in self.sections:
+				load_gsd_section(self.data, section, self.lines)
 
 
 class GSDS3Loader(GSDLoader):
 
-	def __init__(self, s3_object, section_offset=None, section_limit=None):
-		super().__init__(self)
+	def __init__(self, s3f, section_offset=None, section_limit=None):
+		super().__init__()
 
-		s3f = S3File(s3_object, True)
-		log.info('Loading S3 GSD file (%s)', s3f)
+		log.info('Loading from S3 GSD file (%s)', s3f)
 		self.load_data(s3f.body, section_offset, section_limit)
 
 
@@ -174,7 +221,11 @@ def load_gsd_header(f, sections=[]):
 		sections.append(__parse_header_line(line))
 
 
-def load_gsd_section(f, section_name, lines=[]):
+def load_gsd_section(f, section, lines=[]):
+	# Reconstruct the section name
+	si, sname = section
+	section_name = '{:03d},{:s}'.format(si, sname)
+
 	# Start at beginning of file
 	f.seek(0)
 
