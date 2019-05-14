@@ -12,12 +12,12 @@ from xml.dom.minidom import parse, parseString
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 class GPXLoader:
 
-	def __init__(self, gpx_file=None, gpx_data=None):
+	def __init__(self):
 
 		# Set up array and internal pointer
 		self.elems = []
@@ -31,7 +31,7 @@ class GPXLoader:
 		self.elems.extend(doc_elems)
 
 
-	def load_point(self, limit=-1):
+	def load_points(self, limit=-1):
 		# Get next element from document, return if no points remain
 		if self.elemPtr < len(self.elems) and (limit < 0 or self.elemPtr < limit):
 			# Look up next element
@@ -42,13 +42,13 @@ class GPXLoader:
 		else:
 			return None
 
-		return parse_gpx_elem(elem)
+		return [parse_gpx_elem(elem)]
 
 
 class GPXFileLoader(GPXLoader):
 
 	def __init__(self, gpx_file):
-		super().__init__(self)
+		super().__init__()
 		
 		with open(gpx_file, 'r') as f:
 			log.info('Loading local GPX file (%s)', gpx_file)
@@ -57,18 +57,19 @@ class GPXFileLoader(GPXLoader):
 
 class GPXS3Loader(GPXLoader):
 	
-	def __init__(self, s3_obect):
-		super().__init__(self)
+	def __init__(self, s3_file):
+		if type(s3_file) != S3File:
+			raise TypeError('s3_file parameter must be an S3File')
+		super().__init__()
 
-		log.info('Loading S3 GPX file (%s)', s3f)
-		s3f = S3File(s3_object, True)
-		self.load_data(parse(s3f))
+		log.info('Loading S3 GPX file (%s)', s3_file)
+		self.load_data(parse(s3_file))
 
 
 class GPXStringLoader(GPXLoader):
 
 	def __init__(self, gpx_string):
-		super().__init__(self)
+		super().__init__()
 		
 		log.info('Loading GPX string (%d bytes)', len(gpx_string))
 		self.load_data(parseString(gpx_string))
@@ -113,7 +114,7 @@ def parse_gpx_elem(elem):
 	xml_ts  = __get_ts(elem)
 	xml_alt = __get_alt(elem)
 	xml_spd = __get_speed(elem)
-	log.debug('xml: lat=%s; lon=%s; ts=%s; alt=%s; spd=%s', xml_lat, xml_lon, xml_ts, xml_alt, xml_spd)
+	log.debug('XML: lat=%s; lon=%s; ts=%s; alt=%s; spd=%s', xml_lat, xml_lon, xml_ts, xml_alt, xml_spd)
 		
 	point = BasicGPSPoint()
 	

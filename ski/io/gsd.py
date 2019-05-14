@@ -82,7 +82,7 @@ class GSDS3Loader(GSDLoader):
 
 	def __init__(self, s3_file, section_offset=None, section_limit=None):
 		if type(s3_file) != S3File:
-			raise TypeError('s3f parameter must be an S3File')
+			raise TypeError('s3_file parameter must be an S3File')
 
 		super().__init__(s3_file.body)
 
