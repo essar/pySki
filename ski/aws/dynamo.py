@@ -1,8 +1,6 @@
-'''
-
-@author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
-'''
-
+"""
+  Module providing functions for working with AWS DynamoDB.
+"""
 import logging
 
 from boto3 import client, resource
@@ -23,152 +21,154 @@ dynamodb = resource('dynamodb', endpoint_url=db_endpoint)
 
 
 class DynamoDataStore(DataStore):
+    """A datastore backed by DynamoDB."""
+    def __init__(self):
+        self.insert_count = 0
+        self.error_count = 0
 
-	def __init__(self):
-		self.insert_count = 0
-		self.error_count = 0
 
+    def add_points_to_track(self, track, points):
+        # Get Dynamo table
+        table = dynamodb.Table(db_points)
 
-	def add_points_to_track(self, track, points):
-		# Get Dynamo table
-		table = dynamodb.Table(db_points)
+        with table.batch_writer() as batch:
+            for point in points:
+                log.debug('Storing point: %s', point)
 
-		with table.batch_writer() as batch:
-			for point in points:
-				log.debug('Storing point: %s', point)
+                dec_lat = float_to_decimal(point.lat)
+                dec_lon = float_to_decimal(point.lon)
+                dec_spd = float_to_decimal(point.spd)
 
-				dec_lat = float_to_decimal(point.lat)
-				dec_lon = float_to_decimal(point.lon)
-				dec_spd = float_to_decimal(point.spd)
-
-				try:
-					response = batch.put_item(
-						Item={
-							'track_id': track.track_id,
-							'timestamp': point.ts,
-							'track_group': track.track_group,
-							'track_info': {},
-							'gps': {
-								'lat': dec_lat,
-								'lon': dec_lon,
-								'alt': point.alt,
-								'spd': dec_spd
-							}
-						}
-					)
-					self.insert_count += 1
-					log.debug('put_item %s=%s', track.track_id, response)
-				except Exception as e:
-					log.error(e)
+                try:
+                    response = batch.put_item(
+                        Item={
+                            'track_id': track.track_id,
+                            'timestamp': point.ts,
+                            'track_group': track.track_group,
+                            'track_info': {},
+                            'gps': {
+                                'lat': dec_lat,
+                                'lon': dec_lon,
+                                'alt': point.alt,
+                                'spd': dec_spd
+                            }
+                        }
+                    )
+                    self.insert_count += 1
+                    log.debug('put_item %s=%s', track.track_id, response)
+                except Exception as e:
+                    log.error(e)
 
 
 def count_points():
-	try:
-		# Get Dynamo table
-		table = dynamodb.Table(db_points)
-		response = table.scan(
-			Select='COUNT'
-		)
-		log.info('Point count=%s', response['Count'])
-	except Exception as e:
-		log.error(e)
+    """Count the number of records created in the points table."""
+    try:
+        # Get Dynamo table
+        table = dynamodb.Table(db_points)
+        response = table.scan(
+            Select='COUNT'
+        )
+        log.info('Point count=%s', response['Count'])
+    except Exception as e:
+        log.error(e)
 
 
 def create_table_tracks():
-	try:
-		response = dynamodb.create_table(
-			TableName='zephyr-tracks',
-			KeySchema=[
-				{
-					'AttributeName': 'track_id',
-					'KeyType': 'HASH'
-				}
-			],
-			AttributeDefinitions=[
-				{
-					'AttributeName': 'track_id',
-					'AttributeType': 'S'
-				}
-			],
-			ProvisionedThroughput={
-				'ReadCapacityUnits': 1,
-				'WriteCapacityUnits': 1
-			},
-			BillingMode='PAY_PER_REQUEST'
-		)
+    """Create the tracks table [DEPRECATED]."""
+    try:
+        response = dynamodb.create_table(
+            TableName='zephyr-tracks',
+            KeySchema=[
+                {
+                    'AttributeName': 'track_id',
+                    'KeyType': 'HASH'
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'track_id',
+                    'AttributeType': 'S'
+                }
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 1,
+                'WriteCapacityUnits': 1
+            },
+            BillingMode='PAY_PER_REQUEST'
+        )
 
-		log.info(response)
+        log.info(response)
 
-	except ValueError as e:
-		log.error('Unable to create zephyr-tracks table: %s', e)
+    except ValueError as e:
+        log.error('Unable to create zephyr-tracks table: %s', e)
 
 
 def create_table_points():
-	try:
-		response = dynamodb.create_table(
-			TableName=db_points,
-			KeySchema=[
-				{
-					'AttributeName': 'track_id',
-					'KeyType': 'HASH'
-				},
-				{
-					'AttributeName': 'timestamp',
-					'KeyType': 'RANGE'
-				}
-			],
-			AttributeDefinitions=[
-				{
-					'AttributeName': 'track_id',
-					'AttributeType': 'S'
-				},
-				{
-					'AttributeName': 'timestamp',
-					'AttributeType': 'N'
-				}
-			],
-			BillingMode='PAY_PER_REQUEST'
-		)
+    """Create the points table."""
+    try:
+        response = dynamodb.create_table(
+            TableName=db_points,
+            KeySchema=[
+                {
+                    'AttributeName': 'track_id',
+                    'KeyType': 'HASH'
+                },
+                {
+                    'AttributeName': 'timestamp',
+                    'KeyType': 'RANGE'
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'track_id',
+                    'AttributeType': 'S'
+                },
+                {
+                    'AttributeName': 'timestamp',
+                    'AttributeType': 'N'
+                }
+            ],
+            BillingMode='PAY_PER_REQUEST'
+        )
 
-		log.info(response)
+        log.info(response)
 
-	except ValueError as e:
-		log.error('Unable to create %s table: %s', db_points, e)
+    except ValueError as e:
+        log.error('Unable to create %s table: %s', db_points, e)
 
 
 def init_db():
+    """Initialise the database, creating tables as necessary."""
+    try:
+        ddb_client = client('dynamodb', endpoint_url=db_endpoint)
 
-	try:
-		ddb_client = client('dynamodb', endpoint_url=db_endpoint)
-
-		response = ddb_client.describe_table(TableName=db_points)
-		log.info('Table %s OK', response['Table']['TableName'])
-	except ddb_client.exceptions.ResourceNotFoundException:
-		log.info('Table %s does not exist', db_points)
-		create_table_points()
+        response = ddb_client.describe_table(TableName=db_points)
+        log.info('Table %s OK', response['Table']['TableName'])
+    except ddb_client.exceptions.ResourceNotFoundException:
+        log.info('Table %s does not exist', db_points)
+        create_table_points()
 
 
 def float_to_decimal(float_value):
-	"""
-	Convert a floating point value to a decimal that DynamoDB can store,
-	and allow rounding.
-	"""
+    """
+    Convert a floating point value to a decimal that DynamoDB can store,
+    and allow rounding.
+    """
+    # Perform the conversion using a copy of the decimal context that boto3
+    # uses. Doing so causes this routine to preserve as much precision as
+    # boto3 will allow.
+    with localcontext(DYNAMODB_CONTEXT) as cxt:
+        # Allow rounding
+        cxt.traps[Inexact] = 0
+        cxt.traps[Rounded] = 0
+        decimal_value = cxt.create_decimal_from_float(float_value)
+        log.debug('float_to_decimal: float=%f, decimal=%f', float_value, decimal_value)
 
-	# Perform the conversion using a copy of the decimal context that boto3
-	# uses. Doing so causes this routine to preserve as much precision as
-	# boto3 will allow.
-	with localcontext(DYNAMODB_CONTEXT) as cxt:
-		# Allow rounding
-		cxt.traps[Inexact] = 0
-		cxt.traps[Rounded] = 0
-		decimal_value = cxt.create_decimal_from_float(float_value)
-		log.debug('float_to_decimal: float=%f, decimal=%f', float_value, decimal_value)
-
-		return decimal_value
+        return decimal_value
 
 
 if __name__ == "__main__":
-	logging.basicConfig()
-	init_db()
-	count_points()
+    logging.basicConfig()
+    init_db()
+    count_points()
 

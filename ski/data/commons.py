@@ -1,7 +1,5 @@
 """
-Module that provides common classes and utility functions for SkiData application.
-@author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
-@version: 1.0 (14-May-2019)
+  Module that provides common classes and utility functions for SkiData application.
 """
 from datetime import datetime
 

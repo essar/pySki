@@ -1,9 +1,7 @@
-'''
+"""
   Module providing functions and classes for manipulating and translating
   between different geometric coordinate conversions.
-  @author: Steve Roberts <steve.roberts@essarsoftware.co.uk>
-  @version: 1.0 (30 Nov 2012)
-'''
+"""
 
 from math import cos, degrees, pi, pow, radians, sin, sqrt, tan
 
@@ -28,8 +26,8 @@ def addSeconds(degrees, decimalMins):
 
 
 def arcLengthOfMeridian(phi):
-    '''
-      Computes the ellipsoidal distance from the equator to a point at a given latitude.
+    """
+      Compute the ellipsoidal distance from the equator to a point at a given latitude.
       
       Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
       GPS: Theory and Practice, 3rd ed. New York: Springer-Verlag Wien, 1994.
@@ -38,9 +36,11 @@ def arcLengthOfMeridian(phi):
         sm_a - Ellipsoid model major axis.
         sm_b - Ellipsoid model minor axis.
       
-      @param phi: Latitude of the point, in radians.
-      @return: The ellipsoidal distance of the point from the equator, in metres.
-    '''
+      Params:
+        phi: Latitude of the point, in radians.
+      
+      Returns the ellipsoidal distance of the point from the equator, in metres.
+    """
     # Calculate n
     n = (SM_A - SM_B) / (SM_A + SM_B)
 
@@ -64,29 +64,33 @@ def arcLengthOfMeridian(phi):
 
     return result;
 
+
 def calcCentralMeridian(zone):
-    '''
-      Determines the central meridian for the given UTM zone.
+    """
+      Determine the central meridian for the given UTM zone.
       @param zone: An integer value designating the UTM zone, range [1,60].
       @return The central meridian for the given UTM zone, in radians, or zero if
       the UTM zone parameter is outside the range [1,60].
       Range of the central meridian is the radian equivalent of [-177,+177].
-    '''
+    """
     if zone < 1 or zone > 60:
         return 0.0
     return radians(-183 + (zone * 6))
 
+
 def footpointLatitude(y):
-    '''
-      Computes the footpoint latitude for use in converting transverse
+    """
+      Compute the footpoint latitude for use in converting transverse
       Mercator coordinates to ellipsoidal coordinates.
     
       Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
       GPS: Theory and Practice, 3rd ed. New York: Springer-Verlag Wien, 1994.
      
-      @param y: The UTM northing coordinate, in meters.
-      @return: the footpoint latitude, in radians.
-    '''
+      Params:
+        y: The UTM northing coordinate, in meters.
+      
+      Returns the footpoint latitude, in radians.
+    """
     # Calculate n (Eq. 10.18)
     n = (SM_A - SM_B) / (SM_A + SM_B)
         
@@ -128,6 +132,7 @@ class CoordinateError(Exception):
 
 
 class DMSElement:
+    """Represents an element within a DMS coordinate (degrees, minutes and seconds)."""
     def __init__(self, degrees, minutes, seconds, hemisphere):
         self.degrees = degrees
         self.minutes = minutes
@@ -139,7 +144,7 @@ class DMSElement:
 
 
 class DMSCoordinate:
-
+    """Represents a coordinate specified in DMS format (degrees, minutes and seconds)."""
     def __init__(self, latD, latM, latS, lonD, lonM, lonS):
         #
         # LATITUDE
@@ -192,7 +197,7 @@ class DMSCoordinate:
 
 
 class UTMCoordinate:
-
+    """Represents a coordinate specified in UTM format (cartesian X & Y)."""
     def __init__(self, x, y, zone, band):
         # Check easing in legal range
         if x < 0:
@@ -224,7 +229,7 @@ class UTMCoordinate:
     
 
 class WGSCoordinate:
-
+    """Represents a coordinate specified in WGS84 format (latitude & longitude)."""
     def __init__(self, latitude, longitude, coordMode=WGS_COORD_MODE_DEG):
         if coordMode == WGS_COORD_MODE_DEG:
             # Check latitude in legal range
@@ -248,11 +253,14 @@ class WGSCoordinate:
                 raise CoordinateError('Longitude radian input out of range {:f}', longitude);
             self.longitude = longitude;
 
+
     def __str__(self):
         return '{:3.6f}, {:3.6f}'.format(self.getLatitudeDegrees(), self.getLongitudeDegrees());
+
     
     def getLatitudeDegrees(self):
         return float(degrees(self.latitude))
+
     
     def getLongitudeDegrees(self):
         return float(degrees(self.longitude))
@@ -263,6 +271,14 @@ class WGSCoordinate:
 ########   
     
 def DMStoWGS(dms):
+    """
+      Convert from DMS to WGS format.
+
+      Params:
+        dms: the input coordinate in DMS format.
+      
+      Returns the same coordinate in WGS84 format.
+    """
     # Build latitude value
     lat = (dms.latitude.degrees
         + (dms.latitude.minutes / 60.0)
@@ -283,6 +299,14 @@ def DMStoWGS(dms):
 
 
 def WGStoDMS(wgs):
+    """
+      Convert from WGS to DMS format.
+
+      Params:
+        wgs: the input coordinate in WGS84 format.
+      
+      Returns the same coordinate in DMS format.
+    """
     # Break down latitude degrees into D M S components
     latDeg = int(wgs.getLatitudeDegrees())
     latMS = (wgs.getLatitudeDegrees() - latDeg) * 60.0 * 60.0
@@ -300,7 +324,7 @@ def WGStoDMS(wgs):
 
 
 def UTMtoWGS(utm):
-    '''
+    """
       Converts x and y coordinates in the Transverse Mercator projection to
       a latitude/longitude pair. Note that Transverse Mercator is not
       the same as UTM; a scale factor is required to convert between them.
@@ -308,9 +332,11 @@ def UTMtoWGS(utm):
       Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
       GPS: Theory and Practice, 3rd ed. New York: Springer-Verlag Wien, 1994.
      
-      @param utm: the input coordinate in UTM format.
-      @return: the same coordinate in WGS84 format.
-    '''
+      Params:
+        utm: the input coordinate in UTM format.
+      
+      Returns the same coordinate in WGS84 format.
+    """
     
     '''
     * Remarks:
@@ -407,7 +433,7 @@ def UTMtoWGS(utm):
 
 
 def WGStoUTM(wgs):
-    '''
+    """
       Converts a latitude/longitude pair to x and y coordinates in the
       Transverse Mercator projection. Note that Transverse Mercator is not
       the same as UTM; a scale factor is required to convert between them.
@@ -415,9 +441,11 @@ def WGStoUTM(wgs):
       Reference: Hoffmann-Wellenhof, B., Lichtenegger, H., and Collins, J.,
       GPS: Theory and Practice, 3rd ed. New York: Springer-Verlag Wien, 1994.
      
-      @param wgs: the input coordinate, in WGS84 format.
-      @return: the same coordinate in UTM format.
-    '''
+      Params:
+        wgs: the input coordinate, in WGS84 format.
+      
+      Returns the same coordinate in UTM format.
+    """
     phi = wgs.latitude
     lda = wgs.longitude
     
