@@ -5,6 +5,7 @@
 
 import logging
 
+from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import addSeconds, DMSCoordinate, DMStoWGS
 from datetime import datetime
@@ -18,58 +19,27 @@ log.setLevel(logging.DEBUG)
 
 class GSDLoader:
 
-	def __init__(self, data, batch_mode=False):
+	def __init__(self, data):
 		# Store data reference
 		self.data = data
 		# Set up array and internal pointer
-		self.lines = []
-		self.linePtr = 0
 		self.sections = []
 		self.sectionPtr = 0
-		self.batch_mode = batch_mode
-
-	
-	def load_data(self, f, section_offset, section_limit):
-		# Load list of GSD sections from the file header
-		load_gsd_header(f, sections=self.sections)
-		log.info('%d GSD sections found', len(self.sections))
-
-		if not self.batch_mode:
-			# Set bounds on the number of sections to parse
-			off = 0 if section_offset is None else min(section_offset, len(self.sections))
-			lim = len(self.sections) if section_limit is None else off + section_limit
-
-			# Load all sections (within bounds)
-			for section in self.sections[off:lim]:
-				load_gsd_section(f, section, self.lines)
 
 
-	def load_point(self, limit=-1):
-		# Get next line from file, return if no lines remain
-		if self.linePtr < len(self.lines) and (limit < 0 or self.linePtr < limit):
-			# Look up next line
-			line = self.lines[self.linePtr]
-			# Increment pointer
-			self.linePtr += 1
-
-		else:
-			return None
-
-		return parse_gsd_line(line)
-
-
-	def load_points(self, section_limit=-1):
+	def load_points(self):
 		# Create a new array
 		points = []
 
 		# Get next section from array, return if no sections remain
-		if self.sectionPtr < len(self.sections) and (section_limit < 0 or self.sectionPtr < section_limit):
+		if self.sectionPtr < len(self.sections):
 			# Get the next section
 			section = self.sections[self.sectionPtr]
-			log.debug('Loading GSD section %d (%s)', self.sectionPtr, section)
+			log.debug('Loading GSD section %s', section)
 			# Increment pointer
 			self.sectionPtr += 1
 		else:
+			log.debug('Stopping after %d sections', self.sectionPtr)
 			return None
 
 		# Load section data into array
@@ -80,7 +50,7 @@ class GSDLoader:
 		for line in lines:
 			points.append(parse_gsd_line(line))
 
-		log.info('Loaded GSD section %s (%d points)', section, len(points))
+		log.info('Loaded %d points', len(points))
 
 		# Return points array
 		return points
@@ -101,30 +71,23 @@ class GSDLoader:
 
 class GSDFileLoader(GSDLoader):
 
-	def __init__(self, gsd_file, batch_mode=False, section_offset=None, section_limit=None):
+	def __init__(self, gsd_file, section_offset=None, section_limit=None):
 		super().__init__(gsd_file)
 
 		log.info('Loading from local GSD file (%s)', gsd_file.name)
 		self.load_sections(section_offset, section_limit)
-		
-		if not self.batch_mode:
-			# Load all sections (within bounds) into lines array
-			for section in self.sections:
-				load_gsd_section(self.data, section, self.lines)
 
 
 class GSDS3Loader(GSDLoader):
 
-	def __init__(self, s3f, batch_mode=False, section_offset=None, section_limit=None):
-		super().__init__(s3f.body)
+	def __init__(self, s3_file, section_offset=None, section_limit=None):
+		if type(s3_file) != S3File:
+			raise TypeError('s3f parameter must be an S3File')
 
-		log.info('Loading from S3 GSD file (%s)', s3f)
+		super().__init__(s3_file.body)
+
+		log.info('Loading from S3 GSD file (%s)', s3_file)
 		self.load_sections(section_offset, section_limit)
-
-		if not self.batch_mode:
-			# Load all sections (within bounds) into lines array
-			for section in self.sections:
-				load_gsd_section(self.data, section, self.lines)
 
 
 def __get_alt(line):
@@ -257,7 +220,7 @@ def parse_gsd_line(line):
 	gsd_tm  = __get_time(line)
 	gsd_alt = __get_alt(line)
 	gsd_spd = __get_speed(line)
-	log.debug('gsd: lat=%s; lon=%s; dt=%s; tm=%s; alt=%s; spd=%s', gsd_lat, gsd_lon, gsd_dt, gsd_tm, gsd_alt, gsd_spd)
+	log.debug('GSD: lat=%s; lon=%s; dt=%s; tm=%s; alt=%s; spd=%s', gsd_lat, gsd_lon, gsd_dt, gsd_tm, gsd_alt, gsd_spd)
 
 	point = BasicGPSPoint()
 	
