@@ -15,10 +15,11 @@ from ski.io.db import DataStore
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-db_points = config['aws']['dynamo']['points_table_name']
+db_endpoint = config['db']['dynamo']['endpoint_url']
+db_points   = config['db']['dynamo']['points_table_name']
 
 # Initialise dynamodb resource
-dynamodb = resource('dynamodb', endpoint_url='http://dynamo:8000')
+dynamodb = resource('dynamodb', endpoint_url=db_endpoint)
 
 
 class DynamoDataStore(DataStore):
@@ -26,39 +27,6 @@ class DynamoDataStore(DataStore):
 	def __init__(self):
 		self.insert_count = 0
 		self.error_count = 0
-
-
-	def add_point_to_track(self, track, point):
-		# Get Dynamo table
-		table = dynamodb.Table(db_points)
-
-		log.debug('Storing point: %s', point)
-
-		dec_lat = float_to_decimal(point.lat)
-		dec_lon = float_to_decimal(point.lon)
-		dec_spd = float_to_decimal(point.spd)
-
-		try:
-			response = table.put_item(
-				Item={
-					'track_id': track.track_id,
-					'timestamp': point.ts,
-					'track_group': track.track_group,
-					'track_info': {},
-					'gps': {
-						'lat': dec_lat,
-						'lon': dec_lon,
-						'alt': point.alt,
-						'spd': dec_spd
-					}
-				}
-			)
-
-			self.insert_count += 1
-			log.debug('put_item %s=%s', track.track_id, response)
-		except Exception as e:
-			log.error(e)
-			self.error_count += 1
 
 
 	def add_points_to_track(self, track, points):
@@ -171,9 +139,9 @@ def create_table_points():
 def init_db():
 
 	try:
-		ddb_client = client('dynamodb', endpoint_url='http://dynamo:8000')
+		ddb_client = client('dynamodb', endpoint_url=db_endpoint)
 
-		response = ddb_client.describe_table(TableName='zephyr-points')
+		response = ddb_client.describe_table(TableName=db_points)
 		log.info('Table %s OK', response['Table']['TableName'])
 	except ddb_client.exceptions.ResourceNotFoundException:
 		log.info('Table %s does not exist', db_points)

@@ -1,6 +1,8 @@
-aws:
+db:
   dynamo:
+    endpoint_url: http://dynamo:8000
     points_table_name: zephyr-points
+
 dataloader:
   aws:
     source_bucket: essar-zephyr-test
