@@ -9,7 +9,7 @@ from datetime import datetime
 from pytz import timezone
 from ski.aws.dynamo import DynamoDataStore
 from ski.aws.s3 import S3File
-from ski.data.commons import BasicTrackPoint, Track
+from ski.data.commons import Track
 from ski.io.db import TestDataStore
 from ski.io.gpx import GPXStringLoader
 from ski.io.gsd import GSDFileLoader, GSDS3Loader
