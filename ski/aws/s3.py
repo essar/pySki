@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 bucket = config['dataloader']['aws']['source_bucket']
-testkey = 'gsd/testdata.gsd'
 
 # Initialise s3 resource
 s3 = resource('s3')
@@ -33,6 +32,7 @@ class S3File:
         # Only download the body if it's not already been done
         if self.body is None or force_download:
             buf = BytesIO(self.obj.get()['Body'].read())
+            log.debug('Downloaded S3 body')
             self.body = TextIOWrapper(buf)
 
         # Reset stream
@@ -41,8 +41,3 @@ class S3File:
 
     def __str__(self):
         return 's3://{:s}/{:s}'.format(self.obj.bucket_name, self.obj.key)
-
-
-if __name__ == "__main__":
-    s3f = S3File(testkey)
-    print('Object {:s}; size {:d}, modified {:s}'.format(testkey, s3f.obj.content_length, s3f.obj.last_modified))
