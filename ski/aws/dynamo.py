@@ -165,10 +165,3 @@ def float_to_decimal(float_value):
         log.debug('float_to_decimal: float=%f, decimal=%f', float_value, decimal_value)
 
         return decimal_value
-
-
-if __name__ == "__main__":
-    logging.basicConfig()
-    init_db()
-    count_points()
-
