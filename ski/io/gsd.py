@@ -175,10 +175,20 @@ def __split_line(line):
     # Look for allocation marker
     ix = line.index('=')
     if ix < 0:
+        log.warning('Missing allocation marker in GSD line')
         return (0, [])
 
     # Get line parts and strip whitespace
-    return list(map(lambda a: a.strip(), line[ix + 1:].split(',')))
+    parts = [a.strip() for a in line[ix + 1:].split(',')]
+
+    # Throw a warning if we have less than 6 parts
+    if len(parts) < 6:
+        log.warning('Unexpected number of data parts in GSD line')
+        # Ensure that we return 6 parts, pad with zeros
+        return [parts[i] if len(parts) > i else 0 for i in range(0, 6)]
+
+    else:
+        return parts[0:6]
 
 
 def load_gsd_header(f, sections=[]):
