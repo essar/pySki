@@ -1,7 +1,6 @@
 """
 """
 
-import logging
 import unittest
 from datetime import datetime
 from pytz import timezone
@@ -9,12 +8,6 @@ from ski.data.commons import BasicGPSPoint, Track
 from ski.io.db import TestDataStore
 
 from ski.io.dataloader import *
-
-# Set up logger
-logging.basicConfig()
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
 
 
 class EmptyLoader:
