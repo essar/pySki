@@ -4,9 +4,11 @@
 import logging
 
 from boto3 import client, resource
+from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Decimal, Inexact, Rounded, localcontext
 from ski.config import config
+from ski.data.commons import EnrichedPoint
 from ski.io.db import DataStore
 
 # Set up logger
@@ -58,6 +60,49 @@ class DynamoDataStore(DataStore):
                     log.debug('put_item %s=%s', track.track_id, response)
                 except Exception as e:
                     log.error(e)
+
+
+    def get_track_points(self, track, offset=0, length=-1):
+        # Get dynamo table
+        table = dynamodb.Table(db_points)
+
+        # Retrieve batch of points based on track ID
+
+        points = []
+        try:
+
+            response = table.query(
+                Select='ALL_ATTRIBUTES',
+                KeyConditionExpression=Key('track_id').eq(track.track_id)
+            )
+
+            count = response['Count']
+            log.info('Found %d points in %s for %s', count, db_points, track.track_id)
+
+            items = response['Items']
+
+            for i in items:
+                log.debug('Item=%s', i)
+
+                p = EnrichedPoint()
+                p.ts = decimal_to_integer(i['timestamp'])
+                
+                # GPS Sub object
+                gps = i['gps']
+                p.lat = decimal_to_float(gps['lat'])
+                p.lon = decimal_to_float(gps['lon'])
+                p.alt = decimal_to_integer(gps['alt'])
+                p.spd = decimal_to_float(gps['spd'])
+
+
+                log.debug('point=%s', p)
+                
+                points.append(p)
+
+        except Exception as e:
+            log.error(e)
+
+        return points
 
 
 def count_points():
@@ -148,6 +193,11 @@ def init_db():
         log.info('Table %s does not exist', db_points)
         create_table_points()
 
+def decimal_to_float(decimal):
+    return float(decimal)
+
+def decimal_to_integer(decimal):
+    return int(decimal)
 
 def float_to_decimal(float_value):
     """

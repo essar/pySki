@@ -73,45 +73,6 @@ def __linear_interpolate_i(i1, i2, delta):
     return floor(i1 + ((i2 - i1) / delta))
 
 
-def calculate_point_deltas(prev_point, point):
-    # Skip if no previous point provided
-    if prev_point == None:
-        return
-
-    # Calculate X & Y distances
-    (x, y) = __calculate_xy_distances(prev_point, point)
-
-    # Get movement vector
-    (point.dst, point.hdg) = __calculate_vector(x, y)
-
-    # Calculate speed and altitude deltas
-    point.alt_d = point.alt - prev_point.alt
-    point.spd_d = point.spd - prev_point.spd
-    point.hdg_d = point.hdg - prev_point.hdg
-    log.debug('deltas: x=%.2f, y=%.2f, dst=%.2f, hdg=%05.1f, alt_d=%04d, spd_d=%.2f, hsg_d=%05.1f', x, y, point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
-
-
-def linear_interpolate(p1, p2, delta):
-    p = EnrichedPoint()
-    p.ts  = __linear_interpolate_i(p1.ts, p2.ts, delta)
-    p.lat = __linear_interpolate_f(p1.lat, p2.lat, delta)
-    p.lon = __linear_interpolate_f(p1.lon, p2.lon, delta)
-    p.x   = __linear_interpolate_i(p1.x, p2.x, delta)
-    p.y   = __linear_interpolate_i(p1.y, p2.y, delta)
-    p.alt = __linear_interpolate_i(p1.alt, p2.alt, delta)
-    p.spd = __linear_interpolate_f(p1.spd, p2.spd, delta)
-
-    return p
-
-
-def is_outlyer(prev_point, point):
-    # Skip if no previous point provided
-    if prev_point == None:
-        return False
-    
-    return False
-
-
 def __process_linked_point(linked_point, inter_f, output=[]):
     """
     """
@@ -152,27 +113,22 @@ def __process_linked_point(linked_point, inter_f, output=[]):
 
 
 
-def interpolate_point(point, inter_f, ts_delta=0):
-    """
-    """
-    if ts_delta == 0:
-        # May not have been passed in so try and recalculate it
-        ts_delta = __get_ts_delta(point)
+def calculate_point_deltas(prev_point, point):
+    # Skip if no previous point provided
+    if prev_point == None:
+        return
 
-    # Skip if we're not actually missing any points
-    if ts_delta <= 1:
-        return None
+    # Calculate X & Y distances
+    (x, y) = __calculate_xy_distances(prev_point, point)
 
-    next_point = point.next_point
+    # Get movement vector
+    (point.dst, point.hdg) = __calculate_vector(x, y)
 
-    # Interpolate a new point mediating point and next point
-    new_point = LinkedPoint(inter_f(point.point, next_point.point, ts_delta))
-    # Insert the new point between our existing points
-    new_point.next_point = next_point
-    point.next_point = new_point
-
-    return new_point
-
+    # Calculate speed and altitude deltas
+    point.alt_d = point.alt - prev_point.alt
+    point.spd_d = point.spd - prev_point.spd
+    point.hdg_d = point.hdg - prev_point.hdg
+    log.debug('deltas: x=%.2f, y=%.2f, dst=%.2f, hdg=%05.1f, alt_d=%04d, spd_d=%.2f, hsg_d=%05.1f', x, y, point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
 
 
 def cleanup_point(point, output=[], outlyers=[]):
@@ -218,4 +174,46 @@ def cleanup_points(points, output=[], outlyers=[]):
 
     log.info('%d points input, %d points output; %d outlyers', len(points), len(output), len(outlyers))
 
+
+def linear_interpolate(p1, p2, delta):
+    p = EnrichedPoint()
+    p.ts  = __linear_interpolate_i(p1.ts, p2.ts, delta)
+    p.lat = __linear_interpolate_f(p1.lat, p2.lat, delta)
+    p.lon = __linear_interpolate_f(p1.lon, p2.lon, delta)
+    p.x   = __linear_interpolate_i(p1.x, p2.x, delta)
+    p.y   = __linear_interpolate_i(p1.y, p2.y, delta)
+    p.alt = __linear_interpolate_i(p1.alt, p2.alt, delta)
+    p.spd = __linear_interpolate_f(p1.spd, p2.spd, delta)
+
+    return p
+
+
+def is_outlyer(prev_point, point):
+    # Skip if no previous point provided
+    if prev_point == None:
+        return False
+    
+    return False
+
+
+def interpolate_point(point, inter_f, ts_delta=0):
+    """
+    """
+    if ts_delta == 0:
+        # May not have been passed in so try and recalculate it
+        ts_delta = __get_ts_delta(point)
+
+    # Skip if we're not actually missing any points
+    if ts_delta <= 1:
+        return None
+
+    next_point = point.next_point
+
+    # Interpolate a new point mediating point and next point
+    new_point = LinkedPoint(inter_f(point.point, next_point.point, ts_delta))
+    # Insert the new point between our existing points
+    new_point.next_point = next_point
+    point.next_point = new_point
+
+    return new_point
 

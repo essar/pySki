@@ -17,7 +17,6 @@ TEST_DATA_FILE = 'tests/testdata/testdata.gsd'
 
 # Set up logger
 logging.basicConfig()
-log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 # Create data store

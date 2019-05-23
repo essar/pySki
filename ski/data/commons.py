@@ -68,7 +68,7 @@ class BasicGPSPoint:
         }
 
     def __str__(self):
-        return 'ts={:010d}, lat={:.4f}, lon={:.4f}, a={:04d}, s={:06.2f}'.format(self.ts, self.lat, self.lon, self.alt, self.spd)
+        return 'ts={:010d}, lat={:.6f}, lon={:.6f}, a={:04d}, s={:06.2f}'.format(self.ts, self.lat, self.lon, self.alt, self.spd)
 
 
 
@@ -87,17 +87,21 @@ class EnrichedPoint(BasicGPSPoint):
 
     def __repr__(self):
         #return super().__repr__().extend(
-        return    {
-                'x'        : '{:08d}'.format(self.x),
-                'y'        : '{:08d}'.format(self.y),
-                'dst' : '{:.2f}'.format(self.dst),
-                'hdg'      : '{:05.1f}'.format(self.hdg),
-                'alt_d'    : '{:04d}'.format(self.alt_d),
-                'spd_d'    : '{:06.2f}'.format(self.spd_d),
-                'hdg_d'    : '{:04.1f}'.format(self.hdg_d)
+        return {
+                'x'     : '{:08d}'.format(self.x),
+                'y'     : '{:08d}'.format(self.y),
+                'dst'   : '{:.2f}'.format(self.dst),
+                'hdg'   : '{:05.1f}'.format(self.hdg),
+                'alt_d' : '{:+04d}'.format(self.alt_d),
+                'spd_d' : '{:+06.2f}'.format(self.spd_d),
+                'hdg_d' : '{:+06.1f}'.format(self.hdg_d)
             }
         #)
 
 
     def __str__(self):
-        return '{:s}, x={:08d}, y={:08d}, dst={:.2f}, hdg={:05.1f}, alt_d={:04d}, spd_d={:06.2f}, hdg_d={:05.1f}'.format(super().__str__(), self.x, self.y, self.dst, self.hdg, self.alt_d, self.spd_d, self.hdg_d)
+        return '{:s}, x={:08d}, y={:08d}, d={:.2f}, h={:05.1f}, alt_d={:+04d}, spd_d={:+06.2f}, hdg_d={:+06.1f}'.format(super().__str__(), self.x, self.y, self.dst, self.hdg, self.alt_d, self.spd_d, self.hdg_d)
+
+
+def basic_to_enriched_point(basic_point):
+    return EnrichedPoint(**basic_point.vals())

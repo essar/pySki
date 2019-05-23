@@ -3,6 +3,8 @@
 """
 import logging
 
+from ski.data.commons import basic_to_enriched_point
+
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -31,15 +33,17 @@ class TestDataStore(DataStore):
 
 
     def add_points_to_track(self, track, points):
+        log.info('[TestDataStore] %d point(s) to load', len(points))
         for point in points:
             key = "{:s}-{:d}".format(track.track_id, point.ts)
-            points.append(point)
+            self.points.append(point)
             self.insert_count += 1
-
+            
             log.info('[TestDataStore] Saving point to track %s: %s', track.track_id, point)
             log.debug('[TestDataStore] https://www.google.com/maps/@%f,%f,17z', point.lat, point.lon)
+            log.debug('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))
 
 
     def get_track_points(self, track, offset=0, length=-1):
         log.debug('[TestDataStore] Retriving points %d to %d', offset, length)
-        return points[offset:length]
+        return list(map(basic_to_enriched_point, self.points[offset:length]))

@@ -180,6 +180,10 @@ def __split_line(line):
 
     # Get line parts and strip whitespace
     parts = [a.strip() for a in line[ix + 1:].split(',')]
+    return parts
+
+
+    # This doesn't work for header lines, doh!
 
     # Throw a warning if we have less than 6 parts
     if len(parts) < 6:
