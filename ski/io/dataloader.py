@@ -30,16 +30,6 @@ def load_points_to_db(loader, db, track):
         # End of data
         log.debug('Reached end of data')
         return False
-
-    # convert_coords = config['dataloader']['gps']['convert_coords']
-    # Cartesian X & Y
-    # if convert_coords:
-    #   wgs = WGSCoordinate(track_point.lat, track_point.lon)
-    #   utm = WGStoUTM(wgs)
-    #   log.debug('wgs: %s', wgs)
-    #   log.debug('utm: %s', utm)
-    #   track_point.x = utm.x
-    #   track_point.y = utm.y
     
     # Load point to data store
     db.add_points_to_track(track, points)
@@ -60,4 +50,3 @@ def load_all_points(loader, db, track):
         pass
 
     log.info('Load complete: %d points loaded', db.insert_count)
-
