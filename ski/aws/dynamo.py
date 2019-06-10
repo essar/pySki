@@ -193,11 +193,14 @@ def init_db():
         log.info('Table %s does not exist', db_points)
         create_table_points()
 
+
 def decimal_to_float(decimal):
     return float(decimal)
 
+
 def decimal_to_integer(decimal):
     return int(decimal)
+
 
 def float_to_decimal(float_value):
     """
