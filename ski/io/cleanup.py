@@ -3,13 +3,17 @@
 import logging
 
 from math import atan2, degrees, floor, hypot, tan
+from ski.config import config
 from ski.data.commons import EnrichedPoint, LinkedPoint
 from ski.data.coordinate import WGSCoordinate, WGStoUTM
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
+
+outlyer_max_speed = config['cleanup']['outlyer_max_speed']
+outlyer_max_speed_factor = config['cleanup']['outlyer_max_speed_factor']
 
 
 def __calculate_coords(point):
@@ -193,6 +197,25 @@ def is_outlyer(prev_point, point):
     if prev_point == None:
         return False
     
+    # calculate distance travelled in metres
+    calc_dist = __get_distance(prev_point, point)
+    ts_delta = __get_ts_delta2(prev_point, point)
+    
+    # calculate speed (convert metres per second -> km per hour)
+    calc_spd = (calc_dist / ts_delta) * 3.60
+    calc_spd_factor = calc_spd / point.spd
+    log.debug('outlyer: ts_delta=%d, calc_dist=%.2f, gps_speed=%.2f, calc_speed=%.4f, calc_spd_factor=%.3f', ts_delta, calc_dist, point.spd, calc_spd, calc_spd_factor)
+
+    # Compare calculated speed against max speed
+    if calc_spd > outlyer_max_speed:
+        log.info('Calculated speed (%.2f) exceeds threshold', calc_spd)
+        return True
+
+    # Compare calculated speed factor against max speed factor and inverse (e.g. 1/3) speed factor
+    if calc_spd_factor > outlyer_max_speed_factor or calc_spd_factor < (1 / outlyer_max_speed_factor):
+        log.info('Calculated speed (%.2f) exceeds factor threshold (%.1fx)', calc_spd, calc_spd_factor)
+        return True
+
     return False
 
 

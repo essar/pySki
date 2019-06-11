@@ -8,3 +8,7 @@ dataloader:
     source_bucket: essar-zephyr-test
   gps:
     convert_coords: Yes
+
+cleanup:
+  outlyer_max_speed: 100
+  outlyer_max_speed_factor: 3.0
