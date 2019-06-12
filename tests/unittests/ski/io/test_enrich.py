@@ -40,9 +40,21 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
 
-        self.assertEqual(len(res), 5)
+        self.assertEqual([1, 2, 3, 4, 5], res)
         self.assertTrue(w.window_full)
-        self.assertEqual(5, res[-1])
+
+
+    def test_PointWindow_window_full_backward_even(self):
+        # Prepare data
+        points = list(range(10))
+
+        w = PointWindow(points, PointWindow.BACKWARD, 6, 6)
+
+        res = w.window()
+        log.info(res)
+
+        self.assertEqual([1, 2, 3, 4, 5, 6], res)
+        self.assertTrue(w.window_full)
 
 
     def test_PointWindow_window_full_forward(self):
@@ -54,9 +66,21 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
         
-        self.assertEqual(len(res), 5)
+        self.assertEqual([5, 6, 7, 8, 9], res)
         self.assertTrue(w.window_full)
-        self.assertEqual(5, res[0])
+
+
+    def test_PointWindow_window_full_forward_even(self):
+        # Prepare data
+        points = list(range(10))
+
+        w = PointWindow(points, PointWindow.FORWARD, 6, 4)
+
+        res = w.window()
+        log.info(res)
+        
+        self.assertEqual([4, 5, 6, 7, 8, 9], res)
+        self.assertTrue(w.window_full)
 
 
     def test_PointWindow_window_full_midpoint(self):
@@ -68,9 +92,15 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
 
-        self.assertEqual(len(res), 5)
+        self.assertEqual([3, 4, 5, 6, 7], res)
         self.assertTrue(w.window_full)
-        self.assertEqual(5, res[2])
+
+
+    def test_PointWindow_window_full_midpoint_even(self):
+        # Prepare data
+        points = list(range(10))
+
+        self.assertRaises(ValueError, PointWindow, points, PointWindow.MIDPOINT, 6)
 
 
     def test_PointWindow_window_short_backward(self):
@@ -82,9 +112,8 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
 
-        self.assertEqual(len(res), 4)
+        self.assertEqual([0, 1, 2, 3], res)
         self.assertFalse(w.window_full)
-        self.assertEqual(3, res[-1])
 
 
     def test_PointWindow_window_short_forward(self):
@@ -96,9 +125,8 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
 
-        self.assertEqual(len(res), 4)
+        self.assertEqual([6, 7, 8, 9], res)
         self.assertFalse(w.window_full)
-        self.assertEqual(6, res[0])
 
 
     def test_PointWindow_window_short_midpoint_bottom(self):
@@ -110,9 +138,8 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
 
-        self.assertEqual(len(res), 3)
+        self.assertEqual([0, 1, 2], res)
         self.assertFalse(w.window_full)
-        self.assertEqual(1, res[1])
 
 
     def test_PointWindow_window_short_midpoint_top(self):
@@ -125,11 +152,127 @@ class TestEnrich(unittest.TestCase):
         res = w.window()
         log.info(res)
 
-        self.assertEqual(len(res), 3)
+        self.assertEqual([7, 8, 9], res)
         self.assertFalse(w.window_full)
-        self.assertEqual(8, res[1])
-    
 
+
+    def test_alt_delta(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(alt=10),
+            EnrichedPoint(alt=20),
+            EnrichedPoint(alt=30),
+            EnrichedPoint(alt=40),
+            EnrichedPoint(alt=50)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = alt_delta(w)
+
+        log.info('alt=%f', res)
+        self.assertEqual(20, res)
+
+
+    def test_alt_cuml_gain(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(alt_d=10),
+            EnrichedPoint(alt_d=20),
+            EnrichedPoint(alt_d=-30),
+            EnrichedPoint(alt_d=40),
+            EnrichedPoint(alt_d=50)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = alt_cuml_gain(w)
+
+        log.info('alt_d=%f', res)
+        self.assertEqual(60, res)
+
+
+    def test_alt_cuml_loss(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(alt_d=10),
+            EnrichedPoint(alt_d=20),
+            EnrichedPoint(alt_d=-30),
+            EnrichedPoint(alt_d=40),
+            EnrichedPoint(alt_d=50)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = alt_cuml_loss(w)
+
+        log.info('alt_d=%f', res)
+        self.assertEqual(-30, res)
+
+
+    def test_average_speed(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(spd=1),
+            EnrichedPoint(spd=2),
+            EnrichedPoint(spd=3),
+            EnrichedPoint(spd=4),
+            EnrichedPoint(spd=5)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3)
+        res = average_speed(w)
+
+        log.info('speed=%f', res)
+        self.assertEqual(2.0, res)
+
+
+    def test_max_speed(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(spd=1),
+            EnrichedPoint(spd=2),
+            EnrichedPoint(spd=3),
+            EnrichedPoint(spd=4),
+            EnrichedPoint(spd=5)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = max_speed(w)
+
+        log.info('speed=%f', res)
+        self.assertEqual(4.0, res)
+
+
+    def test_min_speed(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(spd=1),
+            EnrichedPoint(spd=2),
+            EnrichedPoint(spd=3),
+            EnrichedPoint(spd=4),
+            EnrichedPoint(spd=5)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = min_speed(w)
+
+        log.info('speed=%f', res)
+        self.assertEqual(2.0, res)
+
+
+    def test_speed_delta(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(spd=1),
+            EnrichedPoint(spd=2),
+            EnrichedPoint(spd=3),
+            EnrichedPoint(spd=4),
+            EnrichedPoint(spd=5)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = speed_delta(w)
+
+        log.info('speed=%f', res)
+        self.assertEqual(2.0, res)
 
 
 if __name__ == '__main__':

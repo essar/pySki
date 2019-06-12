@@ -74,15 +74,15 @@ class BasicGPSPoint:
 
 class EnrichedPoint(BasicGPSPoint):
 
-    def __init__(self, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0):
+    def __init__(self, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0, dst=0.0, hdg=0.0, alt_d=0, spd_d=0.0, hdg_d=0.0):
         super().__init__(ts, lat, lon, alt, spd)
         self.x = x
         self.y = y
-        self.dst = 0.0
-        self.hdg = 0.0
-        self.alt_d = 0
-        self.spd_d = 0.0
-        self.hdg_d = 0.0
+        self.dst = dst
+        self.hdg = hdg
+        self.alt_d = alt_d
+        self.spd_d = spd_d
+        self.hdg_d = hdg_d
 
 
     def __repr__(self):

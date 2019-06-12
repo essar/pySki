@@ -18,6 +18,11 @@ class PointWindow:
     BACKWARD = 3
 
     def __init__(self, points, window_type, size, position=0):
+
+        # Do not allow a midpoint to be created of even length
+        if window_type == PointWindow.MIDPOINT and size % 2 == 0:
+            raise ValueError('Midpoint window must be of odd length')
+
         self.points = points
         self.window_type = window_type
         self.size = size
@@ -30,6 +35,7 @@ class PointWindow:
             # Forward load from the position
             window_start = max(0, self.position)
             window_end = min(len(self.points), (self.position + self.size))
+            log.debug('Forward window from %d: %d->%d', self.position, window_start, window_end)
 
         elif self.window_type == PointWindow.MIDPOINT:
             # Load equally either side of position
@@ -37,13 +43,47 @@ class PointWindow:
 
             window_start = max(0, self.position - (min(len(self.points), (self.position + ceil(mp))) - self.position) + 1, self.position - floor(mp))
             window_end = min(len(self.points), self.position + (self.position - max(0, self.position - floor(mp))) + 1, (self.position + ceil(mp)))
+            log.debug('Midpoint window from %d: %d->%d', self.position, window_start, window_end)
 
         elif self.window_type == PointWindow.BACKWARD:
             # Backward load from the position
             window_start = max(0, self.position - self.size + 1)
             window_end = min(len(self.points), self.position + 1)
+            log.debug('Backward window from %d: %d->%d', self.position, window_start, window_end)
 
         window = self.points[window_start:window_end]
         self.window_full = (len(window) == self.size)
+        log.debug('Window is %s', 'full' if self.window_full else 'not full')
         return window
 
+
+def __avg(values):
+    return float(sum(values)) / max(1, len(values))
+
+
+def average_speed(window):
+    return __avg([p.spd for p in window.window()])
+
+
+def max_speed(window):
+    return max([p.spd for p in window.window()])
+
+
+def min_speed(window):
+    return min([p.spd for p in window.window()])
+
+
+def speed_delta(window):
+    return window.window()[-1].spd - window.window()[0].spd
+
+
+def alt_delta(window):
+    return window.window()[-1].alt - window.window()[0].alt
+
+
+def alt_cuml_gain(window):
+    return sum([p.alt_d for p in window.window() if p.alt_d > 0])
+
+
+def alt_cuml_loss(window):
+    return sum([p.alt_d for p in window.window() if p.alt_d < 0])
