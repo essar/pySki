@@ -57,33 +57,37 @@ class PointWindow:
         return window
 
 
-def __avg(values):
+    def alt_delta(self):
+        return self.window()[-1].alt - self.window()[0].alt
+
+
+    def alt_cuml_gain(self):
+        return sum([p.alt_d for p in self.window() if p.alt_d > 0])
+
+
+    def alt_cuml_loss(self):
+        return sum([p.alt_d for p in self.window() if p.alt_d < 0])
+
+
+    def speed_ave(self):
+        return avg([p.spd for p in self.window()])
+
+
+    def speed_delta(self):
+        return self.window()[-1].spd - self.window()[0].spd
+
+
+    def speed_max(self):
+        return max([p.spd for p in self.window()])
+
+
+    def speed_min(self):
+        return min([p.spd for p in self.window()])
+
+
+
+def avg(values):
     return float(sum(values)) / max(1, len(values))
 
 
-def average_speed(window):
-    return __avg([p.spd for p in window.window()])
 
-
-def max_speed(window):
-    return max([p.spd for p in window.window()])
-
-
-def min_speed(window):
-    return min([p.spd for p in window.window()])
-
-
-def speed_delta(window):
-    return window.window()[-1].spd - window.window()[0].spd
-
-
-def alt_delta(window):
-    return window.window()[-1].alt - window.window()[0].alt
-
-
-def alt_cuml_gain(window):
-    return sum([p.alt_d for p in window.window() if p.alt_d > 0])
-
-
-def alt_cuml_loss(window):
-    return sum([p.alt_d for p in window.window() if p.alt_d < 0])
