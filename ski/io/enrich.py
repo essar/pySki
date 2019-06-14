@@ -69,6 +69,10 @@ class PointWindow:
         return sum([p.alt_d for p in self.window() if p.alt_d < 0])
 
 
+    def distance(self):
+        return sum([p.dst for p in self.window()])
+
+
     def speed_ave(self):
         return avg([p.spd for p in self.window()])
 
@@ -88,6 +92,4 @@ class PointWindow:
 
 def avg(values):
     return float(sum(values)) / max(1, len(values))
-
-
 

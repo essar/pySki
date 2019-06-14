@@ -207,6 +207,23 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(-30, res)
 
 
+    def test_PointWindow_distance(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1),
+            EnrichedPoint(dst=2),
+            EnrichedPoint(dst=3),
+            EnrichedPoint(dst=4),
+            EnrichedPoint(dst=5)
+        ]
+
+        w = PointWindow(points, PointWindow.FORWARD, 3, 1)
+        res = w.distance()
+
+        log.info('dst=%f', res)
+        self.assertEqual(9, res)
+
+
     def test_PointWindow_speed_ave(self):
         # Prepare data
         points = [
