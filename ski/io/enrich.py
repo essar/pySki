@@ -45,9 +45,8 @@ class PointWindow:
             window_start = max(0, position - self.size + 1)
             window_end = min(len(points), position + 1)
 
+        log.debug('window_start=%d; window_end=%d; target_size=%d; actual_size=%d', window_start, window_end, self.size, (window_end - window_start))
         window = points[window_start:window_end]
-        window_full = (len(window) == self.size)
-        log.debug('Window is %s', 'full' if window_full else 'not full')
         return window
 
 
@@ -75,32 +74,41 @@ def __enriched_speed_vals(window, points, position):
     }
 
 
-def enrich_points(points, windows, head=[], min_tail=1, overflow=[]):
+def enrich_points(points, windows, max_head=0, head=[], min_tail=1, tail=[]):
     # Create position counter, start above head values
     position = len(head)
-
+    # Build an array that holds both head and points to enrich
+    all_points = (head + points)
+    
     # Process as many points as we can
-    while len(points[position:]) >= min_tail:
-        p = points[position]
+    while len(all_points[position:]) >= min_tail:
+        p = all_points[position]
 
         for k in windows:
             # Get window based on key and set to current position
             w = windows[k]
 
             # Build a dict of enriched values
-            vals = get_enriched_data(w, points, position)
+            vals = get_enriched_data(w, all_points, position)
 
             # Add the enrichment data to the point, using the input dict key
             p.windows[k] = EnrichedWindow(**vals)
-            log.debug('Enriched data: %s=%s', k, vals)
+            log.info('Enriched data: %s=%s', k, vals)
 
-        log.info('Added windows: %s', list(p.windows.keys()))
+        log.debug('Added windows: %s', list(p.windows.keys()))
+
+        # Add point to head
+        head.append(p)
+        # Trim head to size
+        while len(head) > max_head:
+            head.pop(0)
 
         # Increment to next position
         position += 1
         
-    # Return any unprocessed elements
-    overflow.extend(points[position:])
+    # Return last processed points plus any unprocessed elements
+    tail.clear()
+    tail.extend(all_points[position:])
 
 
 def get_enriched_data(window, points, position=0):

@@ -341,6 +341,36 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(5, points[4].windows['fwd3'].speed_max)
 
 
+    def test_enrich_points_with_tail(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=110, spd=5)
+        ]
+
+        windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
+        tail = []
+
+        # 1st iteration
+        enrich_points(points, windows, min_tail=3, tail=tail)
+
+        # Should be 2 points left unprocessed
+        self.assertEqual(2, len(tail))
+
+        # 2nd iteration; tail from previous run
+        enrich_points(tail, windows)
+
+        # Validate window has been created on all points
+        self.assertIsNotNone(points[0].windows['fwd3'])
+        self.assertIsNotNone(points[1].windows['fwd3'])
+        self.assertIsNotNone(points[2].windows['fwd3'])
+        self.assertIsNotNone(points[3].windows['fwd3'])
+        self.assertIsNotNone(points[4].windows['fwd3'])
+
+
     def test_enrich_points_2_batches(self):
         # Prepare data
         points = [
@@ -359,24 +389,29 @@ class TestEnrich(unittest.TestCase):
         ]
 
         windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
-        overflow = []
+        tail = []
 
         # 1st iteration
-        enrich_points(points, windows, min_tail=3, overflow=overflow)
+        enrich_points(points, windows, min_tail=3, tail=tail)
 
         # Should be 2 points left unprocessed
-        self.assertEqual(2, len(overflow))
+        self.assertEqual(2, len(tail))
 
-        # 2nd iteration; overflow from previous run plus new points
-        enrich_points(overflow + points2, windows)
+        # 2nd iteration; tail from previous run plus new points
+        enrich_points((tail + points2), windows)
 
+        # Validate window has been created on all points
         self.assertIsNotNone(points[0].windows['fwd3'])
         self.assertIsNotNone(points[4].windows['fwd3'])
         self.assertIsNotNone(points2[0].windows['fwd3'])
+        self.assertIsNotNone(points2[4].windows['fwd3'])
+
+        # Validate window values across batches
+        self.assertEqual(-40, points[4].windows['fwd3'].alt_delta)
+        self.assertEqual(-1, points[4].windows['fwd3'].speed_delta)
         
 
-"""
-    def test_enrich_points_with_min_tail(self):
+    def test_enrich_points_2_batches_with_lookback(self):
         # Prepare data
         points = [
             EnrichedPoint(dst=1, alt=10, spd=1),
@@ -385,13 +420,35 @@ class TestEnrich(unittest.TestCase):
             EnrichedPoint(dst=1, alt=70, spd=4),
             EnrichedPoint(dst=1, alt=110, spd=5)
         ]
-        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
+        points2 = [
+            EnrichedPoint(dst=1, alt=110, spd=5),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=10, spd=1)
+        ]
 
-        overflow = []
-        enrich_points(points, windows, min_tail=3, overflow=overflow)
+        windows = { 'bwd3' : PointWindow(PointWindow.BACKWARD, 3) }
+        head = []
 
-        self.assertEqual(2, len(overflow))
-"""
+        # 1st iteration
+        enrich_points(points, windows, max_head=3, head=head)
+
+        # Should be 3 points provided in the head
+        self.assertEqual(3, len(head))
+
+        # 2nd iteration; overflow from previous run plus new points, passing head fron 1st run
+        enrich_points(points2, windows, max_head=3, head=head)
+
+        # Validate window has been created on all points
+        self.assertIsNotNone(points[0].windows['bwd3'])
+        self.assertIsNotNone(points[4].windows['bwd3'])
+        self.assertIsNotNone(points2[0].windows['bwd3'])
+        self.assertIsNotNone(points2[4].windows['bwd3'])
+
+        # Validate window values across batches
+        self.assertEqual(70, points2[0].windows['bwd3'].alt_min)
+        self.assertEqual(110, points2[1].windows['bwd3'].alt_max)
 
 
 if __name__ == '__main__':
