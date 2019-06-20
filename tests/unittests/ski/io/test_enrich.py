@@ -367,33 +367,6 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(2, len(overflow))
 
 
-    def test_enrich_points_with_tail(self):
-        # Prepare data
-        points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
-        ]
-        
-
-        head = []
-        overflow = []
-
-        # First iteration
-        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
-        enrich_points(points, windows, head=head, min_tail=3, overflow=overflow)
-
-        # Second iteration
-        points = overflow
-        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
-        enrich_points(points, windows, head=head, min_tail=3, overflow=overflow)        
-
-
-        self.assertEqual(2, len(overflow))
-
-
 
 if __name__ == '__main__':
     unittest.main()
