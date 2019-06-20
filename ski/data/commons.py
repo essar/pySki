@@ -84,6 +84,10 @@ class EnrichedPoint(BasicGPSPoint):
         self.spd_d = spd_d
         self.hdg_d = hdg_d
 
+        # Windows
+        self.windows = {}
+
+
 
     def __repr__(self):
         #return super().__repr__().extend(
@@ -101,6 +105,23 @@ class EnrichedPoint(BasicGPSPoint):
 
     def __str__(self):
         return '{:s}, x={:08d}, y={:08d}, d={:.2f}, h={:05.1f}, alt_d={:+04d}, spd_d={:+06.2f}, hdg_d={:+06.1f}'.format(super().__str__(), self.x, self.y, self.dst, self.hdg, self.alt_d, self.spd_d, self.hdg_d)
+
+
+class EnrichedWindow:
+
+    def __init__(self, period=0, distance=0.0, alt_min=0, alt_max=0, alt_delta=0, alt_gain=0, alt_loss=0,
+                 speed_min=0.0, speed_max=0.0, speed_ave=0.0, speed_delta=0.0):
+        self.period = period
+        self.distance = distance
+        self.alt_delta = alt_delta
+        self.alt_gain = alt_gain
+        self.alt_loss = alt_loss
+        self.alt_max = alt_max
+        self.alt_min = alt_min
+        self.speed_ave = speed_ave
+        self.speed_delta = speed_delta
+        self.speed_max = speed_max
+        self.speed_min = speed_min
 
 
 def basic_to_enriched_point(basic_point):
