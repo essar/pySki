@@ -9,7 +9,7 @@ from ski.io.enrich import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.WARNING)
+log.setLevel(logging.INFO)
 
 
 class TestEnrich(unittest.TestCase):
@@ -290,6 +290,109 @@ class TestEnrich(unittest.TestCase):
 
         log.info('speed=%f', res)
         self.assertEqual(2.0, res)
+
+
+    def test_get_enriched_data(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=30, spd=3),
+            EnrichedPoint(dst=1, alt=40, spd=4),
+            EnrichedPoint(dst=1, alt=50, spd=5)
+        ]
+        window = PointWindow(points, PointWindow.FORWARD, 5)
+
+        res = get_enriched_data(window)
+
+        self.assertEqual(5, res['distance'])
+
+        self.assertEqual(40, res['alt_delta'])
+        self.assertEqual(0,  res['alt_gain'])
+        self.assertEqual(0,  res['alt_loss'])
+        self.assertEqual(50, res['alt_max'])
+        self.assertEqual(10, res['alt_min'])
+
+        self.assertEqual(3, res['speed_ave'])
+        self.assertEqual(4, res['speed_delta'])
+        self.assertEqual(5, res['speed_max'])
+        self.assertEqual(1, res['speed_min'])
+
+
+    def test_enrich_points(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=110, spd=5)
+        ]
+        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
+
+        enrich_points(points, windows)
+
+        self.assertIsNotNone(points[0].windows['fwd3'])
+        self.assertEqual(3, points[0].windows['fwd3'].distance)
+
+        # Verify altitude delta values
+        self.assertEqual(30, points[0].windows['fwd3'].alt_delta)
+        self.assertEqual(50, points[1].windows['fwd3'].alt_delta)
+        self.assertEqual(70, points[2].windows['fwd3'].alt_delta)
+        self.assertEqual(40, points[3].windows['fwd3'].alt_delta)
+        self.assertEqual(0,  points[4].windows['fwd3'].alt_delta)
+
+        # Verify maximum speed values
+        self.assertEqual(3, points[0].windows['fwd3'].speed_max)
+        self.assertEqual(4, points[1].windows['fwd3'].speed_max)
+        self.assertEqual(5, points[2].windows['fwd3'].speed_max)
+        self.assertEqual(5, points[3].windows['fwd3'].speed_max)
+        self.assertEqual(5, points[4].windows['fwd3'].speed_max)
+
+
+    def test_enrich_points_with_min_tail(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=110, spd=5)
+        ]
+        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
+
+        overflow = []
+        enrich_points(points, windows, min_tail=3, overflow=overflow)
+
+        self.assertEqual(2, len(overflow))
+
+
+    def test_enrich_points_with_tail(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=110, spd=5)
+        ]
+        
+
+        head = []
+        overflow = []
+
+        # First iteration
+        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
+        enrich_points(points, windows, head=head, min_tail=3, overflow=overflow)
+
+        # Second iteration
+        points = overflow
+        windows = { 'fwd3' : PointWindow(points, PointWindow.FORWARD, 3) }
+        enrich_points(points, windows, head=head, min_tail=3, overflow=overflow)        
+
+
+        self.assertEqual(2, len(overflow))
+
 
 
 if __name__ == '__main__':

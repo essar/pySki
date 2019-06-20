@@ -4,7 +4,7 @@ import logging
 
 from math import ceil, floor
 from ski.config import config
-from ski.data.commons import EnrichedPoint
+from ski.data.commons import EnrichedPoint, EnrichedWindow
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -69,6 +69,14 @@ class PointWindow:
         return sum([p.alt_d for p in self.window() if p.alt_d < 0])
 
 
+    def alt_max(self):
+        return max([p.alt for p in self.window()])
+
+
+    def alt_min(self):
+        return min([p.alt for p in self.window()])
+
+
     def distance(self):
         return sum([p.dst for p in self.window()])
 
@@ -92,4 +100,66 @@ class PointWindow:
 
 def avg(values):
     return float(sum(values)) / max(1, len(values))
+
+
+
+
+def __enriched_alt_vals(window):
+    return {
+        'alt_delta' : window.alt_delta(),
+        'alt_gain'  : window.alt_cuml_gain(),
+        'alt_loss'  : window.alt_cuml_loss(),
+        'alt_max'   : window.alt_max(),
+        'alt_min'   : window.alt_min()
+    }
+
+
+def __enriched_speed_vals(window):
+    return {
+        'speed_min'   : window.speed_min(),
+        'speed_max'   : window.speed_max(),
+        'speed_ave'   : window.speed_ave(),
+        'speed_delta' : window.speed_delta()
+    }
+
+
+def get_enriched_data(window):
+    # Build a dict of enriched values
+    data = {
+        'distance' : window.distance()
+    }
+    data.update(__enriched_alt_vals(window))
+    data.update(__enriched_speed_vals(window))
+    return data
+
+
+def enrich_points(points, windows, head=[], min_tail=1, overflow=[]):
+    # Create position counter, start above head values
+    position = len(head)
+
+    # Process as many points as we can
+    while len(points[position:]) >= min_tail:
+        p = points[position]
+
+        for k in windows:
+            # Get window based on key and set to current position
+            w = windows[k]
+            w.position = position
+
+            if w.points[w.position] != p:
+                log.warning('Window point is not equal to the main point')
+
+            # Build a dict of enriched values
+            vals = get_enriched_data(w)
+
+            # Add the enrichment data to the point, using the input dict key
+            p.windows[k] = EnrichedWindow(**vals)
+
+        log.info('Added windows: %s', list(p.windows.keys()))
+
+        # Increment to next position
+        position += 1
+        
+    # Return any unprocessed elements
+    overflow.extend(points[position:])
 
