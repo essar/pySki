@@ -74,7 +74,7 @@ class BasicGPSPoint:
 
 
     def __str__(self):
-        return 'ts={ts:010d}, lat={lat:.6f}, lon={lon:.6f}, a={alt:04d}, s={spd:06.2f}'.format(**self.vals())
+        return 'ts={ts:010d}, lat={lat:.6f}, lon={lon:.6f}, a={alt:04d}m, s={spd:06.2f}kph'.format(**self.vals())
 
 
 
@@ -110,7 +110,7 @@ class EnrichedPoint(BasicGPSPoint):
 
 
     def __str__(self):
-        return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}, h={hdg:05.1f}, alt_d={alt_d:+04d}, spd_d={spd_d:+06.2f}, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.vals())
+        return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}m, h={hdg:05.1f}, alt_d={alt_d:+04d}m, spd_d={spd_d:+06.2f}kph, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.vals())
 
 
 class EnrichedWindow:
@@ -152,7 +152,7 @@ class EnrichedWindow:
 
 
     def __str__(self):
-        return ''
+        return 'period={period:d}s, dist: {distance:.2f}m, alt: {alt_min:04d}m-{alt_max:04d}m ({alt_delta:+04d}m; +{alt_gain:04d}, -{alt_loss:04d}), spd: {speed_min:05.2f}-{speed_max:05.2f} ({speed_delta:+06.2f}; {speed_ave:05.2f})'.format(**self.vals())
 
 
 def basic_to_enriched_point(basic_point):
