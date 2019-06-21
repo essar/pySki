@@ -45,7 +45,6 @@ class PointWindow:
             window_start = max(0, position - self.size + 1)
             window_end = min(len(points), position + 1)
 
-        log.debug('window_start=%d; window_end=%d; target_size=%d; actual_size=%d', window_start, window_end, self.size, (window_end - window_start))
         window = points[window_start:window_end]
         return window
 
@@ -74,15 +73,18 @@ def __enriched_speed_vals(window, points, position):
     }
 
 
-def enrich_points(points, windows, max_head=0, head=[], min_tail=1, tail=[]):
+def enrich_points(points, windows, head=[], tail=[]):
     # Create position counter, start above head values
     position = len(head)
-    # Build an array that holds both head and points to enrich
-    all_points = (head + points)
+    # Build an array that holds head, tail and points to enrich
+    all_points = (head + points + tail)
+
+    log.debug('head=%d; points=%d; tail=%d', len(head), len(points), len(tail))
     
     # Process as many points as we can
-    while len(all_points[position:]) >= min_tail:
+    while len(all_points[position:]) > len(tail):
         p = all_points[position]
+        log.debug('p=%s', p)
 
         for k in windows:
             # Get window based on key and set to current position
@@ -90,28 +92,20 @@ def enrich_points(points, windows, max_head=0, head=[], min_tail=1, tail=[]):
 
             # Build a dict of enriched values
             vals = get_enriched_data(w, all_points, position)
-
+            
             # Add the enrichment data to the point, using the input dict key
             p.windows[k] = EnrichedWindow(**vals)
-            log.info('Enriched data: %s=%s', k, vals)
+            log.debug('windows[%s]=%s', k, vals)
 
-        log.debug('Added windows: %s', list(p.windows.keys()))
-
-        # Add point to head
-        head.append(p)
-        # Trim head to size
-        while len(head) > max_head:
-            head.pop(0)
+        log.info('[%d] Enriched windows=%s', p.ts, list(p.windows.keys()))
 
         # Increment to next position
         position += 1
-        
-    # Return last processed points plus any unprocessed elements
-    tail.clear()
-    tail.extend(all_points[position:])
 
 
 def get_enriched_data(window, points, position=0):
+    log.debug('window_points=%s', points[position:(position + window.size)])
+        
     # Build a dict of enriched values
     data = {
         'distance' : window_distance(window, points, position)

@@ -9,13 +9,13 @@ from ski.io.enrich import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 
 class TestEnrich(unittest.TestCase):
 
     '''
-    PointWindow.window()
+    PointWindow.for_points()
     '''
 
     def test_PointWindow_for_points_empty(self):
@@ -25,7 +25,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 5)
 
         res = w.for_points(points)
-        log.info(res)
+        log.info('points=%s; 5F=%s', points, res)
 
         self.assertEqual(len(res), 0)
 
@@ -37,7 +37,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.BACKWARD, 5)
 
         res = w.for_points(points, 5)
-        log.info(res)
+        log.info('points=%s; 5B=%s', points, res)
 
         self.assertEqual([1, 2, 3, 4, 5], res)
 
@@ -49,7 +49,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.BACKWARD, 6)
 
         res = w.for_points(points, 6)
-        log.info(res)
+        log.info('points=%s; 6B=%s', points, res)
 
         self.assertEqual([1, 2, 3, 4, 5, 6], res)
 
@@ -61,7 +61,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 5)
 
         res = w.for_points(points, 5)
-        log.info(res)
+        log.info('points=%s; 5F=%s', points, res)
         
         self.assertEqual([5, 6, 7, 8, 9], res)
 
@@ -73,7 +73,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 6)
 
         res = w.for_points(points, 4)
-        log.info(res)
+        log.info('points=%s; 6W=%s', points, res)
         
         self.assertEqual([4, 5, 6, 7, 8, 9], res)
 
@@ -85,7 +85,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.MIDPOINT, 5)
 
         res = w.for_points(points, 5)
-        log.info(res)
+        log.info('points=%s; 5MP=%s', points, res)
 
         self.assertEqual([3, 4, 5, 6, 7], res)
 
@@ -93,6 +93,8 @@ class TestEnrich(unittest.TestCase):
     def test_PointWindow_for_points_full_midpoint_even(self):
         # Prepare data
         points = list(range(10))
+
+        log.info('points=%s; 6MP=[]', points)
 
         self.assertRaises(ValueError, PointWindow, PointWindow.MIDPOINT, 6)
 
@@ -104,7 +106,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.BACKWARD, 5)
 
         res = w.for_points(points, 3)
-        log.info(res)
+        log.info('points=%s; 5B=%s', points, res)
 
         self.assertEqual([0, 1, 2, 3], res)
 
@@ -116,7 +118,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 5)
 
         res = w.for_points(points, 6)
-        log.info(res)
+        log.info('points=%s; 6F=%s', points, res)
 
         self.assertEqual([6, 7, 8, 9], res)
 
@@ -128,7 +130,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.MIDPOINT, 5)
 
         res = w.for_points(points, 1)
-        log.info(res)
+        log.info('points=%s; 5MP=%s', points, res)
 
         self.assertEqual([0, 1, 2], res)
 
@@ -141,7 +143,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.MIDPOINT, 5)
 
         res = w.for_points(points, 8)
-        log.info(res)
+        log.info('points=%s; 5MP=%s', points, res)
 
         self.assertEqual([7, 8, 9], res)
 
@@ -159,7 +161,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_alt_delta(w, points, 1)
 
-        log.info('alt=%f', res)
+        log.info('alts=%s; 3F window_alt_delta=%f', list(map(lambda p: p.alt, points)), res)
         self.assertEqual(20, res)
 
 
@@ -176,7 +178,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_alt_cuml_gain(w, points, 1)
 
-        log.info('alt_d=%f', res)
+        log.info('alt_ds=%s; 3F window_alt_gain=%f', list(map(lambda p: p.alt_d, points)), res)
         self.assertEqual(60, res)
 
 
@@ -193,7 +195,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_alt_cuml_loss(w, points, 1)
 
-        log.info('alt_d=%f', res)
+        log.info('alt_ds=%s; 3F window_alt_loss=%f', list(map(lambda p: p.alt_d, points)), res)
         self.assertEqual(-30, res)
 
 
@@ -210,7 +212,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_distance(w, points, 1)
 
-        log.info('dst=%f', res)
+        log.info('dsts=%s; 3F window_distance=%f', list(map(lambda p: p.dst, points)), res)
         self.assertEqual(9, res)
 
 
@@ -227,7 +229,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_speed_ave(w, points, 1)
 
-        log.info('speed=%f', res)
+        log.info('spds=%s; 3F window_speed_ave=%f', list(map(lambda p: p.spd, points)), res)
         self.assertEqual(3.0, res)
 
 
@@ -244,7 +246,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_speed_max(w, points, 1)
 
-        log.info('speed=%f', res)
+        log.info('spds=%s; 3F window_speed_max=%f', list(map(lambda p: p.spd, points)), res)
         self.assertEqual(4.0, res)
 
 
@@ -261,7 +263,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_speed_min(w, points, 1)
 
-        log.info('speed=%f', res)
+        log.info('spds=%s; 3F window_speed_min=%f', list(map(lambda p: p.spd, points)), res)
         self.assertEqual(2.0, res)
 
 
@@ -278,7 +280,7 @@ class TestEnrich(unittest.TestCase):
         w = PointWindow(PointWindow.FORWARD, 3)
         res = window_speed_delta(w, points, 1)
 
-        log.info('speed=%f', res)
+        log.info('spds=%s; 3F window_speed_delta=%f', list(map(lambda p: p.spd, points)), res)
         self.assertEqual(2.0, res)
 
 
@@ -294,7 +296,7 @@ class TestEnrich(unittest.TestCase):
         window = PointWindow(PointWindow.FORWARD, 5)
 
         res = get_enriched_data(window, points)
-        log.info('Enriched data: %s', res)
+        log.info('points=%s; 5F=%s', points, res)
 
         self.assertEqual(5, res['distance'])
 
@@ -322,6 +324,7 @@ class TestEnrich(unittest.TestCase):
         windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
 
         enrich_points(points, windows)
+        log.info('points=%s', points)
 
         self.assertIsNotNone(points[0].windows['fwd3'])
         self.assertEqual(3, points[0].windows['fwd3'].distance)
@@ -352,103 +355,19 @@ class TestEnrich(unittest.TestCase):
         ]
 
         windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
-        tail = []
-
-        # 1st iteration
-        enrich_points(points, windows, min_tail=3, tail=tail)
-
-        # Should be 2 points left unprocessed
-        self.assertEqual(2, len(tail))
-
-        # 2nd iteration; tail from previous run
-        enrich_points(tail, windows)
-
-        # Validate window has been created on all points
-        self.assertIsNotNone(points[0].windows['fwd3'])
-        self.assertIsNotNone(points[1].windows['fwd3'])
-        self.assertIsNotNone(points[2].windows['fwd3'])
-        self.assertIsNotNone(points[3].windows['fwd3'])
-        self.assertIsNotNone(points[4].windows['fwd3'])
-
-
-    def test_enrich_points_2_batches(self):
-        # Prepare data
-        points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
-        ]
-        points2 = [
-            EnrichedPoint(dst=1, alt=110, spd=5),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=10, spd=1)
+        tail = [
+            EnrichedPoint(dst=1, alt=110, spd=6),
+            EnrichedPoint(dst=1, alt=100, spd=7)
         ]
 
-        windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
-        tail = []
+        enrich_points(points, windows, tail=tail)
 
-        # 1st iteration
-        enrich_points(points, windows, min_tail=3, tail=tail)
-
-        # Should be 2 points left unprocessed
-        self.assertEqual(2, len(tail))
-
-        # 2nd iteration; tail from previous run plus new points
-        enrich_points((tail + points2), windows)
-
-        # Validate window has been created on all points
-        self.assertIsNotNone(points[0].windows['fwd3'])
-        self.assertIsNotNone(points[4].windows['fwd3'])
-        self.assertIsNotNone(points2[0].windows['fwd3'])
-        self.assertIsNotNone(points2[4].windows['fwd3'])
-
-        # Validate window values across batches
-        self.assertEqual(-40, points[4].windows['fwd3'].alt_delta)
-        self.assertEqual(-1, points[4].windows['fwd3'].speed_delta)
+        # Validate tail data has been used on last points
+        self.assertEqual(40, points[3].windows['fwd3'].alt_delta)
+        self.assertEqual(-10,  points[4].windows['fwd3'].alt_delta)
+        self.assertEqual(6, points[3].windows['fwd3'].speed_max)
+        self.assertEqual(7, points[4].windows['fwd3'].speed_max)
         
-
-    def test_enrich_points_2_batches_with_lookback(self):
-        # Prepare data
-        points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
-        ]
-        points2 = [
-            EnrichedPoint(dst=1, alt=110, spd=5),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=10, spd=1)
-        ]
-
-        windows = { 'bwd3' : PointWindow(PointWindow.BACKWARD, 3) }
-        head = []
-
-        # 1st iteration
-        enrich_points(points, windows, max_head=3, head=head)
-
-        # Should be 3 points provided in the head
-        self.assertEqual(3, len(head))
-
-        # 2nd iteration; overflow from previous run plus new points, passing head fron 1st run
-        enrich_points(points2, windows, max_head=3, head=head)
-
-        # Validate window has been created on all points
-        self.assertIsNotNone(points[0].windows['bwd3'])
-        self.assertIsNotNone(points[4].windows['bwd3'])
-        self.assertIsNotNone(points2[0].windows['bwd3'])
-        self.assertIsNotNone(points2[4].windows['bwd3'])
-
-        # Validate window values across batches
-        self.assertEqual(70, points2[0].windows['bwd3'].alt_min)
-        self.assertEqual(110, points2[1].windows['bwd3'].alt_max)
 
 
 if __name__ == '__main__':
