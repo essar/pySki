@@ -59,16 +59,22 @@ class BasicGPSPoint:
 
 
     def vals(self):
-        """Get point data as a dict"""
-        return { 'ts': self.ts, 'lat': self.lat, 'lon': self.lon, 'alt': self.alt, 'spd': self.spd }
+        v = {
+            'ts' : self.ts,
+            'lat': self.lat,
+            'lon': self.lon,
+            'alt': self.alt,
+            'spd': self.spd
+        }
+        return v
+
 
     def __repr__(self):
-        return {
-            'ts' : '{:010}'.format(self.ts)
-        }
+        return str(self.vals())
+
 
     def __str__(self):
-        return 'ts={:010d}, lat={:.6f}, lon={:.6f}, a={:04d}, s={:06.2f}'.format(self.ts, self.lat, self.lon, self.alt, self.spd)
+        return 'ts={ts:010d}, lat={lat:.6f}, lon={lon:.6f}, a={alt:04d}, s={spd:06.2f}'.format(**self.vals())
 
 
 
@@ -88,23 +94,23 @@ class EnrichedPoint(BasicGPSPoint):
         self.windows = {}
 
 
-
-    def __repr__(self):
-        #return super().__repr__().extend(
-        return {
-                'x'     : '{:08d}'.format(self.x),
-                'y'     : '{:08d}'.format(self.y),
-                'dst'   : '{:.2f}'.format(self.dst),
-                'hdg'   : '{:05.1f}'.format(self.hdg),
-                'alt_d' : '{:+04d}'.format(self.alt_d),
-                'spd_d' : '{:+06.2f}'.format(self.spd_d),
-                'hdg_d' : '{:+06.1f}'.format(self.hdg_d)
-            }
-        #)
+    def vals(self):
+        v = super().vals()
+        v.update({
+            'x'     : self.x,
+            'y'     : self.y,
+            'dst'   : self.dst,
+            'hdg'   : self.hdg,
+            'alt_d' : self.alt_d,
+            'spd_d' : self.spd_d,
+            'hdg_d' : self.hdg_d,
+        })
+        v.update(self.windows)
+        return v
 
 
     def __str__(self):
-        return '{:s}, x={:08d}, y={:08d}, d={:.2f}, h={:05.1f}, alt_d={:+04d}, spd_d={:+06.2f}, hdg_d={:+06.1f}'.format(super().__str__(), self.x, self.y, self.dst, self.hdg, self.alt_d, self.spd_d, self.hdg_d)
+        return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}, h={hdg:05.1f}, alt_d={alt_d:+04d}, spd_d={spd_d:+06.2f}, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.vals())
 
 
 class EnrichedWindow:
@@ -122,6 +128,31 @@ class EnrichedWindow:
         self.speed_delta = speed_delta
         self.speed_max = speed_max
         self.speed_min = speed_min
+
+
+    def vals(self):
+        v = {
+            'period'     : self.period,
+            'distance'   : self.distance,
+            'alt_delta'  : self.alt_delta,
+            'alt_gain'   : self.alt_gain,
+            'alt_loss'   : self.alt_loss,
+            'alt_max'    : self.alt_max,
+            'alt_min'    : self.alt_min,
+            'speed_ave'  : self.speed_ave,
+            'speed_delta': self.speed_delta,
+            'speed_max'  : self.speed_max,
+            'speed_min'  : self.speed_min
+        }
+        return v
+
+
+    def __repr__(self):
+        return str(self.vals())
+
+
+    def __str__(self):
+        return ''
 
 
 def basic_to_enriched_point(basic_point):
