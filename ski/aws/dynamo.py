@@ -86,6 +86,7 @@ class DynamoDataStore(DataStore):
 
                 p = EnrichedPoint()
                 p.ts = decimal_to_integer(i['timestamp'])
+                p.track_id = i['track_id']
                 
                 # GPS Sub object
                 gps = i['gps']
@@ -94,6 +95,16 @@ class DynamoDataStore(DataStore):
                 p.alt = decimal_to_integer(gps['alt'])
                 p.spd = decimal_to_float(gps['spd'])
 
+                # Extended sub object
+                if 'extended' in i:
+                    ext = i['extended']
+                    p.x     = decimal_to_integer(ext['x'])
+                    p.y     = decimal_to_integer(ext['y'])
+                    p.dst   = decimal_to_float(ext['dst'])
+                    p.hdg   = decimal_to_float(ext['hdg'])
+                    p.alt_d = decimal_to_integer(ext['alt_d'])
+                    p.spd_d = decimal_to_float(ext['spd_d'])
+                    p.hdg_d = decimal_to_float(ext['hdg_d']) 
 
                 log.debug('point=%s', p)
                 
@@ -103,6 +114,38 @@ class DynamoDataStore(DataStore):
             log.error(e)
 
         return points
+
+
+    def save_extended_points(self, points):
+        # Get Dynamo table
+        table = dynamodb.Table(db_points)
+
+        with table.batch_writer() as batch:
+            for point in points:
+                log.debug('Storing point: %s', point)
+
+                try:
+                    item = {
+                        'track_id': point.track_id,
+                        'timestamp': point.ts,
+                        'extended': {
+                            'x'     : point.x,
+                            'y'     : point.y,
+                            'dst'   : float_to_decimal(point.dst),
+                            'hdg'   : float_to_decimal(point.hdg),
+                            'alt_d' : point.alt_d,
+                            'spd_d' : float_to_decimal(point.spd_d),
+                            'hdg_d' : float_to_decimal(point.hdg_d)
+                        }
+                    }
+                    # Add windows
+                    #item.update(point.windows)
+
+                    response = batch.put_item(Item=item)
+                    self.insert_count += 1
+                    log.debug('put_item %s/%s=%s', point.track_id, point.ts, response)
+                except Exception as e:
+                    log.error(e)
 
 
 def count_points():
