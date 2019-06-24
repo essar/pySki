@@ -47,3 +47,14 @@ class TestDataStore(DataStore):
     def get_track_points(self, track, offset=0, length=-1):
         log.debug('[TestDataStore] Retriving points %d to %d', offset, length)
         return list(map(basic_to_enriched_point, self.points[offset:length]))
+
+
+    def save_extended_points(self, points):
+        og.info('[TestDataStore] %d point(s) to load', len(points))
+        for point in points:
+            key = "{:s}-{:d}".format(point.track_id, point.ts)
+            self.points.append(point)
+            self.insert_count += 1
+            
+            log.info('[TestDataStore] Saving point: %s', point)
+            log.debug('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))
