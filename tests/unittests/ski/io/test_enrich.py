@@ -344,6 +344,32 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(5, points[4].windows['fwd3'].speed_max)
 
 
+    def test_enrich_points_with_head(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=110, spd=5)
+        ]
+
+        windows = { 'bwd3' : PointWindow(PointWindow.BACKWARD, 3) }
+        head = [
+            EnrichedPoint(dst=0, alt=20, spd=0),
+            EnrichedPoint(dst=1, alt=20, spd=1)
+        ]
+
+        enrich_points(points, windows, head=head)
+        log.info('points=%s', points)
+
+        # Validate head data has been used on first points
+        self.assertEqual(-10, points[0].windows['bwd3'].alt_delta)
+        self.assertEqual(0,  points[1].windows['bwd3'].alt_delta)
+        self.assertEqual(0, points[0].windows['bwd3'].speed_min)
+        self.assertEqual(1, points[1].windows['bwd3'].speed_min)
+
+
     def test_enrich_points_with_tail(self):
         # Prepare data
         points = [
@@ -361,12 +387,42 @@ class TestEnrich(unittest.TestCase):
         ]
 
         enrich_points(points, windows, tail=tail)
+        log.info('points=%s', points)
 
         # Validate tail data has been used on last points
         self.assertEqual(40, points[3].windows['fwd3'].alt_delta)
         self.assertEqual(-10,  points[4].windows['fwd3'].alt_delta)
         self.assertEqual(6, points[3].windows['fwd3'].speed_max)
         self.assertEqual(7, points[4].windows['fwd3'].speed_max)
+
+
+    def test_enrich_points_with_head_and_tail(self):
+        # Prepare data
+        points = [
+            EnrichedPoint(dst=1, alt=10, spd=1),
+            EnrichedPoint(dst=1, alt=20, spd=2),
+            EnrichedPoint(dst=1, alt=40, spd=3),
+            EnrichedPoint(dst=1, alt=70, spd=4),
+            EnrichedPoint(dst=1, alt=110, spd=5)
+        ]
+
+        windows = { 'bwd4' : PointWindow(PointWindow.BACKWARD, 4), 'fwd4' : PointWindow(PointWindow.FORWARD, 4) }
+        head = [
+            EnrichedPoint(dst=0, alt=20, spd=0),
+            EnrichedPoint(dst=1, alt=20, spd=1)
+        ]
+        tail = [
+            EnrichedPoint(dst=1, alt=110, spd=6),
+            EnrichedPoint(dst=1, alt=100, spd=7)
+        ]
+
+        enrich_points(points, windows, head=head, tail=tail)
+
+        # Validate head and tail data has been used on last points
+        self.assertEqual(20, points[2].windows['bwd4'].alt_delta)
+        self.assertEqual(70, points[2].windows['fwd4'].alt_delta)
+        self.assertEqual(1, points[2].windows['bwd4'].speed_min)
+        self.assertEqual(6, points[2].windows['fwd4'].speed_max)
         
 
 
