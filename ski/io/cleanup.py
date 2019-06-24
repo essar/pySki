@@ -203,7 +203,7 @@ def is_outlyer(prev_point, point):
     
     # calculate speed (convert metres per second -> km per hour)
     calc_spd = (calc_dist / ts_delta) * 3.60
-    calc_spd_factor = calc_spd / point.spd
+    calc_spd_factor = 1 if point.spd == 0.0 else calc_spd / max(1, point.spd)
     log.debug('outlyer: ts_delta=%d, calc_dist=%.2f, gps_speed=%.2f, calc_speed=%.4f, calc_spd_factor=%.3f', ts_delta, calc_dist, point.spd, calc_spd, calc_spd_factor)
 
     # Compare calculated speed against max speed

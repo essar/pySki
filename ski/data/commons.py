@@ -114,6 +114,11 @@ class EnrichedPoint(BasicGPSPoint):
         return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}m, h={hdg:05.1f}, alt_d={alt_d:+04d}m, spd_d={spd_d:+06.2f}kph, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.vals())
 
 
+class ExtendedGPSPoint(EnrichedPoint):
+    def __init__(self, track_id=None, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0, dst=0.0, hdg=0.0, alt_d=0, spd_d=0.0, hdg_d=0.0):
+        super().__init__(track_id, ts, lat, lon, alt, spd, x, y, dst, hdg, alt_d, spd_d, hdg_d)
+
+
 class EnrichedWindow:
 
     def __init__(self, period=0, distance=0.0, alt_min=0, alt_max=0, alt_delta=0, alt_gain=0, alt_loss=0,

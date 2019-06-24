@@ -8,9 +8,49 @@
 """
 import logging
 
+from ski.io.cleanup import cleanup_points
+
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+
+
+
+def load_extended_points(loader, db, track):
+  """
+  Load a set of points from a loader object, clean these and store in the data store as part of a specified track.
+  """
+
+  buf = []
+  buflen = 100 # TODO Move this to properties
+
+  while len(buf) < buflen:
+    # Set of points from the loader (single point for GPX, single section for GSD)
+    points = loader.load_points()
+
+    if points == None:
+          # End of data
+          log.debug('Reached end of data')
+          break
+
+    # Build up a local buffer before passing to clean up
+    buf.extend(points)
+    log.debug('Read %d points; buffered=%d', len(points), len(buf))
+
+  # No points found so return
+  if len(buf) == 0:
+    return False
+
+  # Do clean up
+  cleaned = []
+  cleanup_points(buf, output=cleaned)
+
+  # Enrich points
+
+  # Save points to data store
+  db.add_points_to_track(track, cleaned)
+
+  return True
 
 
 def load_points_to_db(loader, db, track):
