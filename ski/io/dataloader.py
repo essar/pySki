@@ -9,9 +9,8 @@
 import logging
 
 from ski.config import config
-from ski.data.pointutils import split_points
 from ski.io.cleanup import cleanup_points
-from ski.io.enrich import enrich_points
+from ski.io.enrich import enrich_points, PointWindow
 
 
 # Set up logger
@@ -21,6 +20,17 @@ log.setLevel(logging.INFO)
 
 load_buffer_len = config['dataloader']['load_buffer']
 load_extended = config['dataloader']['extended_points']
+
+windows = {
+    'fwd3' : PointWindow(PointWindow.FORWARD, 3)
+}
+head_length = 0
+tail_length = 3
+
+
+def __array_replace(array, points):
+    array.clear()
+    array.extend(points)
 
 
 def __load_to_buffer(loader, tail=[]):
@@ -43,6 +53,10 @@ def __load_to_buffer(loader, tail=[]):
 
     return buf
 
+
+def __split_tail(points, tail_length=0):
+    body_end = len(points) - tail_length
+    return (points[0:body_end], points[body_end:])
 
 
 def load_extended_points(loader, db, track, head=[], tail=[]):
@@ -67,13 +81,17 @@ def load_extended_points(loader, db, track, head=[], tail=[]):
 
     # Do clean up
     cleaned = []
-    log.info('Starting clean up of %d points', len(buf))
     cleanup_points(buf, output=cleaned)
 
-    # Enrich points
+    # Extract a new tail from the body; if the buffer isn't full use all the points
+    (body, new_tail) = __split_tail(cleaned, tail_length if buffer_full else 0)
+    log.debug('body=%d; head=%d; tail=%d', len(body), len(head), len(new_tail))
 
-    body = []
-    enrich_points(cleaned, head, body, tail, not buffer_full)
+    # Do enrich
+    enrich_points(cleaned, windows, head, new_tail)
+    
+    # Update the tail with remaining points
+    __array_replace(tail, new_tail)
     
     # Save points to data store
     db.add_points_to_track(track, body)

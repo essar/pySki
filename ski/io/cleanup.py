@@ -61,7 +61,7 @@ def cleanup_points(points, output=[], outlyers=[]):
     log.info('Starting cleanup of %d points', len(points))
 
     for point in points:
-        log.info('Cleaning point {%s}', point)
+        log.debug('Cleaning point {%s}', point)
 
         if point is None:
             log.warning('<None> found in points list; ignoring')

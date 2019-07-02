@@ -4,8 +4,7 @@ import logging
 
 from math import ceil, floor
 from ski.config import config
-from ski.data.pointutils import split_points
-from ski.data.commons import EnrichedPoint, EnrichedWindow
+from ski.data.commons import EnrichedWindow
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -51,22 +50,6 @@ class PointWindow:
 
 
 
-class WindowConfig:
-    def __init__(self, windows={}, head_length=0, tail_length=0):
-        self.windows = windows
-        self.head_length = head_length
-        self.tail_length = tail_length
-
-
-window_config = WindowConfig(
-    windows = {
-        'fwd3' : PointWindow(PointWindow.FORWARD, 3)
-    }, 
-    head_length = 0,
-    tail_length = 3
-)
-
-
 def __avg(values):
     return float(sum(values)) / max(1, len(values))
 
@@ -90,7 +73,7 @@ def __enriched_speed_vals(window, points, position):
     }
 
 
-def enrich_points(points, head, body=[], tail=[], all_points=False):
+def xenrich_points(points, head, body=[], tail=[], all_points=False):
     # Enrich points
     head_length = len(head)
     tail_length = 0 if all_points else window_config.tail_length # Check if buffer is full as non-full buffer would be zero tail
@@ -104,8 +87,9 @@ def enrich_points(points, head, body=[], tail=[], all_points=False):
     enrich_windows(body, window_config.windows, head, tail)
 
 
-def enrich_windows(points, windows, head=[], tail=[]):
+def enrich_points(points, windows, head=[], tail=[]):
     
+    log.info('Starting enrichment of %d points', len(points))
     log.debug('enrich_windows: head=%d; points=%d; tail=%d', len(head), len(points), len(tail))
 
     # Create position counter, start above head values
@@ -133,6 +117,8 @@ def enrich_windows(points, windows, head=[], tail=[]):
 
         # Increment to next position
         position += 1
+
+    log.info('Enrichment complete')
 
 
 def get_enriched_data(window, points, position=0):
