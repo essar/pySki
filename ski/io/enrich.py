@@ -4,6 +4,7 @@ import logging
 
 from math import ceil, floor
 from ski.config import config
+from ski.data.pointutils import split_points
 from ski.data.commons import EnrichedPoint, EnrichedWindow
 
 # Set up logger
@@ -50,6 +51,22 @@ class PointWindow:
 
 
 
+class WindowConfig:
+    def __init__(self, windows={}, head_length=0, tail_length=0):
+        self.windows = windows
+        self.head_length = head_length
+        self.tail_length = tail_length
+
+
+window_config = WindowConfig(
+    windows = {
+        'fwd3' : PointWindow(PointWindow.FORWARD, 3)
+    }, 
+    head_length = 0,
+    tail_length = 3
+)
+
+
 def __avg(values):
     return float(sum(values)) / max(1, len(values))
 
@@ -73,13 +90,28 @@ def __enriched_speed_vals(window, points, position):
     }
 
 
-def enrich_points(points, windows, head=[], tail=[]):
+def enrich_points(points, head, body=[], tail=[], all_points=False):
+    # Enrich points
+    head_length = len(head)
+    tail_length = 0 if all_points else window_config.tail_length # Check if buffer is full as non-full buffer would be zero tail
+    
+    # Prepend the head to the cleaned points and then split into head, body and tail
+    split_points(head + points, head_length, tail_length, head, body, tail)
+    log.debug('enrich_points: head=%s', head)
+    log.debug('enrich_points: body=%s', body)
+    log.debug('enrich_points: tail=%s', tail)
+
+    enrich_windows(body, window_config.windows, head, tail)
+
+
+def enrich_windows(points, windows, head=[], tail=[]):
+    
+    log.debug('enrich_windows: head=%d; points=%d; tail=%d', len(head), len(points), len(tail))
+
     # Create position counter, start above head values
     position = len(head)
     # Build an array that holds head, tail and points to enrich
     all_points = (head + points + tail)
-
-    log.debug('head=%d; points=%d; tail=%d', len(head), len(points), len(tail))
     
     # Process as many points as we can
     while len(all_points[position:]) > len(tail):
@@ -97,7 +129,7 @@ def enrich_points(points, windows, head=[], tail=[]):
             p.windows[k] = EnrichedWindow(**vals)
             log.debug('windows[%s]=%s', k, vals)
 
-        log.info('[%d] Enriched windows=%s', p.ts, list(p.windows.keys()))
+        log.debug('enrich_windows: windows=%s', list(p.windows.keys()))
 
         # Increment to next position
         position += 1

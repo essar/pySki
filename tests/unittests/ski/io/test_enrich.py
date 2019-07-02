@@ -284,6 +284,9 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(2.0, res)
 
 
+    '''
+    get_enriched_data
+    '''
     def test_get_enriched_data(self):
         # Prepare data
         points = [
@@ -312,7 +315,15 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(1, res['speed_min'])
 
 
-    def test_enrich_points(self):
+    '''
+    enrich_points
+    '''
+
+
+    '''
+    enrich_windows
+    '''
+    def test_enrich_windows(self):
         # Prepare data
         points = [
             EnrichedPoint(dst=1, alt=10, spd=1),
@@ -323,7 +334,7 @@ class TestEnrich(unittest.TestCase):
         ]
         windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
 
-        enrich_points(points, windows)
+        enrich_windows(points, windows)
         log.info('points=%s', points)
 
         self.assertIsNotNone(points[0].windows['fwd3'])
@@ -344,7 +355,7 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(5, points[4].windows['fwd3'].speed_max)
 
 
-    def test_enrich_points_with_head(self):
+    def test_enrich_windows_with_head(self):
         # Prepare data
         points = [
             EnrichedPoint(dst=1, alt=10, spd=1),
@@ -360,7 +371,7 @@ class TestEnrich(unittest.TestCase):
             EnrichedPoint(dst=1, alt=20, spd=1)
         ]
 
-        enrich_points(points, windows, head=head)
+        enrich_windows(points, windows, head=head)
         log.info('points=%s', points)
 
         # Validate head data has been used on first points
@@ -370,7 +381,7 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(1, points[1].windows['bwd3'].speed_min)
 
 
-    def test_enrich_points_with_tail(self):
+    def test_enrich_windows_with_tail(self):
         # Prepare data
         points = [
             EnrichedPoint(dst=1, alt=10, spd=1),
@@ -386,7 +397,7 @@ class TestEnrich(unittest.TestCase):
             EnrichedPoint(dst=1, alt=100, spd=7)
         ]
 
-        enrich_points(points, windows, tail=tail)
+        enrich_windows(points, windows, tail=tail)
         log.info('points=%s', points)
 
         # Validate tail data has been used on last points
@@ -396,7 +407,7 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(7, points[4].windows['fwd3'].speed_max)
 
 
-    def test_enrich_points_with_head_and_tail(self):
+    def test_enrich_windows_with_head_and_tail(self):
         # Prepare data
         points = [
             EnrichedPoint(dst=1, alt=10, spd=1),
@@ -416,7 +427,7 @@ class TestEnrich(unittest.TestCase):
             EnrichedPoint(dst=1, alt=100, spd=7)
         ]
 
-        enrich_points(points, windows, head=head, tail=tail)
+        enrich_windows(points, windows, head=head, tail=tail)
 
         # Validate head and tail data has been used on last points
         self.assertEqual(20, points[2].windows['bwd4'].alt_delta)

@@ -4,89 +4,84 @@
 import logging
 import unittest
 
-from ski.data.commons import ExtendedGPSPoint, LinkedPoint
+from ski.data.commons import ExtendedGPSPoint
 from ski.io.db import TestDataStore
 
 from ski.io.interpolate import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.WARNING)
 
 
 class TestInterpolate(unittest.TestCase):
 
-    '''
-    interpolate_point(linked_point, interpolate_f, [ts_delta])
-    '''
 
-    def test_interpolate_linked_point(self):
+    '''
+    interpolate_point
+    '''
+    def test_interpolate_point_None(self):
+
+        res = interpolate_point(linear_interpolate, None, None)
+        self.assertEqual([], res)
+
+
+    def test_interpolate_point_prev_None(self):
         # Prepare data
         p1 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
+        
+        res = interpolate_point(linear_interpolate, p1)
+        self.assertEqual([p1], res)
+
+    
+    def test_interpolate_point_delta_1(self):
+        # Prepare data
+        p0 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
+        p1 = ExtendedGPSPoint(ts=2, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
+
+        res = interpolate_point(linear_interpolate, p1, p0)
+
+        self.assertEqual([p1], res)
+
+
+    def test_interpolate_point_delta_2(self):
+        # Prepare data
+        p0 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
         p2 = ExtendedGPSPoint(ts=3, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
-        lp = LinkedPoint(p1, p2)
 
-        res = interpolate_linked_point(lp, linear_interpolate)
+        res = interpolate_point(linear_interpolate, p2, p0)
 
-        self.assertIsNotNone(res)
-        self.assertEqual(2, res.point.ts)
+        self.assertEqual(2, len(res))
 
 
-    def test_interpolate_linked_point_missing_none(self):
+    def test_interpolate_point_delta_3(self):
         # Prepare data
-        p1 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
-        p2 = ExtendedGPSPoint(ts=2, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
-        lp = LinkedPoint(p1, p2)
+        p0 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
+        p3 = ExtendedGPSPoint(ts=4, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
 
-        res = interpolate_linked_point(lp, linear_interpolate)
+        res = interpolate_point(linear_interpolate, p3, p0)
 
-        self.assertIsNone(res)
+        self.assertEqual(3, len(res))
 
-    '''
-    interpolate_points
-    '''
-    def test_interpolate_points_delta_3(self):
+
+    def test_interpolate_point_negative_delta(self):
         # Prepare data
-        p1 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
-        p2 = ExtendedGPSPoint(ts=3, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
-        output = []
+        p0 = ExtendedGPSPoint(ts=2, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
+        p1 = ExtendedGPSPoint(ts=1, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
 
-        interpolate_points(p1, p2, linear_interpolate, output)
+        res = interpolate_point(linear_interpolate, p1, p0)
 
-        self.assertEqual(3, len(output))
+        self.assertEqual([], res);
 
 
-    def test_interpolate_points_delta_3(self):
+    def test_interpolate_point_duplicate(self):
         # Prepare data
-        p1 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
-        p2 = ExtendedGPSPoint(ts=4, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
-        output = []
+        p0 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
+        p1 = ExtendedGPSPoint(ts=1, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
 
-        interpolate_points(p1, p2, linear_interpolate, output)
+        res = interpolate_point(linear_interpolate, p1, p0)
 
-        self.assertEqual(4, len(output))
-
-
-    def test_interpolate_points_negative_delta(self):
-        # Prepare data
-        p1 = ExtendedGPSPoint(ts=4, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
-        p2 = ExtendedGPSPoint(ts=1, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
-        output = []
-
-        interpolate_points(p1, p2, linear_interpolate, output)
-
-        self.assertEqual(1, len(output))
-
-
-    def test_interpolate_points_duplicate(self):
-        # Prepare data
-        p1 = ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=1, spd=2, x=1, y=1)
-        p2 = ExtendedGPSPoint(ts=1, lat=2.0, lon=2.0, alt=3, spd=4, x=3, y=3)
-        output = []
-
-        interpolate_points(p1, p2, linear_interpolate, output)
-
-        self.assertEqual(1, len(output))
+        self.assertEqual([], res);
 
 
     '''

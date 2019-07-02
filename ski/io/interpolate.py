@@ -4,25 +4,23 @@ import logging
 
 from math import floor
 from ski.config import config
-from ski.data.commons import ExtendedGPSPoint, LinkedPoint
+from ski.data.commons import ExtendedGPSPoint
+from ski.io.cleanup import get_ts_delta
 
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-
-def __get_ts_delta2(prev_point, point):
-    if point == None or prev_point == None:
-        return 0
-
-    # Get difference in timestamps
-    return point.ts - prev_point.ts
-
-
-def __get_ts_delta(p):
-    np = p.next_point
-    return __get_ts_delta2(p.point, np.point)
+def __add_point(point, output):
+    log.debug('__add_point: %s', point)
+    if type(point) != ExtendedGPSPoint:
+        log.warning('Interpolator attempting to add %s object to output; expected ExtendedGPSPoint', type(point))
+        return
+    if point is not None:
+        log.debug('__add_point: adding point to output: {%s}', point)
+        output.append(point)
+    log.debug('__add_point: output=%s', output)
 
 
 def __linear_interpolate_f(f1, f2, delta):
@@ -58,78 +56,49 @@ def linear_interpolate(p1, p2, delta):
     return p
 
 
-def interpolate_linked_point(point, inter_f, ts_delta=0):
+def interpolate_point(inter_f, point, previous_point=None):
     """
-    Interpolate across a linked point to complete any 
+    Evaluates the delta between two points and returns an array of points between the two.
+    prev_point is *not* returned as part of the array.
     """
-    if ts_delta == 0:
-        # May not have been passed in so try and recalculate it
-        ts_delta = __get_ts_delta(point)
-
-    # Skip if we're not actually missing any points
-    if ts_delta <= 1:
-        return None
-
-    next_point = point.next_point
-
-    # Interpolate a new point mediating point and next point
-    new_point = LinkedPoint(inter_f(point.point, next_point.point, ts_delta))
-
-    # Insert the new point between our existing points
-    new_point.next_point = next_point
-    point.next_point = new_point
-
-    return new_point
-
-
-def interpolate_points(previous_point, point, inter_f, output=[]):
-    """
-    """
-    # Initialise with parameter values
-    p = LinkedPoint(previous_point, point)
+    output = []
     insert_count = 0
     delete_count = 0
 
-    while p != None:
-        if p.next_point == None:
-            # Last point in the list; add and end
-            output.append(p.point)
-            p = None
+    # Calculate time delta
+    ts_delta = get_ts_delta(previous_point, point)
+    log.debug('interpolate_point: ts_delta=%d', ts_delta)
+        
+    if ts_delta < 0:
+        log.warning('Negative time delta (%d); %s', ts_delta, point)
+        # Ignore the point
+        delete_count += 1
+        return output
 
-        else:
-            # Calculate time delta
-            ts_delta = __get_ts_delta(p)
-            
-            if ts_delta < 0:
-                log.warning('Negative time delta (%d); %s', ts_delta, p)
-                # Delete the point
-                p.next_point = p.next_point.next_point
-                delete_count += 1
-                continue
+    if ts_delta == 0:
+        log.warning('Duplicate point; %s', point)
+        # Ignore the point
+        delete_count += 1
+        return output
 
-            if ts_delta == 0:
-                log.warning('Duplicate point; %s', p)
-                # Delete the point
-                p.next_point = p.next_point.next_point
-                delete_count += 1
-                continue
+    while ts_delta > 1:
+        # Interpolate a new point mediating point and next point
+        new_point = inter_f(previous_point, point, ts_delta)
+        __add_point(new_point, output)
+        log.info('Adding interpolated point: %s', new_point)
+        insert_count += 1
 
-            while ts_delta > 1:
-                new_p = interpolate_linked_point(p, linear_interpolate, ts_delta)
-                log.debug('interpolate_points: ts_delta=%d; new_p=%s', ts_delta, new_p)
-                insert_count += 1
+        # Recalculate delta
+        previous_point = new_point
+        ts_delta = get_ts_delta(previous_point, point)
+        log.debug('interpolate_point: ts_delta=%d', ts_delta)
 
-                # Recalculate delta
-                ts_delta = __get_ts_delta(p)
-
-            # Move to next node
-            prev_point = p.point
-            p = p.next_point
-
-            output.append(p.point)
-
+    # Add initial point
+    __add_point(point, output)
 
     if insert_count > 0:
         log.info('%010d:Added %d point(s) by interpolation', point.ts, insert_count)
     if delete_count > 0:
         log.info('%010d:Removed %d point(s) by interpolation', point.ts, delete_count)
+
+    return output

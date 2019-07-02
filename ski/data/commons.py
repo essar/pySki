@@ -162,4 +162,4 @@ class EnrichedWindow:
 
 
 def basic_to_enriched_point(basic_point):
-    return EnrichedPoint(**basic_point.vals())
+    return EztendedGPSPoint(**basic_point.vals())

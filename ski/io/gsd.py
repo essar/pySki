@@ -245,7 +245,7 @@ def parse_gsd_line(line):
     gsd_spd = __get_speed(line)
     log.debug('GSD: lat=%s; lon=%s; dt=%s; tm=%s; alt=%s; spd=%s', gsd_lat, gsd_lon, gsd_dt, gsd_tm, gsd_alt, gsd_spd)
 
-    point = ExtendedGPSPoint()
+    point = BasicGPSPoint()
     
     try:
         # GSD date and time in DDMMYYHHMMSS format
