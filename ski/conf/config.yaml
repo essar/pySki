@@ -6,9 +6,13 @@ db:
 dataloader:
   aws:
     source_bucket: essar-zephyr-test
-  gps:
-    convert_coords: Yes
+  extended_points: Yes
+  load_buffer: 100
 
 cleanup:
-  outlyer_max_speed: 100
-  outlyer_max_speed_factor: 3.0
+  skip_interpolate: no
+  skip_outlyers: no
+
+outlyer:
+  max_speed: 100
+  max_speed_factor: 3.0

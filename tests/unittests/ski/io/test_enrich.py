@@ -284,6 +284,9 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(2.0, res)
 
 
+    '''
+    get_enriched_data
+    '''
     def test_get_enriched_data(self):
         # Prepare data
         points = [
@@ -312,6 +315,9 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(1, res['speed_min'])
 
 
+    '''
+    enrich_points
+    '''
     def test_enrich_points(self):
         # Prepare data
         points = [
