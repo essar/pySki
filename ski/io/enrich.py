@@ -90,7 +90,7 @@ def xenrich_points(points, head, body=[], tail=[], all_points=False):
 def enrich_points(points, windows, head=[], tail=[]):
     
     log.info('Starting enrichment of %d points', len(points))
-    log.debug('enrich_windows: head=%d; points=%d; tail=%d', len(head), len(points), len(tail))
+    log.debug('enrich_points: head=%d; points=%d; tail=%d', len(head), len(points), len(tail))
 
     # Create position counter, start above head values
     position = len(head)
@@ -98,31 +98,30 @@ def enrich_points(points, windows, head=[], tail=[]):
     all_points = (head + points + tail)
     
     # Process as many points as we can
+    enrich_window_count = 0
     while len(all_points[position:]) > len(tail):
         p = all_points[position]
-        log.debug('p=%s', p)
 
         for k in windows:
+            log.debug('enrich_points: enriching point %d; window=%s', p.ts, k)
             # Get window based on key and set to current position
             w = windows[k]
 
             # Build a dict of enriched values
             vals = get_enriched_data(w, all_points, position)
+            enrich_window_count += 1
             
             # Add the enrichment data to the point, using the input dict key
             p.windows[k] = EnrichedWindow(**vals)
-            log.debug('windows[%s]=%s', k, vals)
-
-        log.debug('enrich_windows: windows=%s', list(p.windows.keys()))
 
         # Increment to next position
         position += 1
 
-    log.info('Enrichment complete')
+    log.info('Enrichment complete; %d windows added for %d points', enrich_window_count, (position - len(head)))
 
 
 def get_enriched_data(window, points, position=0):
-    log.debug('window_points=%s', points[position:(position + window.size)])
+    log.debug('get_enriched_data: window_points=%d points', len(points[position:(position + window.size)]))
         
     # Build a dict of enriched values
     data = {
@@ -130,6 +129,7 @@ def get_enriched_data(window, points, position=0):
     }
     data.update(__enriched_alt_vals(window, points, position))
     data.update(__enriched_speed_vals(window, points, position))
+    log.debug('get_enriched_data: enriched_data=%s', data)
     return data
 
 
