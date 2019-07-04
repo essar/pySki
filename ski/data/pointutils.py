@@ -43,17 +43,3 @@ def get_ts_delta(prev_point, point):
         return 1
     # Get difference in timestamps
     return point.ts - prev_point.ts
-
-
-def split_points(points_in, head_length=0, tail_length=0, head=[], body=[], tail=[]):
-    body_end = len(points_in) - tail_length
-    
-    head.clear()
-    head.extend(points_in[:head_length])
-
-    body.clear()
-    body.extend(points_in[head_length:body_end])
-
-    tail.clear()
-    tail.extend(points_in[head_length + body_end:])
-
