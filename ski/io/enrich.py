@@ -73,20 +73,6 @@ def __enriched_speed_vals(window, points, position):
     }
 
 
-def xenrich_points(points, head, body=[], tail=[], all_points=False):
-    # Enrich points
-    head_length = len(head)
-    tail_length = 0 if all_points else window_config.tail_length # Check if buffer is full as non-full buffer would be zero tail
-    
-    # Prepend the head to the cleaned points and then split into head, body and tail
-    split_points(head + points, head_length, tail_length, head, body, tail)
-    log.debug('enrich_points: head=%s', head)
-    log.debug('enrich_points: body=%s', body)
-    log.debug('enrich_points: tail=%s', tail)
-
-    enrich_windows(body, window_config.windows, head, tail)
-
-
 def enrich_points(points, windows, head=[], tail=[]):
     
     log.info('Starting enrichment of %d points', len(points))
