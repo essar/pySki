@@ -9,6 +9,7 @@
 import logging
 
 from ski.config import config
+from ski.data.commons import basic_to_extended_point
 from ski.io.cleanup import cleanup_points
 from ski.io.enrich import enrich_points, PointWindow
 
@@ -69,8 +70,8 @@ def load_extended_points(loader, db, track, head=[], tail=[]):
     
     Returns true if a point is added successfully, false if there are no more points to add.
     """
-    # Load points into buffer
-    buf = __load_to_buffer(loader, tail)
+    # Load points into buffer and convert to extended points
+    buf = list(map(basic_to_extended_point, __load_to_buffer(loader, tail)))
     #log.debug('buf=%s', buf)
     buffer_full = (len(buf) >= load_buffer_len)
     log.debug('Buffer is %s', 'full' if buffer_full else 'not full')
