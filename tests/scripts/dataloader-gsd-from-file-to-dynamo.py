@@ -6,10 +6,9 @@
 import logging
 from datetime import datetime
 from pytz import timezone
+from ski.aws.dynamo import DynamoDataStore
 from ski.data.commons import Track
-from ski.io.db import TestDataStore
 from ski.io.gsd import GSDFileLoader
-
 from ski.io.dataloader import *
 
 
@@ -20,7 +19,7 @@ logging.basicConfig()
 log.setLevel(logging.INFO)
 
 # Create data store
-db = TestDataStore()
+db = DynamoDataStore()
 
 # Create track in default timezone
 tz = timezone('UTC')
@@ -30,4 +29,4 @@ track = Track('test','TEST', datetime.now(tz))
 with open(TEST_DATA_FILE, mode='r') as f:
     loader = GSDFileLoader(f, section_limit=1)
     # Load points
-    load_all_points(loader, db, track, extended=False)
+    load_all_points(loader, db, track)

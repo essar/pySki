@@ -13,5 +13,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+# Initialise the database
 init_db()
 count_points()
