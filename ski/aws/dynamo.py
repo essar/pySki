@@ -8,12 +8,12 @@ from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Decimal, Inexact, Rounded, localcontext
 from ski.config import config
-from ski.data.commons import EnrichedPoint
+from ski.data.commons import ExtendedGPSPoint, EnrichedPoint
 from ski.io.db import DataStore
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 db_endpoint = config['db']['dynamo']['endpoint_url']
 db_points   = config['db']['dynamo']['points_table_name']
@@ -29,6 +29,37 @@ class DynamoDataStore(DataStore):
         self.error_count = 0
 
 
+    def __build_item(self, track, point):
+
+        extended = None
+        if type(point) == ExtendedGPSPoint:
+            extended = {
+                'x'     : point.x,
+                'y'     : point.y,
+                'dst'   : float_to_decimal(point.dst),
+                'hdg'   : float_to_decimal(point.hdg),
+                'alt_d' : point.alt_d,
+                'spd_d' : float_to_decimal(point.spd_d),
+                'hdg_d' : float_to_decimal(point.hdg_d)
+            }
+
+        item = {
+            'track_id'    : track.track_id,
+            'timestamp'   : point.ts,
+            'track_group' : track.track_group,
+            'track_info'  : {},
+            'gps': {
+                'lat' : float_to_decimal(point.lat),
+                'lon' : float_to_decimal(point.lon),
+                'alt' : point.alt,
+                'spd' : float_to_decimal(point.spd)
+            },
+            'extended' : extended
+        }
+
+        return item
+
+
     def add_points_to_track(self, track, points):
         # Get Dynamo table
         table = dynamodb.Table(db_points)
@@ -37,29 +68,16 @@ class DynamoDataStore(DataStore):
             for point in points:
                 log.debug('Storing point: %s', point)
 
-                dec_lat = float_to_decimal(point.lat)
-                dec_lon = float_to_decimal(point.lon)
-                dec_spd = float_to_decimal(point.spd)
-
                 try:
-                    response = batch.put_item(
-                        Item={
-                            'track_id': track.track_id,
-                            'timestamp': point.ts,
-                            'track_group': track.track_group,
-                            'track_info': {},
-                            'gps': {
-                                'lat': dec_lat,
-                                'lon': dec_lon,
-                                'alt': point.alt,
-                                'spd': dec_spd
-                            }
-                        }
-                    )
+                    item = self.__build_item(track, point)
+                    log.debug('add_points_to_track: item=%s', item)
+
+                    response = batch.put_item(Item=item)
                     self.insert_count += 1
-                    log.debug('put_item %s=%s', track.track_id, response)
+                    log.debug('add_points_to_track: put_item %s=%s', track.track_id, response)
                 except Exception as e:
                     log.error(e)
+                    self.error_count += 1
 
 
     def get_track_points(self, track, offset=0, length=-1):
@@ -126,9 +144,9 @@ class DynamoDataStore(DataStore):
 
                 try:
                     item = {
-                        'track_id': point.track_id,
+                        'track_id' : point.track_id,
                         'timestamp': point.ts,
-                        'extended': {
+                        'extended' : {
                             'x'     : point.x,
                             'y'     : point.y,
                             'dst'   : float_to_decimal(point.dst),
@@ -153,42 +171,28 @@ def count_points():
     try:
         # Get Dynamo table
         table = dynamodb.Table(db_points)
-        response = table.scan(
-            Select='COUNT'
-        )
-        log.info('Point count=%s', response['Count'])
+
+        row_count = 0
+        last_key = None
+
+        while True:
+            request = { 'Select' : 'COUNT' }
+            if last_key is not None:
+                request['ExclusiveStartKey'] = last_key
+
+            response = table.scan(**request)
+            log.debug('Scan response: %s', response)
+
+            row_count += response['Count']
+            last_key = response['LastEvaluatedKey'] if 'LastEvaluatedKey' in response else None
+
+            if last_key is None:
+                break
+
+        log.info('Point count=%s', row_count)
     except Exception as e:
         log.error(e)
 
-
-def create_table_tracks():
-    """Create the tracks table [DEPRECATED]."""
-    try:
-        response = dynamodb.create_table(
-            TableName='zephyr-tracks',
-            KeySchema=[
-                {
-                    'AttributeName': 'track_id',
-                    'KeyType': 'HASH'
-                }
-            ],
-            AttributeDefinitions=[
-                {
-                    'AttributeName': 'track_id',
-                    'AttributeType': 'S'
-                }
-            ],
-            ProvisionedThroughput={
-                'ReadCapacityUnits': 1,
-                'WriteCapacityUnits': 1
-            },
-            BillingMode='PAY_PER_REQUEST'
-        )
-
-        log.info(response)
-
-    except ValueError as e:
-        log.error('Unable to create zephyr-tracks table: %s', e)
 
 
 def create_table_points():
