@@ -166,4 +166,9 @@ def basic_to_enriched_point(basic_point):
 
 
 def basic_to_extended_point(basic_point):
-    return ExtendedGPSPoint(**basic_point.vals())
+    # Don't attempt to convert if is already an extended point
+    if type(basic_point) == ExtendedGPSPoint:
+        return basic_point
+    if type(basic_point) == BasicGPSPoint:
+        return ExtendedGPSPoint(**basic_point.vals())
+    raise TypeError('Expected BasicGPSPoint')
