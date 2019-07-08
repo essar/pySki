@@ -22,11 +22,15 @@ log.setLevel(logging.INFO)
 load_buffer_len = config['dataloader']['load_buffer']
 load_extended = config['dataloader']['extended_points']
 
+#################
+# Adjust these parameters depending on what windows you want to add
 windows = {
-    'fwd3' : PointWindow(PointWindow.FORWARD, 3)
+    'fwd3'  : PointWindow(PointWindow.FORWARD, 3),
+    'fwd30' : PointWindow(PointWindow.FORWARD, 30)
 }
 head_length = 0
-tail_length = 3
+tail_length = 30
+#################
 
 
 def __array_replace(array, points):
