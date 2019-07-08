@@ -5,7 +5,7 @@ import logging
 from math import floor
 from ski.config import config
 from ski.data.commons import ExtendedGPSPoint
-from ski.io.cleanup import get_ts_delta
+from ski.data.pointutils import get_ts_delta
 
 # Set up logger
 log = logging.getLogger(__name__)

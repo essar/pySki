@@ -3,7 +3,7 @@
 
 import logging
 import unittest
-from ski.data.commons import EnrichedPoint
+from ski.data.commons import ExtendedGPSPoint
 
 from ski.io.enrich import *
 
@@ -151,11 +151,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_alt_delta(self):
         # Prepare data
         points = [
-            EnrichedPoint(alt=10),
-            EnrichedPoint(alt=20),
-            EnrichedPoint(alt=30),
-            EnrichedPoint(alt=40),
-            EnrichedPoint(alt=50)
+            ExtendedGPSPoint(alt=10),
+            ExtendedGPSPoint(alt=20),
+            ExtendedGPSPoint(alt=30),
+            ExtendedGPSPoint(alt=40),
+            ExtendedGPSPoint(alt=50)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -168,11 +168,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_alt_cuml_gain(self):
         # Prepare data
         points = [
-            EnrichedPoint(alt_d=10),
-            EnrichedPoint(alt_d=20),
-            EnrichedPoint(alt_d=-30),
-            EnrichedPoint(alt_d=40),
-            EnrichedPoint(alt_d=50)
+            ExtendedGPSPoint(alt_d=10),
+            ExtendedGPSPoint(alt_d=20),
+            ExtendedGPSPoint(alt_d=-30),
+            ExtendedGPSPoint(alt_d=40),
+            ExtendedGPSPoint(alt_d=50)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -185,11 +185,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_alt_cuml_loss(self):
         # Prepare data
         points = [
-            EnrichedPoint(alt_d=10),
-            EnrichedPoint(alt_d=20),
-            EnrichedPoint(alt_d=-30),
-            EnrichedPoint(alt_d=40),
-            EnrichedPoint(alt_d=50)
+            ExtendedGPSPoint(alt_d=10),
+            ExtendedGPSPoint(alt_d=20),
+            ExtendedGPSPoint(alt_d=-30),
+            ExtendedGPSPoint(alt_d=40),
+            ExtendedGPSPoint(alt_d=50)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -202,11 +202,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_distance(self):
         # Prepare data
         points = [
-            EnrichedPoint(dst=1),
-            EnrichedPoint(dst=2),
-            EnrichedPoint(dst=3),
-            EnrichedPoint(dst=4),
-            EnrichedPoint(dst=5)
+            ExtendedGPSPoint(dst=1),
+            ExtendedGPSPoint(dst=2),
+            ExtendedGPSPoint(dst=3),
+            ExtendedGPSPoint(dst=4),
+            ExtendedGPSPoint(dst=5)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -219,11 +219,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_speed_ave(self):
         # Prepare data
         points = [
-            EnrichedPoint(spd=1),
-            EnrichedPoint(spd=2),
-            EnrichedPoint(spd=3),
-            EnrichedPoint(spd=4),
-            EnrichedPoint(spd=5)
+            ExtendedGPSPoint(spd=1),
+            ExtendedGPSPoint(spd=2),
+            ExtendedGPSPoint(spd=3),
+            ExtendedGPSPoint(spd=4),
+            ExtendedGPSPoint(spd=5)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -236,11 +236,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_speed_max(self):
         # Prepare data
         points = [
-            EnrichedPoint(spd=1),
-            EnrichedPoint(spd=2),
-            EnrichedPoint(spd=3),
-            EnrichedPoint(spd=4),
-            EnrichedPoint(spd=5)
+            ExtendedGPSPoint(spd=1),
+            ExtendedGPSPoint(spd=2),
+            ExtendedGPSPoint(spd=3),
+            ExtendedGPSPoint(spd=4),
+            ExtendedGPSPoint(spd=5)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -253,11 +253,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_speed_min(self):
         # Prepare data
         points = [
-            EnrichedPoint(spd=1),
-            EnrichedPoint(spd=2),
-            EnrichedPoint(spd=3),
-            EnrichedPoint(spd=4),
-            EnrichedPoint(spd=5)
+            ExtendedGPSPoint(spd=1),
+            ExtendedGPSPoint(spd=2),
+            ExtendedGPSPoint(spd=3),
+            ExtendedGPSPoint(spd=4),
+            ExtendedGPSPoint(spd=5)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -270,11 +270,11 @@ class TestEnrich(unittest.TestCase):
     def test_window_speed_delta(self):
         # Prepare data
         points = [
-            EnrichedPoint(spd=1),
-            EnrichedPoint(spd=2),
-            EnrichedPoint(spd=3),
-            EnrichedPoint(spd=4),
-            EnrichedPoint(spd=5)
+            ExtendedGPSPoint(spd=1),
+            ExtendedGPSPoint(spd=2),
+            ExtendedGPSPoint(spd=3),
+            ExtendedGPSPoint(spd=4),
+            ExtendedGPSPoint(spd=5)
         ]
 
         w = PointWindow(PointWindow.FORWARD, 3)
@@ -290,11 +290,11 @@ class TestEnrich(unittest.TestCase):
     def test_get_enriched_data(self):
         # Prepare data
         points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=30, spd=3),
-            EnrichedPoint(dst=1, alt=40, spd=4),
-            EnrichedPoint(dst=1, alt=50, spd=5)
+            ExtendedGPSPoint(dst=1, alt=10, spd=1),
+            ExtendedGPSPoint(dst=1, alt=20, spd=2),
+            ExtendedGPSPoint(dst=1, alt=30, spd=3),
+            ExtendedGPSPoint(dst=1, alt=40, spd=4),
+            ExtendedGPSPoint(dst=1, alt=50, spd=5)
         ]
         window = PointWindow(PointWindow.FORWARD, 5)
 
@@ -321,11 +321,11 @@ class TestEnrich(unittest.TestCase):
     def test_enrich_points(self):
         # Prepare data
         points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
+            ExtendedGPSPoint(dst=1, alt=10, spd=1),
+            ExtendedGPSPoint(dst=1, alt=20, spd=2),
+            ExtendedGPSPoint(dst=1, alt=40, spd=3),
+            ExtendedGPSPoint(dst=1, alt=70, spd=4),
+            ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
         windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
 
@@ -353,17 +353,17 @@ class TestEnrich(unittest.TestCase):
     def test_enrich_points_with_head(self):
         # Prepare data
         points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
+            ExtendedGPSPoint(dst=1, alt=10, spd=1),
+            ExtendedGPSPoint(dst=1, alt=20, spd=2),
+            ExtendedGPSPoint(dst=1, alt=40, spd=3),
+            ExtendedGPSPoint(dst=1, alt=70, spd=4),
+            ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
 
         windows = { 'bwd3' : PointWindow(PointWindow.BACKWARD, 3) }
         head = [
-            EnrichedPoint(dst=0, alt=20, spd=0),
-            EnrichedPoint(dst=1, alt=20, spd=1)
+            ExtendedGPSPoint(dst=0, alt=20, spd=0),
+            ExtendedGPSPoint(dst=1, alt=20, spd=1)
         ]
 
         enrich_points(points, windows, head=head)
@@ -379,17 +379,17 @@ class TestEnrich(unittest.TestCase):
     def test_enrich_points_with_tail(self):
         # Prepare data
         points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
+            ExtendedGPSPoint(dst=1, alt=10, spd=1),
+            ExtendedGPSPoint(dst=1, alt=20, spd=2),
+            ExtendedGPSPoint(dst=1, alt=40, spd=3),
+            ExtendedGPSPoint(dst=1, alt=70, spd=4),
+            ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
 
         windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
         tail = [
-            EnrichedPoint(dst=1, alt=110, spd=6),
-            EnrichedPoint(dst=1, alt=100, spd=7)
+            ExtendedGPSPoint(dst=1, alt=110, spd=6),
+            ExtendedGPSPoint(dst=1, alt=100, spd=7)
         ]
 
         enrich_points(points, windows, tail=tail)
@@ -405,21 +405,21 @@ class TestEnrich(unittest.TestCase):
     def test_enrich_points_with_head_and_tail(self):
         # Prepare data
         points = [
-            EnrichedPoint(dst=1, alt=10, spd=1),
-            EnrichedPoint(dst=1, alt=20, spd=2),
-            EnrichedPoint(dst=1, alt=40, spd=3),
-            EnrichedPoint(dst=1, alt=70, spd=4),
-            EnrichedPoint(dst=1, alt=110, spd=5)
+            ExtendedGPSPoint(dst=1, alt=10, spd=1),
+            ExtendedGPSPoint(dst=1, alt=20, spd=2),
+            ExtendedGPSPoint(dst=1, alt=40, spd=3),
+            ExtendedGPSPoint(dst=1, alt=70, spd=4),
+            ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
 
         windows = { 'bwd4' : PointWindow(PointWindow.BACKWARD, 4), 'fwd4' : PointWindow(PointWindow.FORWARD, 4) }
         head = [
-            EnrichedPoint(dst=0, alt=20, spd=0),
-            EnrichedPoint(dst=1, alt=20, spd=1)
+            ExtendedGPSPoint(dst=0, alt=20, spd=0),
+            ExtendedGPSPoint(dst=1, alt=20, spd=1)
         ]
         tail = [
-            EnrichedPoint(dst=1, alt=110, spd=6),
-            EnrichedPoint(dst=1, alt=100, spd=7)
+            ExtendedGPSPoint(dst=1, alt=110, spd=6),
+            ExtendedGPSPoint(dst=1, alt=100, spd=7)
         ]
 
         enrich_points(points, windows, head=head, tail=tail)
