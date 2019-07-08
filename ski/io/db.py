@@ -3,7 +3,7 @@
 """
 import logging
 
-from ski.data.commons import basic_to_enriched_point
+from ski.data.commons import basic_to_extended_point
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class TestDataStore(DataStore):
 
     def get_track_points(self, track, offset=0, length=-1):
         log.debug('[TestDataStore] Retriving points %d to %d', offset, length)
-        return list(map(basic_to_enriched_point, self.points[offset:length]))
+        return list(map(basic_to_extended_point, self.points[offset:length]))
 
 
     def save_extended_points(self, points):

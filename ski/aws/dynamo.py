@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Decimal, Inexact, Rounded, localcontext
 from ski.config import config
-from ski.data.commons import ExtendedGPSPoint, EnrichedPoint
+from ski.data.commons import ExtendedGPSPoint
 from ski.io.db import DataStore
 
 # Set up logger

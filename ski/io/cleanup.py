@@ -4,7 +4,6 @@ import logging
 
 from math import atan2, degrees, floor, hypot, tan
 from ski.config import config
-from ski.data.commons import EnrichedPoint
 from ski.data.coordinate import WGSCoordinate, WGStoUTM
 from ski.data.pointutils import get_distance, get_heading, get_ts_delta
 from ski.io.interpolate import interpolate_point, linear_interpolate

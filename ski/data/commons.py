@@ -19,33 +19,6 @@ class Track:
 
 
 
-class LinkedPoint:
-    """
-    """
-    def __init__(self, point, next_point=None):
-        self.point = point
-        if next_point == None or type(next_point) == LinkedPoint:
-            self.next_point = next_point
-        else:
-            # Wrap the point as a LinkedPoint
-            self.next_point = LinkedPoint(next_point)
-
-
-    def to_list(self):
-        output = []
-        p = self
-        while p != None:
-            output.append(p.point)
-            p = p.next_point
-
-        return output
-
-
-    def __str__(self):
-        return  '[{0:010d}]'.format(self.point.ts) if self.next_point == None or self.next_point.point == None else '[{0:010d} => {1:010d}]'.format(self.point.ts, self.next_point.point.ts)
-
-
-
 class BasicGPSPoint:
     """
     Class that encapsulates the basic data points collected from the GPS device.
@@ -78,8 +51,7 @@ class BasicGPSPoint:
 
 
 
-class EnrichedPoint(BasicGPSPoint):
-
+class ExtendedGPSPoint(BasicGPSPoint):
     def __init__(self, track_id=None, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0, dst=0.0, hdg=0.0, alt_d=0, spd_d=0.0, hdg_d=0.0):
         super().__init__(ts, lat, lon, alt, spd)
         self.track_id = track_id
@@ -93,7 +65,6 @@ class EnrichedPoint(BasicGPSPoint):
 
         # Windows
         self.windows = {}
-
 
     def vals(self):
         v = super().vals()
@@ -113,10 +84,6 @@ class EnrichedPoint(BasicGPSPoint):
     def __str__(self):
         return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}m, h={hdg:05.1f}, alt_d={alt_d:+04d}m, spd_d={spd_d:+06.2f}kph, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.vals())
 
-
-class ExtendedGPSPoint(EnrichedPoint):
-    def __init__(self, track_id=None, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0, dst=0.0, hdg=0.0, alt_d=0, spd_d=0.0, hdg_d=0.0):
-        super().__init__(track_id, ts, lat, lon, alt, spd, x, y, dst, hdg, alt_d, spd_d, hdg_d)
 
 
 class EnrichedWindow:
@@ -160,9 +127,6 @@ class EnrichedWindow:
     def __str__(self):
         return 'period={period:d}s, dist: {distance:.2f}m, alt: {alt_min:04d}m-{alt_max:04d}m ({alt_delta:+04d}m; +{alt_gain:04d}, -{alt_loss:04d}), spd: {speed_min:05.2f}-{speed_max:05.2f} ({speed_delta:+06.2f}; {speed_ave:05.2f})'.format(**self.vals())
 
-
-def basic_to_enriched_point(basic_point):
-    return ExtendedGPSPoint(**basic_point.vals())
 
 
 def basic_to_extended_point(basic_point):
