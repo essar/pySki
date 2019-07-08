@@ -10,8 +10,8 @@ import logging
 
 from ski.config import config
 from ski.data.commons import basic_to_extended_point
-from ski.io.cleanup import cleanup_points
-from ski.io.enrich import enrich_points, PointWindow
+from ski.loader.cleanup import cleanup_points
+from ski.loader.enrich import enrich_points, PointWindow
 
 
 # Set up logger

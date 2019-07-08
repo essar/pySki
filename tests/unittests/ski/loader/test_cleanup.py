@@ -6,7 +6,7 @@ import unittest
 from math import asin, degrees
 from ski.data.commons import ExtendedGPSPoint
 
-from ski.io.cleanup import *
+from ski.loader.cleanup import *
 
 # Set up logger
 logging.basicConfig()

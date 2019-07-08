@@ -8,7 +8,7 @@ from pytz import timezone
 from ski.data.commons import ExtendedGPSPoint, Track
 from ski.io.db import TestDataStore
 
-from ski.io.dataloader import *
+from ski.loader.dataloader import *
 
 # Set up logger
 logging.basicConfig()

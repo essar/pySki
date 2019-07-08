@@ -10,7 +10,7 @@ from ski.data.commons import Track
 from ski.io.db import TestDataStore
 from ski.io.gsd import GSDFileLoader
 
-from ski.io.dataloader import *
+from ski.loader.dataloader import *
 
 
 TEST_DATA_FILE = 'tests/testdata/testdata.gsd'

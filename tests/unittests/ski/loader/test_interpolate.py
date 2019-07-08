@@ -7,7 +7,7 @@ import unittest
 from ski.data.commons import ExtendedGPSPoint
 from ski.io.db import TestDataStore
 
-from ski.io.interpolate import *
+from ski.loader.interpolate import *
 
 # Set up logger
 logging.basicConfig()

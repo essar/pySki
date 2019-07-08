@@ -5,7 +5,7 @@ import logging
 import unittest
 from ski.data.commons import ExtendedGPSPoint
 
-from ski.io.enrich import *
+from ski.loader.enrich import *
 
 # Set up logger
 logging.basicConfig()

@@ -3,7 +3,7 @@
 import logging
 
 from ski.config import config
-from ski.io.cleanup import get_distance, get_ts_delta
+from ski.data.pointutils import get_distance, get_ts_delta
 
 
 # Set up logger

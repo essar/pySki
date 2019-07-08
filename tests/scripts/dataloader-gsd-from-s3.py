@@ -11,7 +11,7 @@ from ski.data.commons import Track
 from ski.io.db import TestDataStore
 from ski.io.gsd import GSDS3Loader
 
-from ski.io.dataloader import *
+from ski.loader.dataloader import *
 
 
 TEST_DATA_S3 = 'gsd/testdata.gsd'
