@@ -12,17 +12,17 @@ from xml.dom.minidom import parse, parseString
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+default_batch = 64
+
 
 class GPXLoader:
     """
     Load GPX formatted data.
     """
     def __init__(self):
-
         # Set up array and internal pointer
         self.elems = []
         self.elemPtr = 0
-
 
     def load_data(self, doc):
         """
@@ -36,16 +36,14 @@ class GPXLoader:
         log.info('%d elements found', len(doc_elems))
         self.elems.extend(doc_elems)
 
-
-    def load_points(self, limit=-1):
+    def load_points(self, batch_size=default_batch):
         """Load all the GPS points from a GPX document."""
         # Get next element from document, return if no points remain
-        if self.elemPtr < len(self.elems) and (limit < 0 or self.elemPtr < limit):
+        if self.elemPtr < len(self.elems) and (batch_size < 0 or self.elemPtr < batch_size):
             # Look up next element
             elem = self.elems[self.elemPtr]
             # Increment pointer
             self.elemPtr += 1
-
         else:
             return None
 
@@ -58,7 +56,7 @@ class GPXFileLoader(GPXLoader):
         super().__init__()
         
         with open(gpx_file, 'r') as f:
-            log.info('Loading local GPX file (%s)', gpx_file)
+            log.info('Loading GPX data from local file (%s)', gpx_file)
             self.load_data(parse(f))
 
 
@@ -69,7 +67,7 @@ class GPXS3Loader(GPXLoader):
             raise TypeError('s3_file parameter must be an S3File')
         super().__init__()
 
-        log.info('Loading S3 GPX file (%s)', s3_file)
+        log.info('Loading GPX data from S3 (%s)', s3_file)
         self.load_data(parse(s3_file))
 
 
@@ -78,7 +76,7 @@ class GPXStringLoader(GPXLoader):
     def __init__(self, gpx_string):
         super().__init__()
         
-        log.info('Loading GPX string (%d bytes)', len(gpx_string))
+        log.info('Loading GPX data from string (%d bytes)', len(gpx_string))
         self.load_data(parseString(gpx_string))
 
 
@@ -119,7 +117,7 @@ def parse_gpx_elem(elem):
     # Read data from XML element
     xml_lat = __get_lat(elem)
     xml_lon = __get_lon(elem)
-    xml_ts  = __get_ts(elem)
+    xml_ts = __get_ts(elem)
     xml_alt = __get_alt(elem)
     xml_spd = __get_speed(elem)
     log.debug('XML: lat=%s; lon=%s; ts=%s; alt=%s; spd=%s', xml_lat, xml_lon, xml_ts, xml_alt, xml_spd)
