@@ -1,7 +1,6 @@
 """
   Module that provides common classes and utility functions for SkiData application.
 """
-from datetime import datetime
 
 
 class Track:
@@ -13,10 +12,8 @@ class Track:
         self.track_group = track_group
         self.track_zdt = track_zdt
 
-
     def __str__(self):
         return '[{:s}] group={:s} zdt={:s}'.format(self.track_id, self.track_group, self.track_zdt)
-
 
 
 class BasicGPSPoint:
@@ -30,10 +27,9 @@ class BasicGPSPoint:
         self.alt = alt
         self.spd = spd
 
-
-    def vals(self):
+    def values(self):
         v = {
-            'ts' : self.ts,
+            'ts': self.ts,
             'lat': self.lat,
             'lon': self.lon,
             'alt': self.alt,
@@ -41,18 +37,16 @@ class BasicGPSPoint:
         }
         return v
 
-
     def __repr__(self):
-        return str(self.vals())
-
+        return str(self.values())
 
     def __str__(self):
-        return 'ts={ts:010d}, lat={lat:.6f}, lon={lon:.6f}, a={alt:04d}m, s={spd:06.2f}kph'.format(**self.vals())
-
+        return 'ts={ts:010d}, lat={lat:.6f}, lon={lon:.6f}, a={alt:04d}m, s={spd:06.2f}kph'.format(**self.values())
 
 
 class ExtendedGPSPoint(BasicGPSPoint):
-    def __init__(self, track_id=None, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0, dst=0.0, hdg=0.0, alt_d=0, spd_d=0.0, hdg_d=0.0):
+    def __init__(self, track_id=None, ts=0, lat=0.0, lon=0.0, alt=0, spd=0.0, x=0, y=0, dst=0.0, hdg=0.0,
+                 alt_d=0, spd_d=0.0, hdg_d=0.0):
         super().__init__(ts, lat, lon, alt, spd)
         self.track_id = track_id
         self.x = x
@@ -66,24 +60,23 @@ class ExtendedGPSPoint(BasicGPSPoint):
         # Windows
         self.windows = {}
 
-    def vals(self):
-        v = super().vals()
+    def values(self):
+        v = super().values()
         v.update({
-            'x'     : self.x,
-            'y'     : self.y,
-            'dst'   : self.dst,
-            'hdg'   : self.hdg,
-            'alt_d' : self.alt_d,
-            'spd_d' : self.spd_d,
-            'hdg_d' : self.hdg_d,
+            'x': self.x,
+            'y': self.y,
+            'dst': self.dst,
+            'hdg': self.hdg,
+            'alt_d': self.alt_d,
+            'spd_d': self.spd_d,
+            'hdg_d': self.hdg_d,
         })
         v.update(self.windows)
         return v
 
-
     def __str__(self):
-        return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}m, h={hdg:05.1f}, alt_d={alt_d:+04d}m, spd_d={spd_d:+06.2f}kph, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.vals())
-
+        return '{:s}, x={x:08d}, y={y:08d}, d={dst:.2f}m, h={hdg:05.1f}, alt_d={alt_d:+04d}m, ' \
+               'spd_d={spd_d:+06.2f}kph, hdg_d={hdg_d:+06.1f}'.format(super().__str__(), **self.values())
 
 
 class EnrichedWindow:
@@ -102,31 +95,30 @@ class EnrichedWindow:
         self.speed_max = speed_max
         self.speed_min = speed_min
 
-
-    def vals(self):
+    def values(self):
         v = {
-            'period'     : self.period,
-            'distance'   : self.distance,
-            'alt_delta'  : self.alt_delta,
-            'alt_gain'   : self.alt_gain,
-            'alt_loss'   : self.alt_loss,
-            'alt_max'    : self.alt_max,
-            'alt_min'    : self.alt_min,
-            'speed_ave'  : self.speed_ave,
+            'period': self.period,
+            'distance': self.distance,
+            'alt_delta': self.alt_delta,
+            'alt_gain': self.alt_gain,
+            'alt_loss': self.alt_loss,
+            'alt_max': self.alt_max,
+            'alt_min': self.alt_min,
+            'speed_ave': self.speed_ave,
             'speed_delta': self.speed_delta,
-            'speed_max'  : self.speed_max,
-            'speed_min'  : self.speed_min
+            'speed_max': self.speed_max,
+            'speed_min': self.speed_min
         }
         return v
 
-
     def __repr__(self):
-        return str(self.vals())
-
+        return str(self.values())
 
     def __str__(self):
-        return 'period={period:d}s, dist: {distance:.2f}m, alt: {alt_min:04d}m-{alt_max:04d}m ({alt_delta:+04d}m; +{alt_gain:04d}, -{alt_loss:04d}), spd: {speed_min:05.2f}-{speed_max:05.2f} ({speed_delta:+06.2f}; {speed_ave:05.2f})'.format(**self.vals())
-
+        return 'period={period:d}s, dist: {distance:.2f}m, ' \
+               'alt: {alt_min:04d}m-{alt_max:04d}m ({alt_delta:+04d}m; +{alt_gain:04d}, -{alt_loss:04d}), ' \
+               'spd: {speed_min:05.2f}-{speed_max:05.2f} ({speed_delta:+06.2f}; {speed_ave:05.2f})'\
+            .format(**self.values())
 
 
 def basic_to_extended_point(basic_point):
@@ -134,5 +126,5 @@ def basic_to_extended_point(basic_point):
     if type(basic_point) == ExtendedGPSPoint:
         return basic_point
     if type(basic_point) == BasicGPSPoint:
-        return ExtendedGPSPoint(**basic_point.vals())
+        return ExtendedGPSPoint(**basic_point.values())
     raise TypeError('Expected BasicGPSPoint')
