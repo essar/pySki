@@ -54,6 +54,7 @@ def load_points(loader, window, db, track):
         window.drain = True
         # Empty point list
         points = []
+        log.info('No more data available, draining window')
 
     ext_points = list(map(basic_to_extended_point, points))
 
