@@ -14,7 +14,7 @@ from ski.loader.outlyer import is_outlyer
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 skip_interpolate = config['cleanup']['skip_interpolate']
 skip_outlyers = config['cleanup']['skip_outlyers']
