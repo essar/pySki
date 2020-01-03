@@ -3,7 +3,6 @@
 
   Loads GSD data from a local file.
 """
-import logging
 from datetime import datetime
 from pytz import timezone
 from ski.aws.dynamo import DynamoDataStore
@@ -28,6 +27,6 @@ track = Track('test','TEST', datetime.now(tz))
 
 # Create file loader; load a single GSD section (64 points)
 with open(TEST_DATA_FILE, mode='r') as f:
-    loader = GSDFileLoader(f, section_limit=1)
+    loader = GSDFileLoader(f)
     # Load points
     load_all_points(loader, db, track)
