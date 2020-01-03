@@ -3,14 +3,12 @@
 
   Initialises the database.
 """
-import logging
-
 from ski.aws.dynamo import *
 
 # Set up logger
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 # Initialise the database

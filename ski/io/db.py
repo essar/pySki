@@ -38,9 +38,9 @@ class TestDataStore(DataStore):
             self.points.append(point)
             self.insert_count += 1
             
-            log.info('[TestDataStore] Saving point to track %s: %s|%s', track.track_id, key, point)
+            log.debug('[TestDataStore] Saving point to track %s: %s|%s', track.track_id, key, point)
             log.debug('[TestDataStore] https://www.google.com/maps/@%f,%f,17z', point.lat, point.lon)
-            log.debug('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))
+        log.info('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))
 
     def get_track_points(self, track, offset=0, length=-1):
         log.debug('[TestDataStore] Retrieving points track %s (%d to %d)', track.track_id, offset, length)
