@@ -14,7 +14,7 @@ from ski.loader.outlyer import is_outlyer
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 skip_interpolate = config['cleanup']['skip_interpolate']
 skip_outlyers = config['cleanup']['skip_outlyers']
@@ -103,6 +103,7 @@ def cleanup_points(points, outlyers=None):
         calculate_deltas(prev_point, point)
         # Add point to output
         output.append(point)
+        prev_point = point
 
     log.info('Point clean up complete; points in=%d; points out=%d', len(points), len(output))
 

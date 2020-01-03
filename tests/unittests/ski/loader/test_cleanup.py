@@ -58,13 +58,14 @@ class TestCleanup(unittest.TestCase):
         # Prepare data
         points = [
             ExtendedGPSPoint(ts=1, lat=1.0, lon=1.0, alt=0, spd=0),
-            ExtendedGPSPoint(ts=2, lat=1.0, lon=1.0, alt=3, spd=0)
+            ExtendedGPSPoint(ts=2, lat=1.0, lon=1.0, alt=3, spd=0),
+            ExtendedGPSPoint(ts=3, lat=1.0, lon=1.0, alt=6, spd=0)
         ]
 
         outlyers = []
         output = cleanup_points(points, outlyers)
 
-        self.assertEqual(2, len(output))
+        self.assertEqual(3, len(output))
         self.assertEqual(0, len(outlyers))
 
     def test_cleanup_points_empty_list(self):
