@@ -25,8 +25,8 @@ load_extended = config['dataloader']['extended_points']
 #################
 # Adjust these parameters depending on what windows you want to add
 windows = {
-    'fwd3'  : PointWindow(PointWindow.FORWARD, 3),
-    'fwd30' : PointWindow(PointWindow.FORWARD, 30)
+    'fwd3': PointWindow(PointWindow.FORWARD, 3),
+    'fwd30': PointWindow(PointWindow.FORWARD, 30)
 }
 head_length = 0
 tail_length = 30
@@ -47,10 +47,10 @@ def __load_to_buffer(loader, tail=[]):
     while len(buf) < load_buffer_len:
         # Set of points from the loader (single point for GPX, single section for GSD)
         points = loader.load_points()
-        if points == None or len(points) == 0:
-              # End of data
-              log.debug('__load_to_buffer: Reached end of data')
-              break
+        if points is None or len(points) == 0:
+            # End of data
+            log.debug('__load_to_buffer: Reached end of data')
+            break
 
         # Build up a local buffer before passing to clean up
         buf.extend(points)
@@ -61,7 +61,7 @@ def __load_to_buffer(loader, tail=[]):
 
 def __split_tail(points, tail_length=0):
     body_end = len(points) - tail_length
-    return (points[0:body_end], points[body_end:])
+    return points[0:body_end], points[body_end:]
 
 
 def load_extended_points(loader, db, track, head=[], tail=[]):
@@ -122,7 +122,7 @@ def load_points_to_db(loader, db, track):
     """
     points = loader.load_points()
     
-    if points == None:
+    if points is None:
         # End of data
         log.debug('Reached end of data')
         return False

@@ -1,13 +1,8 @@
 """
 """
 
-import logging
 import unittest
-from datetime import datetime
-from math import asin, degrees
-from pytz import timezone
 from ski.data.commons import ExtendedGPSPoint
-from ski.io.db import TestDataStore
 
 from ski.loader.outlyer import *
 
@@ -18,10 +13,9 @@ log.setLevel(logging.WARNING)
 
 class TestOutlyer(unittest.TestCase):
 
-    '''
+    """
     is_outlyer(prev_point, point)
-    '''
-
+    """
     def test_is_outlyer(self):
         # Prepare data
         points = [
@@ -32,7 +26,6 @@ class TestOutlyer(unittest.TestCase):
         res = is_outlyer(*points)
 
         self.assertFalse(res)
-
 
     def test_is_outlyer_high_speed(self):
         # Prepare data
@@ -45,7 +38,6 @@ class TestOutlyer(unittest.TestCase):
 
         self.assertTrue(res)
 
-
     def test_is_outlyer_high_speed_factor(self):
         # Prepare data
         points = [
@@ -57,7 +49,6 @@ class TestOutlyer(unittest.TestCase):
 
         self.assertTrue(res)
 
-
     def test_is_outlyer_low_speed_factor(self):
         # Prepare data
         points = [
@@ -68,7 +59,6 @@ class TestOutlyer(unittest.TestCase):
         res = is_outlyer(*points)
 
         self.assertTrue(res)
-
 
 
 if __name__ == '__main__':
