@@ -5,7 +5,7 @@ import logging
 
 from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
-from ski.data.coordinate import addSeconds, DMSCoordinate, DMStoWGS
+from ski.data.coordinate import add_seconds, DMSCoordinate, dms_to_wgs
 from datetime import datetime
 
 # Set up logger
@@ -138,7 +138,7 @@ def __parse_gsd_coord(coord):
     # Minute is remainder of string
     dm = float(coord_str[4:]) / 10000.0
     # Convert from decimal minutes to DMS
-    dms = addSeconds(d, dm)
+    dms = add_seconds(d, dm)
     log.debug('Coordinate: %s->%s->%s->%s', coord, coord_str, (d, dm), dms)
 
     return dms
@@ -254,12 +254,12 @@ def parse_gsd_line(line):
         # Convert to WGS
         dms = DMSCoordinate(latD, latM, latS, lonD, lonM, lonS)
         log.debug('DMS: %s', dms)
-        wgs = DMStoWGS(dms)
+        wgs = dms_to_wgs(dms)
         log.debug('WGS: %s', wgs)
 
         # Latitude & Longitude
-        point.lat = wgs.getLatitudeDegrees()
-        point.lon = wgs.getLongitudeDegrees()
+        point.lat = wgs.get_latitude_degrees()
+        point.lon = wgs.get_longitude_degrees()
 
         # GSD altitude in 10^-5?!, convert from floating point to int
         point.alt = int(int(gsd_alt) / 10000)
