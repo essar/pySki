@@ -118,6 +118,14 @@ class PointWindow:
 
         return self.drain or (len(self.head) + 1) >= self.head_length
 
+    def reset_target(self):
+        """
+
+        """
+        if not self.drain:
+            self.head.insert(0, self.target_point)
+        self.target_point = None
+
     def trim(self):
         """
         Reduce the tail to the target length.
@@ -125,24 +133,26 @@ class PointWindow:
         self.tail = self.tail[0:self.tail_length]
 
 
-def enrich_points(points, window):
+def enrich_points(points, window, default_keys):
     """
     Enriches a list of points, using the specified window
     @param points: a list of points to enrich
     @param window: a PointWindow that persists between executions of this call
+    @param default_keys: a list of default window keys to set in each point
     """
 
     # Load the points into the window
     window.load_points(points)
 
-    # Initialize counter
-    enrich_count = 0
+    # Initialize output
+    output = []
 
     # Iterate through the window
     while window.process():
         # Get current point from the window
         point = window.target_point
-        for k in point.windows.keys():
+
+        for k in default_keys:
             # Extract window points using window key
             window_points = window.extract(*k.key())
             # Calculate the enriched values for this set of points
@@ -152,13 +162,19 @@ def enrich_points(points, window):
             # Save enriched values to the point
             window.target_point.windows[k] = EnrichedWindow(**enriched_values)
 
-        # Increment counter
-        enrich_count += 1
+        # Add enriched point to output
+        output.append(point)
 
-    log.info('Enriched %d points; %d remain in head, %d in tail', enrich_count, len(window.head), len(window.tail))
+    # Push the target point back into the head
+    window.reset_target()
+
+    log.info('Enriched %d points; %d remain in head, %d in tail', len(output), len(window.head), len(window.tail))
 
     # Clean up window
     window.trim()
+
+    # Return enriched points
+    return output
 
 
 def __avg(values):
@@ -168,7 +184,7 @@ def __avg(values):
 def get_enriched_data(points):
     # Build a dict of enriched values
     data = {
-        'distance' : distance(points),
+        'distance': distance(points),
         'alt_delta': alt_delta(points),
         'alt_gain': alt_cuml_gain(points),
         'alt_loss': alt_cuml_loss(points),

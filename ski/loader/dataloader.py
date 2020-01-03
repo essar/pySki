@@ -11,60 +11,27 @@ import logging
 from ski.config import config
 from ski.data.commons import basic_to_extended_point
 from ski.loader.cleanup import cleanup_points
-from ski.loader.enrich import enrich_points, PointWindow
-
+from ski.loader.enrich import enrich_points, PointWindow, WindowKey
 
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
 
 load_buffer_len = config['dataloader']['load_buffer']
 load_extended = config['dataloader']['extended_points']
 
 #################
 # Adjust these parameters depending on what windows you want to add
-windows = {
-    'fwd3': PointWindow(PointWindow.FORWARD, 3),
-    'fwd30': PointWindow(PointWindow.FORWARD, 30)
+window_keys = {
+    WindowKey(PointWindow.FORWARD, 3): None,
+    WindowKey(PointWindow.FORWARD, 30): None
 }
-head_length = 0
+head_length = 30
 tail_length = 30
 #################
 
 
-def __array_replace(array, points):
-    array.clear()
-    array.extend(points)
-
-
-def __load_to_buffer(loader, tail=[]):
-    buf = []
-    # Preload any points from the tail
-    buf.extend(tail)
-    log.debug('__load_to_buffer: %d points loaded into buffer from tail', len(buf))
-    # Load a set of points into a buffer
-    while len(buf) < load_buffer_len:
-        # Set of points from the loader (single point for GPX, single section for GSD)
-        points = loader.load_points()
-        if points is None or len(points) == 0:
-            # End of data
-            log.debug('__load_to_buffer: Reached end of data')
-            break
-
-        # Build up a local buffer before passing to clean up
-        buf.extend(points)
-        log.debug('__load_to_buffer: loaded %d points; buf=%d; load_buffer_len=%d', len(points), len(buf), load_buffer_len)
-
-    return buf
-
-
-def __split_tail(points, tail_length=0):
-    body_end = len(points) - tail_length
-    return points[0:body_end], points[body_end:]
-
-
-def load_extended_points(loader, db, track, head=[], tail=[]):
+def load_points(loader, window, db, track):
     """
     Load a set of points from a loader object, clean these and store in the data store as part of a specified track.
     Params:
@@ -74,67 +41,36 @@ def load_extended_points(loader, db, track, head=[], tail=[]):
     
     Returns true if a point is added successfully, false if there are no more points to add.
     """
-    # Load points into buffer and convert to extended points
-    buf = list(map(basic_to_extended_point, __load_to_buffer(loader, tail)))
-    #log.debug('buf=%s', buf)
-    buffer_full = (len(buf) >= load_buffer_len)
-    log.debug('Buffer is %s', 'full' if buffer_full else 'not full')
 
-    # No points found so return
-    if len(buf) == 0:
-        return False
+    # Load points into buffer and convert to extended points
+    points = loader.load_points()
+    if points is None or len(points) == 0:
+        # Check to see if there's data left in the window
+        if len(window.head) == 0:
+            # No more points to process, exit
+            return False
+
+        # Drain the window
+        window.drain = True
+        # Empty point list
+        points = []
+
+    ext_points = list(map(basic_to_extended_point, points))
 
     # Do clean up
-    cleaned = []
-    cleanup_points(buf, output=cleaned)
+    cleaned_points = cleanup_points(ext_points)
 
-    # Extract a new tail from the body; if the buffer isn't full use all the points
-    (body, new_tail) = __split_tail(cleaned, tail_length if buffer_full else 0)
-    log.debug('body=%d; head=%d; tail=%d', len(body), len(head), len(new_tail))
+    # Do enrichment
+    enriched_points = enrich_points(cleaned_points, window, window_keys)
 
-    # Do enrich
-    enrich_points(cleaned, windows, head, new_tail)
-    
-    # Update the tail with remaining points
-    __array_replace(tail, new_tail)
-    
     # Save points to data store
-    db.add_points_to_track(track, body)
+    db.add_points_to_track(track, enriched_points)
 
-    log.info('%d extended points loaded to track %s', len(body), track.track_id)
+    log.info('%d extended points loaded to track %s', len(enriched_points), track.track_id)
     return True
 
 
-def load_basic_points(loader, db, track, head=[], tail=[]):
-    return load_points_to_db(loader, db, track)
-
-
-def load_points_to_db(loader, db, track):
-    """
-    Load a set of points from a loader object and store these in the data store as part of a specified track.
-
-    Params:
-      loader: a Loader class providing the input data.
-      db: a db class providing the output data store.
-      track: the track to store these points to.
-    
-    Returns true if a point is added successfully, false if there are no more points to add.
-    """
-    points = loader.load_points()
-    
-    if points is None:
-        # End of data
-        log.debug('Reached end of data')
-        return False
-    
-    # Load point to data store
-    db.add_points_to_track(track, points)
-
-    log.info('%d basic points loaded to track %s', len(points), track.track_id)
-    return True
-
-
-def load_all_points(loader, db, track, extended=load_extended):
+def load_all_points(loader, db, track):
     """
     Iterate across all points held in a loader and store all points in the data store.
     
@@ -143,17 +79,12 @@ def load_all_points(loader, db, track, extended=load_extended):
       db: a db class providing the output data store.
       track: the track to store these points to.
     """
-    tail = []
 
-    if extended:
-        load_f = load_extended_points
-        log.info('Loading points in extended mode')
-    else:
-        load_f = load_basic_points
-        log.info('Loading points in basic mode')
+    # Initialize a new point window
+    window = PointWindow(head_length, tail_length)
 
-    while load_f(loader, db, track, tail=tail):
-        log.debug('Remaining tail: %s', tail)
+    # Load all points from the loader, store in the database
+    while load_points(loader, window, db, track):
         pass
 
     log.info('Load complete: %d points loaded', db.insert_count)

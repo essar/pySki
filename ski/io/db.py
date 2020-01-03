@@ -32,7 +32,6 @@ class TestDataStore(DataStore):
         log.info('[TestDataStore] Initialized TestDataStore')
 
     def add_points_to_track(self, track, points):
-        log.info('[TestDataStore] %d point(s) to load', len(points))
         for point in points:
             key = "{:s}-{:d}".format(track.track_id, point.ts)
             self.points.append(point)

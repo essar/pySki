@@ -322,11 +322,9 @@ class TestEnrich(unittest.TestCase):
         window = PointWindow(head_length=3, tail_length=3)
 
         wk = WindowKey(PointWindow.BACKWARD, 3)
-        for p in points:
-            p.windows[wk] = None
+        res = enrich_points(points, window, [wk])
 
-        enrich_points(points, window)
-
+        self.assertEqual(3, len(res))
         self.assertIsNotNone(points[0].windows[wk])
         self.assertEqual(1, points[0].windows[wk].distance)
 
@@ -353,11 +351,10 @@ class TestEnrich(unittest.TestCase):
         window.drain = True
 
         wk = WindowKey(PointWindow.BACKWARD, 3)
-        for p in points:
-            p.windows[wk] = None
 
-        enrich_points(points, window)
+        res = enrich_points(points, window, [wk])
 
+        self.assertEqual(5, len(res))
         self.assertIsNotNone(points[0].windows[wk])
         self.assertEqual(1, points[0].windows[wk].distance)
 
