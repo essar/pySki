@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-def __print_list(name, list):
-    print('{0}={1}'.format(name, list))
+def __print_list(name, val):
+    print('{0}={1}'.format(name, val))
 
 
 def __print_string(name, val):
@@ -27,17 +27,17 @@ def __print_value(name, val):
 
 def __print_dict(name, branch):
     kv = {
-        dict : __print_dict
-      , list : __print_list
-      , str  : __print_string
-      , int  : __print_value
-      , bool : __print_value
+        dict: __print_dict,
+        list: __print_list,
+        str: __print_string,
+        int: __print_value,
+        bool: __print_value
     }
 
     for key in list(branch):
         val = branch[key]
-        newkey = name + '.' + key
-        kv[type(val)](newkey, val)
+        new_key = name + '.' + key
+        kv[type(val)](new_key, val)
 
 
 def dump_config():
@@ -52,5 +52,5 @@ def load_config(file_name):
         return yaml.load(f)
 
 
-# Load config
+# Load default config
 config = load_config(__DEFAULT_CONFIG)
