@@ -31,7 +31,6 @@ class TestDataStore(DataStore):
         self.insert_count = 0
         log.info('[TestDataStore] Initialized TestDataStore')
 
-
     def add_points_to_track(self, track, points):
         log.info('[TestDataStore] %d point(s) to load', len(points))
         for point in points:
@@ -39,22 +38,20 @@ class TestDataStore(DataStore):
             self.points.append(point)
             self.insert_count += 1
             
-            log.info('[TestDataStore] Saving point to track %s: %s', track.track_id, point)
+            log.info('[TestDataStore] Saving point to track %s: %s|%s', track.track_id, key, point)
             log.debug('[TestDataStore] https://www.google.com/maps/@%f,%f,17z', point.lat, point.lon)
             log.debug('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))
 
-
     def get_track_points(self, track, offset=0, length=-1):
-        log.debug('[TestDataStore] Retriving points %d to %d', offset, length)
+        log.debug('[TestDataStore] Retrieving points track %s (%d to %d)', track.track_id, offset, length)
         return list(map(basic_to_extended_point, self.points[offset:length]))
 
-
     def save_extended_points(self, points):
-        og.info('[TestDataStore] %d point(s) to load', len(points))
+        log.info('[TestDataStore] %d point(s) to load', len(points))
         for point in points:
             key = "{:s}-{:d}".format(point.track_id, point.ts)
             self.points.append(point)
             self.insert_count += 1
             
-            log.info('[TestDataStore] Saving point: %s', point)
+            log.info('[TestDataStore] Saving point: %s|%s', key, point)
             log.debug('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))

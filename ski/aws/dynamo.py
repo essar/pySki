@@ -6,9 +6,9 @@ import logging
 from boto3 import client, resource
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import DYNAMODB_CONTEXT
-from decimal import Decimal, Inexact, Rounded, localcontext
+from decimal import Inexact, Rounded, localcontext
 from ski.config import config
-from ski.data.commons import ExtendedGPSPoint
+from ski.data.commons import ExtendedGPSPoint, debug_point_event
 from ski.io.db import DataStore
 
 # Set up logger
@@ -16,93 +16,91 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 db_endpoint = config['db']['dynamo']['endpoint_url']
-db_points   = config['db']['dynamo']['points_table_name']
+db_table_points = config['db']['dynamo']['points_table_name']
 
 # Initialise dynamodb resource
-dynamodb = resource('dynamodb', endpoint_url=db_endpoint)
+ddb = resource('dynamodb', endpoint_url=db_endpoint)
 
 
 class DynamoDataStore(DataStore):
     """A datastore backed by DynamoDB."""
+
     def __init__(self):
         self.insert_count = 0
         self.error_count = 0
-
 
     def __build_item(self, track, point):
 
         extended = None
         if type(point) == ExtendedGPSPoint:
             extended = {
-                'x'     : point.x,
-                'y'     : point.y,
-                'dst'   : float_to_decimal(point.dst),
-                'hdg'   : float_to_decimal(point.hdg),
-                'alt_d' : point.alt_d,
-                'spd_d' : float_to_decimal(point.spd_d),
-                'hdg_d' : float_to_decimal(point.hdg_d)
+                'x': point.x,
+                'y': point.y,
+                'dst': float_to_decimal(point.dst),
+                'hdg': float_to_decimal(point.hdg),
+                'alt_d': point.alt_d,
+                'spd_d': float_to_decimal(point.spd_d),
+                'hdg_d': float_to_decimal(point.hdg_d)
             }
 
         item = {
-            'track_id'    : track.track_id,
-            'timestamp'   : point.ts,
-            'track_group' : track.track_group,
-            'track_info'  : {},
+            'track_id': track.track_id,
+            'timestamp': point.ts,
+            'track_group': track.track_group,
+            'track_info': {},
             'gps': {
-                'lat' : float_to_decimal(point.lat),
-                'lon' : float_to_decimal(point.lon),
-                'alt' : point.alt,
-                'spd' : float_to_decimal(point.spd)
+                'lat': float_to_decimal(point.lat),
+                'lon': float_to_decimal(point.lon),
+                'alt': point.alt,
+                'spd': float_to_decimal(point.spd)
             },
-            'extended' : extended
+            'extended': extended
         }
 
         return item
 
-
     def add_points_to_track(self, track, points):
         # Get Dynamo table
-        table = dynamodb.Table(db_points)
+        table = ddb.Table(db_table_points)
 
+        # Write points to the table in batches
         with table.batch_writer() as batch:
+            # Write all points in track
             for point in points:
-                log.debug('Storing point: %s', point)
-
                 try:
+                    # Create item
                     item = self.__build_item(track, point)
-                    log.debug('add_points_to_track: item=%s', item)
-
+                    # Add item to batch
                     response = batch.put_item(Item=item)
                     self.insert_count += 1
-                    log.debug('add_points_to_track: put_item %s=%s', track.track_id, response)
+                    debug_point_event(log, point, 'add_points_to_track: put_item %s=%s', track.track_id, response)
                 except Exception as e:
+                    # Something went wrong, log the error
                     log.error(e)
                     self.error_count += 1
 
-
     def get_track_points(self, track, offset=0, length=-1):
         # Get dynamo table
-        table = dynamodb.Table(db_points)
-
-        # Retrieve batch of points based on track ID
+        table = ddb.Table(db_table_points)
 
         points = []
         try:
 
+            # Retrieve batch of points based on track ID
             response = table.query(
                 Select='ALL_ATTRIBUTES',
                 KeyConditionExpression=Key('track_id').eq(track.track_id)
             )
 
             count = response['Count']
-            log.info('Found %d points in %s for %s', count, db_points, track.track_id)
+            log.debug('Found %d points in %s for %s', count, db_table_points, track.track_id)
 
             items = response['Items']
 
             for i in items:
                 log.debug('Item=%s', i)
 
-                p = EnrichedPoint()
+                p = ExtendedGPSPoint()
                 p.ts = decimal_to_integer(i['timestamp'])
                 p.track_id = i['track_id']
                 
@@ -116,10 +114,10 @@ class DynamoDataStore(DataStore):
                 # Extended sub object
                 if 'extended' in i:
                     ext = i['extended']
-                    p.x     = decimal_to_integer(ext['x'])
-                    p.y     = decimal_to_integer(ext['y'])
-                    p.dst   = decimal_to_float(ext['dst'])
-                    p.hdg   = decimal_to_float(ext['hdg'])
+                    p.x = decimal_to_integer(ext['x'])
+                    p.y = decimal_to_integer(ext['y'])
+                    p.dst = decimal_to_float(ext['dst'])
+                    p.hdg = decimal_to_float(ext['hdg'])
                     p.alt_d = decimal_to_integer(ext['alt_d'])
                     p.spd_d = decimal_to_float(ext['spd_d'])
                     p.hdg_d = decimal_to_float(ext['hdg_d']) 
@@ -129,59 +127,64 @@ class DynamoDataStore(DataStore):
                 points.append(p)
 
         except Exception as e:
+            # Something went wrong, log the error
             log.error(e)
 
         return points
 
-
     def save_extended_points(self, points):
         # Get Dynamo table
-        table = dynamodb.Table(db_points)
+        table = ddb.Table(db_table_points)
 
+        # Write points to the table in batches
         with table.batch_writer() as batch:
+            # Write all points in track
             for point in points:
-                log.debug('Storing point: %s', point)
-
                 try:
+                    # Create item
                     item = {
-                        'track_id' : point.track_id,
+                        'track_id': point.track_id,
                         'timestamp': point.ts,
-                        'extended' : {
-                            'x'     : point.x,
-                            'y'     : point.y,
-                            'dst'   : float_to_decimal(point.dst),
-                            'hdg'   : float_to_decimal(point.hdg),
-                            'alt_d' : point.alt_d,
-                            'spd_d' : float_to_decimal(point.spd_d),
-                            'hdg_d' : float_to_decimal(point.hdg_d)
+                        'extended': {
+                            'x': point.x,
+                            'y': point.y,
+                            'dst': float_to_decimal(point.dst),
+                            'hdg': float_to_decimal(point.hdg),
+                            'alt_d': point.alt_d,
+                            'spd_d': float_to_decimal(point.spd_d),
+                            'hdg_d': float_to_decimal(point.hdg_d)
                         }
                     }
                     # Add windows
                     #item.update(point.windows)
 
+                    # Add item to batch
                     response = batch.put_item(Item=item)
+
                     self.insert_count += 1
-                    log.debug('put_item %s/%s=%s', point.track_id, point.ts, response)
+                    debug_point_event(log, point, 'add_points_to_track: put_item %s=%s', point.track_id, response)
                 except Exception as e:
+                    # Something went wrong, log the error
                     log.error(e)
+                    self.error_count += 1
 
 
 def count_points():
     """Count the number of records created in the points table."""
     try:
         # Get Dynamo table
-        table = dynamodb.Table(db_points)
+        table = ddb.Table(db_table_points)
 
         row_count = 0
         last_key = None
 
         while True:
-            request = { 'Select' : 'COUNT' }
+            request = {'Select': 'COUNT'}
             if last_key is not None:
                 request['ExclusiveStartKey'] = last_key
 
             response = table.scan(**request)
-            log.debug('Scan response: %s', response)
+            log.debug('COUNT FROM %s: %s', db_table_points, response)
 
             row_count += response['Count']
             last_key = response['LastEvaluatedKey'] if 'LastEvaluatedKey' in response else None
@@ -191,15 +194,15 @@ def count_points():
 
         log.info('Point count=%s', row_count)
     except Exception as e:
+        # Something went wrong, log the error
         log.error(e)
-
 
 
 def create_table_points():
     """Create the points table."""
     try:
-        response = dynamodb.create_table(
-            TableName=db_points,
+        response = ddb.create_table(
+            TableName=db_table_points,
             KeySchema=[
                 {
                     'AttributeName': 'track_id',
@@ -223,10 +226,11 @@ def create_table_points():
             BillingMode='PAY_PER_REQUEST'
         )
 
-        log.info(response)
+        log.debug('CREATE TABLE %s: %s', db_table_points, response)
 
     except ValueError as e:
-        log.error('Unable to create %s table: %s', db_points, e)
+        # Something went wrong, log the error
+        log.error('Unable to create table %s: %s', db_table_points, e)
 
 
 def init_db():
@@ -234,18 +238,20 @@ def init_db():
     try:
         ddb_client = client('dynamodb', endpoint_url=db_endpoint)
 
-        response = ddb_client.describe_table(TableName=db_points)
+        response = ddb_client.describe_table(TableName=db_table_points)
         log.info('Table %s OK', response['Table']['TableName'])
     except ddb_client.exceptions.ResourceNotFoundException:
-        log.info('Table %s does not exist', db_points)
         create_table_points()
+        log.info('Created table %s', db_table_points)
 
 
 def decimal_to_float(decimal):
+    """ Convert a decimal to a native floating point value"""
     return float(decimal)
 
 
 def decimal_to_integer(decimal):
+    """ Convert a decimal to a native integer value"""
     return int(decimal)
 
 
@@ -262,6 +268,5 @@ def float_to_decimal(float_value):
         cxt.traps[Inexact] = 0
         cxt.traps[Rounded] = 0
         decimal_value = cxt.create_decimal_from_float(float_value)
-        log.debug('float_to_decimal: float=%f, decimal=%f', float_value, decimal_value)
 
         return decimal_value
