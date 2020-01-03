@@ -9,163 +9,172 @@ from ski.loader.enrich import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 
 class TestEnrich(unittest.TestCase):
 
-    '''
-    PointWindow.for_points()
-    '''
-
-    def test_PointWindow_for_points_empty(self):
+    def test_PointWindow_load_points(self):
         # Prepare data
-        points = []
+        w = PointWindow()
+        points = [x for x in range(5)]
+        w.load_points(points)
 
-        w = PointWindow(PointWindow.FORWARD, 5)
+        self.assertListEqual([0, 1, 2, 3, 4], w.head)
+        self.assertListEqual([], w.tail)
 
-        res = w.for_points(points)
-        log.info('points=%s; 5F=%s', points, res)
-
-        self.assertEqual(len(res), 0)
-
-
-    def test_PointWindow_for_points_full_backward(self):
+    def test_PointWindow_load_points_to_existing_head(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        points = [x for x in range(5)]
+        w.head += [x for x in range(5)]
+        w.tail += [x for x in range(5)]
 
-        w = PointWindow(PointWindow.BACKWARD, 5)
+        w.load_points(points)
 
-        res = w.for_points(points, 5)
-        log.info('points=%s; 5B=%s', points, res)
+        self.assertEqual(10, len(w.head))
+        self.assertEqual(5, len(w.tail))
 
-        self.assertEqual([1, 2, 3, 4, 5], res)
-
-
-    def test_PointWindow_for_points_full_backward_even(self):
+    def test_PointWindow_extract_fwd3(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        w.head += [x for x in range(1, 5)]
+        w.tail += [x for x in range(1, 5)]
+        w.target_point = 0
 
-        w = PointWindow(PointWindow.BACKWARD, 6)
+        res = w.extract(PointWindow.FORWARD, 3)
 
-        res = w.for_points(points, 6)
-        log.info('points=%s; 6B=%s', points, res)
+        self.assertEqual(3, len(res))
+        self.assertListEqual([0, 1, 2], res)
 
-        self.assertEqual([1, 2, 3, 4, 5, 6], res)
-
-
-    def test_PointWindow_for_points_full_forward(self):
+    def test_PointWindow_extract_fwd6(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        w.head += [x for x in range(1, 5)]
+        w.tail += [x for x in range(1, 5)]
+        w.target_point = 0
 
-        w = PointWindow(PointWindow.FORWARD, 5)
+        res = w.extract(PointWindow.FORWARD, 6)
 
-        res = w.for_points(points, 5)
-        log.info('points=%s; 5F=%s', points, res)
-        
-        self.assertEqual([5, 6, 7, 8, 9], res)
+        self.assertEqual(5, len(res))
+        self.assertListEqual([0, 1, 2, 3, 4], res)
 
-
-    def test_PointWindow_for_points_full_forward_even(self):
+    def test_PointWindow_extract_bwd3(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        w.head += [x for x in range(1, 5)]
+        w.tail += [x for x in range(1, 5)]
+        w.target_point = 0
 
-        w = PointWindow(PointWindow.FORWARD, 6)
+        res = w.extract(PointWindow.BACKWARD, 3)
 
-        res = w.for_points(points, 4)
-        log.info('points=%s; 6W=%s', points, res)
-        
-        self.assertEqual([4, 5, 6, 7, 8, 9], res)
+        self.assertEqual(3, len(res))
+        self.assertListEqual([3, 4, 0], res)
 
-
-    def test_PointWindow_for_points_full_midpoint(self):
+    def test_PointWindow_extract_bwd6(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        w.head += [x for x in range(1, 5)]
+        w.tail += [x for x in range(1, 5)]
+        w.target_point = 0
 
-        w = PointWindow(PointWindow.MIDPOINT, 5)
+        res = w.extract(PointWindow.BACKWARD, 6)
 
-        res = w.for_points(points, 5)
-        log.info('points=%s; 5MP=%s', points, res)
+        self.assertEqual(5, len(res))
+        self.assertListEqual([1, 2, 3, 4, 0], res)
 
-        self.assertEqual([3, 4, 5, 6, 7], res)
-
-
-    def test_PointWindow_for_points_full_midpoint_even(self):
+    def test_PointWindow_extract_mp3(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        w.head += [x for x in range(1, 5)]
+        w.tail += [x for x in range(1, 5)]
+        w.target_point = 0
+        res = w.extract(PointWindow.MIDPOINT, 3)
 
-        log.info('points=%s; 6MP=[]', points)
+        self.assertEqual(3, len(res))
+        self.assertListEqual([4, 0, 1], res)
 
-        self.assertRaises(ValueError, PointWindow, PointWindow.MIDPOINT, 6)
-
-
-    def test_PointWindow_for_points_short_backward(self):
+    def test_PointWindow_extract_mp11(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow()
+        w.head += [x for x in range(1, 5)]
+        w.tail += [x for x in range(1, 5)]
+        w.target_point = 0
 
-        w = PointWindow(PointWindow.BACKWARD, 5)
+        res = w.extract(PointWindow.MIDPOINT, 11)
 
-        res = w.for_points(points, 3)
-        log.info('points=%s; 5B=%s', points, res)
+        self.assertEqual(9, len(res))
+        self.assertListEqual([1, 2, 3, 4, 0, 1, 2, 3, 4], res)
 
-        self.assertEqual([0, 1, 2, 3], res)
-
-
-    def test_PointWindow_for_points_short_forward(self):
+    def test_PointWindow_process(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow(head_length=3)
+        w.head += [x for x in range(5)]
+        w.tail += [x for x in range(5)]
 
-        w = PointWindow(PointWindow.FORWARD, 5)
+        res = w.process()
 
-        res = w.for_points(points, 6)
-        log.info('points=%s; 6F=%s', points, res)
+        self.assertTrue(res)
+        self.assertEqual(0, w.target_point)
+        self.assertEqual(4, len(w.head))
+        self.assertEqual(1, w.head[0])
+        self.assertEqual(5, len(w.tail))
+        self.assertEqual(4, w.tail[-1])
 
-        self.assertEqual([6, 7, 8, 9], res)
+        res = w.process()
 
+        self.assertTrue(res)
+        self.assertEqual(1, w.target_point)
+        self.assertEqual(3, len(w.head))
+        self.assertEqual(2, w.head[0])
+        self.assertEqual(6, len(w.tail))
+        self.assertEqual(0, w.tail[-1])
 
-    def test_PointWindow_for_points_short_midpoint_bottom(self):
+    def test_PointWindow_process_short_head(self):
         # Prepare data
-        points = list(range(10))
+        w = PointWindow(head_length=6)
+        w.head += [x for x in range(5)]
+        res = w.process()
 
-        w = PointWindow(PointWindow.MIDPOINT, 5)
+        self.assertFalse(res)
+        self.assertEqual(0, w.target_point)
+        self.assertEqual(4, len(w.head))
 
-        res = w.for_points(points, 1)
-        log.info('points=%s; 5MP=%s', points, res)
-
-        self.assertEqual([0, 1, 2], res)
-
-
-    def test_PointWindow_for_points_short_midpoint_top(self):
+    def test_PointWindow_process_short_head_draining(self):
         # Prepare data
-        points = list(range(10))
-        size = 5
+        w = PointWindow(head_length=5)
+        w.head += [x for x in range(5)]
+        w.drain = True
+        res = w.process()
 
-        w = PointWindow(PointWindow.MIDPOINT, 5)
+        self.assertTrue(res)
+        self.assertEqual(0, w.target_point)
+        self.assertEqual(4, len(w.head))
 
-        res = w.for_points(points, 8)
-        log.info('points=%s; 5MP=%s', points, res)
+    def test_PointWindow_process_short_head_draining_empty_head(self):
+        # Prepare data
+        w = PointWindow(head_length=5)
+        w.drain = True
+        res = w.process()
 
-        self.assertEqual([7, 8, 9], res)
+        self.assertFalse(res)
 
-
-    def test_window_alt_delta(self):
+    def test_alt_delta(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(alt=10),
             ExtendedGPSPoint(alt=20),
-            ExtendedGPSPoint(alt=30),
+            ExtendedGPSPoint(alt=-30),
             ExtendedGPSPoint(alt=40),
             ExtendedGPSPoint(alt=50)
         ]
 
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_alt_delta(w, points, 1)
+        res = alt_delta(points)
 
-        log.info('alts=%s; 3F window_alt_delta=%f', list(map(lambda p: p.alt, points)), res)
-        self.assertEqual(20, res)
+        log.info('alts=%s; alt_delta=%f', list(map(lambda p: p.alt, points)), res)
+        self.assertEqual(40, res)
 
-
-    def test_window_alt_cuml_gain(self):
+    def test_alt_cuml_gain(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(alt_d=10),
@@ -175,14 +184,12 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(alt_d=50)
         ]
 
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_alt_cuml_gain(w, points, 1)
+        res = alt_cuml_gain(points)
 
-        log.info('alt_ds=%s; 3F window_alt_gain=%f', list(map(lambda p: p.alt_d, points)), res)
-        self.assertEqual(60, res)
+        log.info('alt_ds=%s; alt_gain=%f', list(map(lambda p: p.alt_d, points)), res)
+        self.assertEqual(120, res)
 
-
-    def test_window_alt_cuml_loss(self):
+    def test_alt_cuml_loss(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(alt_d=10),
@@ -192,14 +199,12 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(alt_d=50)
         ]
 
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_alt_cuml_loss(w, points, 1)
+        res = alt_cuml_loss(points)
 
-        log.info('alt_ds=%s; 3F window_alt_loss=%f', list(map(lambda p: p.alt_d, points)), res)
+        log.info('alt_ds=%s; alt_loss=%f', list(map(lambda p: p.alt_d, points)), res)
         self.assertEqual(-30, res)
 
-
-    def test_window_distance(self):
+    def test_distance(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(dst=1),
@@ -209,14 +214,12 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(dst=5)
         ]
 
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_distance(w, points, 1)
+        res = distance(points)
 
-        log.info('dsts=%s; 3F window_distance=%f', list(map(lambda p: p.dst, points)), res)
-        self.assertEqual(9, res)
+        log.info('dsts=%s; distance=%f', list(map(lambda p: p.dst, points)), res)
+        self.assertEqual(15, res)
 
-
-    def test_window_speed_ave(self):
+    def test_speed_ave(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(spd=1),
@@ -226,14 +229,12 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(spd=5)
         ]
 
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_speed_ave(w, points, 1)
+        res = speed_ave(points)
 
-        log.info('spds=%s; 3F window_speed_ave=%f', list(map(lambda p: p.spd, points)), res)
+        log.info('spds=%s; speed_ave=%f', list(map(lambda p: p.spd, points)), res)
         self.assertEqual(3.0, res)
 
-
-    def test_window_speed_max(self):
+    def test_speed_max(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(spd=1),
@@ -243,50 +244,44 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(spd=5)
         ]
 
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_speed_max(w, points, 1)
+        res = speed_max(points)
 
-        log.info('spds=%s; 3F window_speed_max=%f', list(map(lambda p: p.spd, points)), res)
+        log.info('spds=%s; speed_max=%f', list(map(lambda p: p.spd, points)), res)
+        self.assertEqual(5.0, res)
+
+    def test_speed_min(self):
+        # Prepare data
+        points = [
+            ExtendedGPSPoint(spd=1),
+            ExtendedGPSPoint(spd=2),
+            ExtendedGPSPoint(spd=3),
+            ExtendedGPSPoint(spd=4),
+            ExtendedGPSPoint(spd=5)
+        ]
+
+        res = speed_min(points)
+
+        log.info('spds=%s; speed_min=%f', list(map(lambda p: p.spd, points)), res)
+        self.assertEqual(1.0, res)
+
+    def test_speed_delta(self):
+        # Prepare data
+        points = [
+            ExtendedGPSPoint(spd=1),
+            ExtendedGPSPoint(spd=2),
+            ExtendedGPSPoint(spd=3),
+            ExtendedGPSPoint(spd=4),
+            ExtendedGPSPoint(spd=5)
+        ]
+
+        res = speed_delta(points)
+
+        log.info('spds=%s; speed_delta=%f', list(map(lambda p: p.spd, points)), res)
         self.assertEqual(4.0, res)
 
-
-    def test_window_speed_min(self):
-        # Prepare data
-        points = [
-            ExtendedGPSPoint(spd=1),
-            ExtendedGPSPoint(spd=2),
-            ExtendedGPSPoint(spd=3),
-            ExtendedGPSPoint(spd=4),
-            ExtendedGPSPoint(spd=5)
-        ]
-
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_speed_min(w, points, 1)
-
-        log.info('spds=%s; 3F window_speed_min=%f', list(map(lambda p: p.spd, points)), res)
-        self.assertEqual(2.0, res)
-
-
-    def test_window_speed_delta(self):
-        # Prepare data
-        points = [
-            ExtendedGPSPoint(spd=1),
-            ExtendedGPSPoint(spd=2),
-            ExtendedGPSPoint(spd=3),
-            ExtendedGPSPoint(spd=4),
-            ExtendedGPSPoint(spd=5)
-        ]
-
-        w = PointWindow(PointWindow.FORWARD, 3)
-        res = window_speed_delta(w, points, 1)
-
-        log.info('spds=%s; 3F window_speed_delta=%f', list(map(lambda p: p.spd, points)), res)
-        self.assertEqual(2.0, res)
-
-
-    '''
+    """
     get_enriched_data
-    '''
+    """
     def test_get_enriched_data(self):
         # Prepare data
         points = [
@@ -296,10 +291,8 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(dst=1, alt=40, spd=4),
             ExtendedGPSPoint(dst=1, alt=50, spd=5)
         ]
-        window = PointWindow(PointWindow.FORWARD, 5)
 
-        res = get_enriched_data(window, points)
-        log.info('points=%s; 5F=%s', points, res)
+        res = get_enriched_data(points)
 
         self.assertEqual(5, res['distance'])
 
@@ -314,10 +307,9 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(5, res['speed_max'])
         self.assertEqual(1, res['speed_min'])
 
-
-    '''
+    """
     enrich_points
-    '''
+    """
     def test_enrich_points(self):
         # Prepare data
         points = [
@@ -327,30 +319,28 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(dst=1, alt=70, spd=4),
             ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
-        windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
+        window = PointWindow(head_length=3, tail_length=3)
 
-        enrich_points(points, windows)
-        log.info('points=%s', points)
+        wk = WindowKey(PointWindow.BACKWARD, 3)
+        for p in points:
+            p.windows[wk] = None
 
-        self.assertIsNotNone(points[0].windows['fwd3'])
-        self.assertEqual(3, points[0].windows['fwd3'].distance)
+        enrich_points(points, window)
+
+        self.assertIsNotNone(points[0].windows[wk])
+        self.assertEqual(1, points[0].windows[wk].distance)
 
         # Verify altitude delta values
-        self.assertEqual(30, points[0].windows['fwd3'].alt_delta)
-        self.assertEqual(50, points[1].windows['fwd3'].alt_delta)
-        self.assertEqual(70, points[2].windows['fwd3'].alt_delta)
-        self.assertEqual(40, points[3].windows['fwd3'].alt_delta)
-        self.assertEqual(0,  points[4].windows['fwd3'].alt_delta)
+        self.assertEqual(0, points[0].windows[wk].alt_delta)
+        self.assertEqual(10, points[1].windows[wk].alt_delta)
+        self.assertEqual(30, points[2].windows[wk].alt_delta)
 
         # Verify maximum speed values
-        self.assertEqual(3, points[0].windows['fwd3'].speed_max)
-        self.assertEqual(4, points[1].windows['fwd3'].speed_max)
-        self.assertEqual(5, points[2].windows['fwd3'].speed_max)
-        self.assertEqual(5, points[3].windows['fwd3'].speed_max)
-        self.assertEqual(5, points[4].windows['fwd3'].speed_max)
+        self.assertEqual(1, points[0].windows[wk].speed_max)
+        self.assertEqual(2, points[1].windows[wk].speed_max)
+        self.assertEqual(3, points[2].windows[wk].speed_max)
 
-
-    def test_enrich_points_with_head(self):
+    def test_enrich_points_draining(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(dst=1, alt=10, spd=1),
@@ -359,77 +349,31 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(dst=1, alt=70, spd=4),
             ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
+        window = PointWindow(head_length=3, tail_length=3)
+        window.drain = True
 
-        windows = { 'bwd3' : PointWindow(PointWindow.BACKWARD, 3) }
-        head = [
-            ExtendedGPSPoint(dst=0, alt=20, spd=0),
-            ExtendedGPSPoint(dst=1, alt=20, spd=1)
-        ]
+        wk = WindowKey(PointWindow.BACKWARD, 3)
+        for p in points:
+            p.windows[wk] = None
 
-        enrich_points(points, windows, head=head)
-        log.info('points=%s', points)
+        enrich_points(points, window)
 
-        # Validate head data has been used on first points
-        self.assertEqual(-10, points[0].windows['bwd3'].alt_delta)
-        self.assertEqual(0,  points[1].windows['bwd3'].alt_delta)
-        self.assertEqual(0, points[0].windows['bwd3'].speed_min)
-        self.assertEqual(1, points[1].windows['bwd3'].speed_min)
+        self.assertIsNotNone(points[0].windows[wk])
+        self.assertEqual(1, points[0].windows[wk].distance)
 
+        # Verify altitude delta values
+        self.assertEqual(0, points[0].windows[wk].alt_delta)
+        self.assertEqual(10, points[1].windows[wk].alt_delta)
+        self.assertEqual(30, points[2].windows[wk].alt_delta)
+        self.assertEqual(50, points[3].windows[wk].alt_delta)
+        self.assertEqual(70, points[4].windows[wk].alt_delta)
 
-    def test_enrich_points_with_tail(self):
-        # Prepare data
-        points = [
-            ExtendedGPSPoint(dst=1, alt=10, spd=1),
-            ExtendedGPSPoint(dst=1, alt=20, spd=2),
-            ExtendedGPSPoint(dst=1, alt=40, spd=3),
-            ExtendedGPSPoint(dst=1, alt=70, spd=4),
-            ExtendedGPSPoint(dst=1, alt=110, spd=5)
-        ]
-
-        windows = { 'fwd3' : PointWindow(PointWindow.FORWARD, 3) }
-        tail = [
-            ExtendedGPSPoint(dst=1, alt=110, spd=6),
-            ExtendedGPSPoint(dst=1, alt=100, spd=7)
-        ]
-
-        enrich_points(points, windows, tail=tail)
-        log.info('points=%s', points)
-
-        # Validate tail data has been used on last points
-        self.assertEqual(40, points[3].windows['fwd3'].alt_delta)
-        self.assertEqual(-10,  points[4].windows['fwd3'].alt_delta)
-        self.assertEqual(6, points[3].windows['fwd3'].speed_max)
-        self.assertEqual(7, points[4].windows['fwd3'].speed_max)
-
-
-    def test_enrich_points_with_head_and_tail(self):
-        # Prepare data
-        points = [
-            ExtendedGPSPoint(dst=1, alt=10, spd=1),
-            ExtendedGPSPoint(dst=1, alt=20, spd=2),
-            ExtendedGPSPoint(dst=1, alt=40, spd=3),
-            ExtendedGPSPoint(dst=1, alt=70, spd=4),
-            ExtendedGPSPoint(dst=1, alt=110, spd=5)
-        ]
-
-        windows = { 'bwd4' : PointWindow(PointWindow.BACKWARD, 4), 'fwd4' : PointWindow(PointWindow.FORWARD, 4) }
-        head = [
-            ExtendedGPSPoint(dst=0, alt=20, spd=0),
-            ExtendedGPSPoint(dst=1, alt=20, spd=1)
-        ]
-        tail = [
-            ExtendedGPSPoint(dst=1, alt=110, spd=6),
-            ExtendedGPSPoint(dst=1, alt=100, spd=7)
-        ]
-
-        enrich_points(points, windows, head=head, tail=tail)
-
-        # Validate head and tail data has been used on last points
-        self.assertEqual(20, points[2].windows['bwd4'].alt_delta)
-        self.assertEqual(70, points[2].windows['fwd4'].alt_delta)
-        self.assertEqual(1, points[2].windows['bwd4'].speed_min)
-        self.assertEqual(6, points[2].windows['fwd4'].speed_max)
-        
+        # Verify maximum speed values
+        self.assertEqual(1, points[0].windows[wk].speed_max)
+        self.assertEqual(2, points[1].windows[wk].speed_max)
+        self.assertEqual(3, points[2].windows[wk].speed_max)
+        self.assertEqual(4, points[3].windows[wk].speed_max)
+        self.assertEqual(5, points[4].windows[wk].speed_max)
 
 
 if __name__ == '__main__':
