@@ -108,6 +108,7 @@ def build_item(track, point):
     item = {
         'track_id': track.track_id,
         'timestamp': point.ts,
+        'local_time': None,
         'track_group': track.track_group,
         'track_info': {},
         'gps': {
