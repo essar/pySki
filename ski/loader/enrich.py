@@ -20,13 +20,13 @@ class WindowKey:
         return type(other) == WindowKey and (self.window_type == other.window_type) and (self.size == other.size)
 
     def __hash__(self):
-        return hash(self.__repr__())
+        return hash(repr(self))
 
     def __repr__(self):
         return '{:s},{:d}'.format(['', 'F', 'M', 'B'][self.window_type], self.size)
 
     def __str__(self):
-        return '{:s}{:d}'.format(['', 'F', 'M', 'B'][self.window_type], self.size)
+        return '{size:d}{window_type:s}'.format(window_type=['', 'fwd', 'mid', 'bwd'][self.window_type], size=self.size)
 
     def key(self):
         return self.window_type, self.size

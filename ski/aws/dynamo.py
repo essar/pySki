@@ -29,36 +29,6 @@ class DynamoDataStore(DataStore):
         self.insert_count = 0
         self.error_count = 0
 
-    def __build_item(self, track, point):
-
-        extended = None
-        if type(point) == ExtendedGPSPoint:
-            extended = {
-                'x': point.x,
-                'y': point.y,
-                'dst': float_to_decimal(point.dst),
-                'hdg': float_to_decimal(point.hdg),
-                'alt_d': point.alt_d,
-                'spd_d': float_to_decimal(point.spd_d),
-                'hdg_d': float_to_decimal(point.hdg_d)
-            }
-
-        item = {
-            'track_id': track.track_id,
-            'timestamp': point.ts,
-            'track_group': track.track_group,
-            'track_info': {},
-            'gps': {
-                'lat': float_to_decimal(point.lat),
-                'lon': float_to_decimal(point.lon),
-                'alt': point.alt,
-                'spd': float_to_decimal(point.spd)
-            },
-            'extended': extended
-        }
-
-        return item
-
     def add_points_to_track(self, track, points):
         # Get Dynamo table
         table = ddb.Table(db_table_points)
@@ -69,7 +39,7 @@ class DynamoDataStore(DataStore):
             for point in points:
                 try:
                     # Create item
-                    item = self.__build_item(track, point)
+                    item = build_item(track, point)
                     # Add item to batch
                     response = batch.put_item(Item=item)
                     self.insert_count += 1
@@ -132,41 +102,51 @@ class DynamoDataStore(DataStore):
 
         return points
 
-    def save_extended_points(self, points):
-        # Get Dynamo table
-        table = ddb.Table(db_table_points)
 
-        # Write points to the table in batches
-        with table.batch_writer() as batch:
-            # Write all points in track
-            for point in points:
-                try:
-                    # Create item
-                    item = {
-                        'track_id': point.track_id,
-                        'timestamp': point.ts,
-                        'extended': {
-                            'x': point.x,
-                            'y': point.y,
-                            'dst': float_to_decimal(point.dst),
-                            'hdg': float_to_decimal(point.hdg),
-                            'alt_d': point.alt_d,
-                            'spd_d': float_to_decimal(point.spd_d),
-                            'hdg_d': float_to_decimal(point.hdg_d)
-                        }
-                    }
-                    # Add windows
-                    #item.update(point.windows)
+def build_item(track, point):
 
-                    # Add item to batch
-                    response = batch.put_item(Item=item)
+    item = {
+        'track_id': track.track_id,
+        'timestamp': point.ts,
+        'track_group': track.track_group,
+        'track_info': {},
+        'gps': {
+            'lat': float_to_decimal(point.lat),
+            'lon': float_to_decimal(point.lon),
+            'x': point.x,
+            'y': point.y,
+            'alt': point.alt,
+            'spd': float_to_decimal(point.spd)
+        },
+        'ext': {
+            'dst': float_to_decimal(point.dst),
+            'hdg': float_to_decimal(point.hdg),
+            'alt_d': point.alt_d,
+            'spd_d': float_to_decimal(point.spd_d),
+            'hdg_d': float_to_decimal(point.hdg_d)
+        }
+    }
+    # Add windows
+    for k in list(point.windows):
+        # Get the window
+        w = point.windows[k]
+        win_obj = {
+            'period': w.period,
+            'distance': float_to_decimal(w.distance),
+            'alt_delta': w.alt_delta,
+            'alt_gain': w.alt_gain,
+            'alt_loss': w.alt_loss,
+            'alt_max': w.alt_max,
+            'alt_min': w.alt_min,
+            'speed_ave': float_to_decimal(w.speed_ave),
+            'speed_delta': float_to_decimal(w.speed_delta),
+            'speed_max': float_to_decimal(w.speed_max),
+            'speed_min': float_to_decimal(w.speed_min)
+        }
+        key_str = 'win_{:s}'.format(str(k))
+        item[key_str] = win_obj
 
-                    self.insert_count += 1
-                    debug_point_event(log, point, 'add_points_to_track: put_item %s=%s', point.track_id, response)
-                except Exception as e:
-                    # Something went wrong, log the error
-                    log.error(e)
-                    self.error_count += 1
+    return item
 
 
 def count_points():
