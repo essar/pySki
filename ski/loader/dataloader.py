@@ -8,7 +8,6 @@
 """
 import logging
 
-from ski.config import config
 from ski.data.commons import basic_to_extended_point
 from ski.loader.cleanup import cleanup_points
 from ski.loader.enrich import enrich_points, PointWindow, WindowKey
@@ -17,14 +16,15 @@ from ski.loader.enrich import enrich_points, PointWindow, WindowKey
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-load_buffer_len = config['dataloader']['load_buffer']
-load_extended = config['dataloader']['extended_points']
 
 #################
 # Adjust these parameters depending on what windows you want to add
 window_keys = {
-    WindowKey(PointWindow.FORWARD, 3): None,
-    WindowKey(PointWindow.FORWARD, 30): None
+    WindowKey(PointWindow.FORWARD, 5): None,
+    WindowKey(PointWindow.FORWARD, 30): None,
+    WindowKey(PointWindow.BACKWARD, 5): None,
+    WindowKey(PointWindow.BACKWARD, 30): None,
+    WindowKey(PointWindow.MIDPOINT, 29): None
 }
 head_length = 30
 tail_length = 30

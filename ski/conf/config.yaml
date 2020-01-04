@@ -6,8 +6,6 @@ db:
 dataloader:
   aws:
     source_bucket: essar-zephyr-test
-  extended_points: Yes
-  load_buffer: 100
 
 cleanup:
   skip_interpolate: no
