@@ -11,7 +11,7 @@ from ski.loader.dataloader import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.WARNING)
 
 
 class EmptyLoader:
