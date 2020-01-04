@@ -48,13 +48,23 @@ class TestDataLoader(unittest.TestCase):
         tz = timezone('UTC')
         self.track = Track('unittest', 'TEST', datetime.now(tz))
 
+    def test_drain_window(self):
+        # Prepare window
+        loader = TestLoader(points=10)
+        window = PointWindow(head_length=30)
+        window.head = loader.points
+
+        drain_window(window, self.db, self.track)
+
+        self.assertEqual(10, self.db.insert_count)
+
     def test_load_all_points(self):
         # Prepare loader
         loader = TestLoader(points=50)
 
         load_all_points(loader, self.db, self.track)
 
-        self.assertEqual(50, self.db.insert_count, list(map(lambda p: p.ts, loader.points)))
+        self.assertEqual(50, self.db.insert_count)
 
     def test_load_all_points_exceeds_buffer(self):
         # Prepare loader

@@ -31,38 +31,51 @@ tail_length = 30
 #################
 
 
+def drain_window(window, db, track):
+    """
+    Drains the point window of any remaining points.
+    @param window: the current point window.
+    @param db: a db class providing the output data store.
+    @param track: the track to store these points to.
+    """
+
+    # Set drain flag on window
+    window.drain = True
+
+    # Process remainder of the window
+    enriched_points = enrich_points([], window, window_keys)
+
+    # Save points to data store
+    db.add_points_to_track(track, enriched_points)
+
+    log.info('%d extended points loaded to track %s', len(enriched_points), track.track_id)
+
+
 def load_points(loader, window, db, track):
     """
-    Load a set of points from a loader object, clean these and store in the data store as part of a specified track.
-    Params:
-      loader: a Loader class providing the input data.
-      db:     a db class providing the output data store.
-      track:  the track to store these points to.
-    
-    Returns true if a point is added successfully, false if there are no more points to add.
+    Loads a set of points from a loader object, clean these and store in the data store as part of a specified track.
+    @param loader: a Loader class providing the input data.
+    @param window: the current point window.
+    @param db: a db class providing the output data store.
+    @param track: the track to store these points to.
+    @return true if a point is added successfully, false if there are no more points to add.
     """
 
     # Load points into buffer and convert to extended points
     points = loader.load_points()
     if points is None or len(points) == 0:
-        # Check to see if there's data left in the window
-        if len(window.head) == 0:
-            # No more points to process, exit
-            return False
-
-        # Drain the window
-        window.drain = True
-        # Empty point list
-        points = []
-        log.info('No more data available, draining window')
+        return False
 
     ext_points = list(map(basic_to_extended_point, points))
+    log.debug('[%s] load_points: %d extended points', track.track_id, len(ext_points))
 
     # Do clean up
     cleaned_points = cleanup_points(ext_points)
+    log.debug('[%s] load_points: %d cleaned points', track.track_id, len(cleaned_points))
 
     # Do enrichment
     enriched_points = enrich_points(cleaned_points, window, window_keys)
+    log.debug('[%s] load_points: %d enriched points', track.track_id, len(enriched_points))
 
     # Save points to data store
     db.add_points_to_track(track, enriched_points)
@@ -73,12 +86,10 @@ def load_points(loader, window, db, track):
 
 def load_all_points(loader, db, track):
     """
-    Iterate across all points held in a loader and store all points in the data store.
-    
-    Params:
-      loader: a Loader class providing the input data.
-      db: a db class providing the output data store.
-      track: the track to store these points to.
+    Iterates across all points held in a loader and store all points in the data store.
+    @param loader: a Loader class providing the input data.
+    @param db: a db class providing the output data store.
+    @param track: the track to store these points to.
     """
 
     # Initialize a new point window
@@ -88,4 +99,10 @@ def load_all_points(loader, db, track):
     while load_points(loader, window, db, track):
         pass
 
-    log.info('Load complete: %d points loaded', db.insert_count)
+    # Check if there are points left in the window
+    if len(window.head) > 0:
+        # Drain the window
+        log.info('No more data available, draining window')
+        drain_window(window, db, track)
+
+    log.info('Load complete: %d points loaded for %s', db.insert_count, track.track_id)
