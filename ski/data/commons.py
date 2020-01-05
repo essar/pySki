@@ -11,6 +11,7 @@ class Track:
         self.track_id = track_id
         self.track_group = track_group
         self.track_zdt = track_zdt
+        self.properties = {}
 
     def __str__(self):
         return '[{:s}] group={:s} zdt={:s}'.format(self.track_id, self.track_group, self.track_zdt)

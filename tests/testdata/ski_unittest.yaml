@@ -1,0 +1,12 @@
+id: unittest
+group: test
+start_time: 2019-02-27T09:02:00
+timezone: Europe/Paris
+
+datafile: testdata.gsd
+
+properties:
+  day: 1
+  day_of: 3
+  skiier: SJR
+  resort: Val Thorens
