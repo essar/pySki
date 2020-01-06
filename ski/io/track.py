@@ -4,7 +4,6 @@
 import logging
 import yaml
 
-from datetime import datetime
 from pytz import timezone
 from ski.aws.s3 import S3File
 from ski.data.commons import Track
@@ -25,9 +24,9 @@ class TrackLoader:
         track_group = data['group']
 
         tz = timezone(data['timezone'])
-        track_zdt = data['start_time'].astimezone(tz).isoformat()
+        start_time = data['start_time'].astimezone(tz)
 
-        self.track = Track(track_id, track_group, track_zdt)
+        self.track = Track(track_id, track_group, start_time)
         self.track.properties = data['properties']
 
         self.datafile = data['datafile']

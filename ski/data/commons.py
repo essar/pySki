@@ -7,14 +7,14 @@ class Track:
     """
     Class that encapsulates data representing a single track or connected set of points.
     """
-    def __init__(self, track_id, track_group, track_zdt):
+    def __init__(self, track_id, track_group, start_time):
         self.track_id = track_id
         self.track_group = track_group
-        self.track_zdt = track_zdt
+        self.start_time = start_time
         self.properties = {}
 
     def __str__(self):
-        return '[{:s}] group={:s} zdt={:s}'.format(self.track_id, self.track_group, self.track_zdt)
+        return '[{:s}] group={:s} start_time={:s}'.format(self.track_id, self.track_group, self.start_time.isoformat())
 
 
 class BasicGPSPoint:
