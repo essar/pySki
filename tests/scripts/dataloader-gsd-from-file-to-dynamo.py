@@ -4,15 +4,14 @@
   Loads GSD data from a local file.
 """
 import time
-from datetime import datetime
-from pytz import timezone
 from ski.aws.dynamo import DynamoDataStore
-from ski.data.commons import Track
 from ski.io.gsd import GSDFileLoader
+from ski.io.track import TrackFileLoader
 
 from ski.loader.dataloader import *
 
 
+TEST_TRACK_FILE = 'tests/testdata/ski_unittest.yaml'
 TEST_DATA_FILE = 'tests/testdata/testdata.gsd'
 
 # Set up logger
@@ -22,9 +21,9 @@ log.setLevel(logging.INFO)
 # Create data store
 db = DynamoDataStore()
 
-# Create track in default timezone
-tz = timezone('UTC')
-track = Track('test','TEST', datetime.now(tz))
+# Create track loader
+ldr = TrackFileLoader(TEST_TRACK_FILE)
+track = ldr.get_track()
 
 start = time.time()
 

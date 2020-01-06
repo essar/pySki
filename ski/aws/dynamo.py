@@ -7,6 +7,7 @@ from boto3 import client, resource
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Inexact, Rounded, localcontext
+from datetime import datetime
 from ski.config import config
 from ski.data.commons import ExtendedGPSPoint, debug_point_event
 from ski.io.db import DataStore
@@ -108,9 +109,9 @@ def build_item(track, point):
     item = {
         'track_id': track.track_id,
         'timestamp': point.ts,
-        'local_time': None,
+        'local_time': timestamp_to_local_time(point.ts, track),
         'track_group': track.track_group,
-        'track_info': {},
+        'track_properties': track.properties,
         'gps': {
             'lat': float_to_decimal(point.lat),
             'lon': float_to_decimal(point.lon),
@@ -118,14 +119,14 @@ def build_item(track, point):
             'y': point.y,
             'alt': point.alt,
             'spd': float_to_decimal(point.spd)
-        },
+            },
         'ext': {
             'dst': float_to_decimal(point.dst),
             'hdg': float_to_decimal(point.hdg),
             'alt_d': point.alt_d,
             'spd_d': float_to_decimal(point.spd_d),
             'hdg_d': float_to_decimal(point.hdg_d)
-        }
+            }
     }
     # Add windows
     for k in list(point.windows):
@@ -236,6 +237,10 @@ def decimal_to_integer(decimal):
     return int(decimal)
 
 
+def format_datetime(dt):
+    return dt.isoformat()
+
+
 def float_to_decimal(float_value):
     """
     Convert a floating point value to a decimal that DynamoDB can store,
@@ -251,3 +256,7 @@ def float_to_decimal(float_value):
         decimal_value = cxt.create_decimal_from_float(float_value)
 
         return decimal_value
+
+
+def timestamp_to_local_time(ts, track):
+    return format_datetime(datetime.fromtimestamp(ts, track.start_time.tzinfo))
