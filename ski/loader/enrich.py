@@ -26,7 +26,7 @@ class WindowKey:
         return '{:s},{:d}'.format(['', 'F', 'M', 'B'][self.window_type], self.size)
 
     def __str__(self):
-        return '{size:d}{window_type:s}'.format(window_type=['', 'fwd', 'mid', 'bwd'][self.window_type], size=self.size)
+        return self.__repr__()
 
     def key(self):
         return self.window_type, self.size
