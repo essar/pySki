@@ -12,7 +12,8 @@ import time
 from ski.logging import log_json
 from ski.data.commons import basic_to_extended_point
 from ski.loader.cleanup import cleanup_points
-from ski.loader.enrich import enrich_points, PointWindow, WindowKey
+from ski.loader.enrich import enrich_points
+from ski.loader.window import PointWindow, WindowKey
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -22,11 +23,11 @@ log.setLevel(logging.INFO)
 #################
 # Adjust these parameters depending on what windows you want to add
 window_keys = {
-    WindowKey(PointWindow.FORWARD, 5): None,
-    WindowKey(PointWindow.FORWARD, 30): None,
-    WindowKey(PointWindow.BACKWARD, 5): None,
-    WindowKey(PointWindow.BACKWARD, 30): None,
-    WindowKey(PointWindow.MIDPOINT, 29): None
+    WindowKey(WindowKey.FORWARD, 5): None,
+    WindowKey(WindowKey.FORWARD, 30): None,
+    WindowKey(WindowKey.BACKWARD, 5): None,
+    WindowKey(WindowKey.BACKWARD, 30): None,
+    WindowKey(WindowKey.MIDPOINT, 29): None
 }
 head_length = 30
 tail_length = 30
@@ -144,7 +145,7 @@ def load_all_points(loader, db, track):
     """
 
     # Initialize a new point window
-    window = PointWindow(head_length, tail_length)
+    window = PointWindow(head_length=head_length, tail_length=tail_length)
 
     # Initialize a batch counter
     batch_count = 0
