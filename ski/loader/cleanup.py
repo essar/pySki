@@ -5,7 +5,7 @@ Performs clean up operations on GPS points. First phase in data load pipeline.
 import logging
 
 from ski.config import config
-from ski.data.commons import debug_point_event
+from ski.logging import debug_point_event, log_json
 from ski.data.coordinate import WGSCoordinate, wgs_to_utm
 from ski.data.pointutils import get_distance, get_heading, get_ts_delta
 from ski.loader.interpolate import linear_interpolate
@@ -56,7 +56,7 @@ def calculate_deltas(prev_point, point):
                           point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
 
 
-def cleanup_points(points, outlyers=None):
+def cleanup_points(track, points, outlyers=None):
     """
     Clean up a list of points, removing outlyers and interpolating gaps.
     @param points: List of points to clean up.
@@ -105,7 +105,7 @@ def cleanup_points(points, outlyers=None):
         output.append(point)
         prev_point = point
 
-    log.info('Point clean up complete; points in=%d; points out=%d', len(points), len(output))
+    log_json(log, logging.INFO, track, message='Clean up complete', points_in=len(points), points_out=len(output))
 
     return output
 

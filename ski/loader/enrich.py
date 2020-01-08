@@ -3,7 +3,8 @@
 import logging
 
 from math import floor
-from ski.data.commons import EnrichedWindow, debug_point_event
+from ski.logging import debug_point_event, log_json
+from ski.data.commons import EnrichedWindow
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -168,7 +169,8 @@ def enrich_points(points, window, default_keys):
     # Push the target point back into the head
     window.reset_target()
 
-    log.info('Enriched %d points; %d remain in head, %d in tail', len(output), len(window.head), len(window.tail))
+    log_json(log, logging.INFO, message='Enrichment complete', point_count=len(output),
+             head_length=len(window.head), tail_length=len(window.tail))
 
     # Clean up window
     window.trim()

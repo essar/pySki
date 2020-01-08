@@ -9,7 +9,8 @@ from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Inexact, Rounded, localcontext
 from datetime import datetime
 from ski.config import config
-from ski.data.commons import ExtendedGPSPoint, debug_point_event
+from ski.data.commons import ExtendedGPSPoint
+from ski.logging import debug_point_event
 from ski.io.db import DataStore
 
 # Set up logger

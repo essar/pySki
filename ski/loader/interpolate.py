@@ -3,7 +3,8 @@
 import logging
 
 from math import floor
-from ski.data.commons import ExtendedGPSPoint, debug_point_event
+from ski.data.commons import ExtendedGPSPoint
+from ski.logging import debug_point_event
 
 # Set up logger
 log = logging.getLogger(__name__)

@@ -130,7 +130,3 @@ def basic_to_extended_point(basic_point):
         return ExtendedGPSPoint(**basic_point.values())
     raise TypeError('Expected BasicGPSPoint')
 
-
-def debug_point_event(logger, point, message, *args):
-    log_msg = '[%010d] ' + message
-    logger.debug(log_msg, point.ts, *args)

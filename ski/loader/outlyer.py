@@ -3,7 +3,7 @@
 import logging
 
 from ski.config import config
-from ski.data.commons import debug_point_event
+from ski.logging import debug_point_event
 from ski.data.pointutils import get_distance, get_ts_delta
 
 
