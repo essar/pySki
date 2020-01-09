@@ -6,6 +6,9 @@ db:
 dataloader:
   aws:
     source_bucket: essar-zephyr-test
+  batch_size: 1000
+  head_length: 30
+  tail_length: 30
 
 cleanup:
   skip_interpolate: no

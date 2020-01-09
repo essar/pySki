@@ -13,6 +13,15 @@ class Track:
         self.start_time = start_time
         self.properties = {}
 
+    def values(self):
+        v = {
+            'track_id': self.track_id,
+            'track_group': self.track_group,
+            'start_time': self.start_time.isoformat()
+        }
+        v.update(self.properties)
+        return v
+
     def __str__(self):
         return '[{:s}] group={:s} start_time={:s}'.format(self.track_id, self.track_group, self.start_time.isoformat())
 

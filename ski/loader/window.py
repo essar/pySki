@@ -29,7 +29,7 @@ class BatchWindow:
 
         if process_f is not None:
             # Invoke process function
-            process_f(body_out, self.tail, **kwargs)
+            process_f(self.batch_count, body_out, self.tail, **kwargs)
 
         # Append output elements of body to tail
         self.tail += body_out
