@@ -3,7 +3,7 @@
 
 import unittest
 from ski.data.commons import ExtendedGPSPoint
-from ski.loader.window import BatchWindow, WindowKey
+from ski.loader.window import PointWindow, WindowKey
 
 from ski.loader.enrich import *
 
@@ -194,27 +194,6 @@ class TestEnrich(unittest.TestCase):
         res = enrich_points(window, [wk])
 
         self.assertEqual(5, len(res))
-        self.assertIsNotNone(points[0].windows[wk])
-
-    """
-    enrich_batch
-    """
-    def test_enrich_batch(self):
-        # Prepare data
-        points = [
-            ExtendedGPSPoint(dst=1, alt=10, spd=1),
-            ExtendedGPSPoint(dst=1, alt=20, spd=2),
-            ExtendedGPSPoint(dst=1, alt=40, spd=3),
-            ExtendedGPSPoint(dst=1, alt=70, spd=4),
-            ExtendedGPSPoint(dst=1, alt=110, spd=5)
-        ]
-        batch = BatchWindow(batch_size=3)
-        batch.body += points
-
-        wk = WindowKey(WindowKey.FORWARD, 3)
-
-        res = enrich_batch(batch, [wk], min_head_length=3)
-        self.assertEqual(2, len(res))
         self.assertIsNotNone(points[0].windows[wk])
 
 

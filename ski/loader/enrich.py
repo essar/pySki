@@ -2,23 +2,13 @@
 """
 import logging
 
-from ski.logging import debug_point_event, log_json
+from ski.logging import debug_point_event
 from ski.data.commons import EnrichedWindow
-from ski.loader.window import PointWindow
 
 
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
-
-def enrich_batch(batch, default_keys, min_head_length=0):
-
-    # Create a window from points in the batch
-    window = PointWindow(head=batch.body, tail=batch.tail, min_head_length=min_head_length)
-
-    # Enrich points in the window
-    return enrich_points(window, default_keys)
 
 
 def enrich_points(window, default_keys):

@@ -53,19 +53,19 @@ class TestDataLoader(unittest.TestCase):
     """
     def test_load_all_points(self):
         # Prepare loader
-        loader = TestLoader(points=100)
+        loader = TestLoader(points=1000)
 
         load_all_points(loader, self.db, self.track)
 
-        self.assertEqual(100, self.db.insert_count)
+        self.assertEqual(1000, self.db.insert_count)
 
     def test_load_all_points_exceeds_buffer(self):
         # Prepare loader
-        loader = TestLoader(200)
+        loader = TestLoader(points=1200)
 
         load_all_points(loader, self.db, self.track)
 
-        self.assertEqual(200, self.db.insert_count)
+        self.assertEqual(1200, self.db.insert_count)
 
     """
     load_points(loader, batch, db, track)

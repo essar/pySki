@@ -133,8 +133,8 @@ def load_points(loader, batch, window, db, track):
         cleaned_points = None
 
     # Load points into the batch
-    #batch.load_points(cleaned_points, direct_process_batch, window=window, db=db, track=track)
-    batch.load_points(cleaned_points, file_process_batch, track=track)
+    batch.load_points(cleaned_points, direct_process_batch, window=window, db=db, track=track)
+    #batch.load_points(cleaned_points, file_process_batch, track=track)
 
     return points is not None
 
