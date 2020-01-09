@@ -10,17 +10,26 @@ log.setLevel(logging.INFO)
 
 class BatchWindow:
 
-    def __init__(self, body_size=450, overlap=30):
-        self.body_size = body_size
+    def __init__(self, batch_size=30, overlap=0):
+        self.batch_size = batch_size
         self.overlap = overlap
         self.body = []
         self.tail = []
+        self.batch_count = 0
 
-        if self.overlap > self.body_size:
-            raise ValueError('Overlap size cannot exceed body size')
+        if self.overlap > self.batch_size:
+            raise ValueError('Overlap size cannot exceed batch size')
 
-    def __shift_to_tail(self, body_out):
-        """ Moves output points from body to tail."""
+    def __process_batch(self, process_f, **kwargs):
+        self.batch_count += 1
+
+        body_out = self.body[:self.batch_size]
+
+        log.debug('%s[batch=%03d] Processing %d points', self, self.batch_count, len(body_out))
+
+        if process_f is not None:
+            # Invoke process function
+            process_f(body_out, self.tail, **kwargs)
 
         # Append output elements of body to tail
         self.tail += body_out
@@ -31,25 +40,25 @@ class BatchWindow:
         # Leave any unprocessed elements in the body
         self.body = self.body[len(body_out):]
 
-        log.debug('body_length=%d, tail_length=%d', len(self.body), len(self.tail))
+        log.debug('%s[batch=%03d] %d points processed', self, self.batch_count, len(body_out))
 
-    def load_points(self, points, output_f=None):
+    def __str__(self):
+        return '[BatchWindow][body={:d}][tail={:d}]'.format(len(self.body), len(self.tail))
+
+    def load_points(self, points, output_f=None, **kwargs):
         """ Loads points into the window. If the window is full, call `output_f(points, tail)` with the window data."""
 
-        # Append points in to the body
-        self.body += points
+        if points is None:
+            # End of input, process the batch
+            self.__process_batch(output_f, **kwargs)
 
-        while len(self.body) >= self.body_size:
-            # Assemble points to be sent to output function
-            body_out = self.body[:self.body_size]
+        else:
+            # Append points in to the body
+            self.body += points
+            log.debug('%s Loaded %d points', self, len(points))
 
-            if output_f is not None:
-                # Invoke output function
-                output_f(body_out, self.tail)
-                log.debug('Called output function with %d points', len(body_out))
-
-            # Move output points to the tail
-            self.__shift_to_tail(body_out)
+            while len(self.body) >= self.batch_size:
+                self.__process_batch(output_f, **kwargs)
 
 
 class PointWindow:
@@ -59,12 +68,11 @@ class PointWindow:
     Tail: A list of points "after" the target point. Already processed.
     """
 
-    def __init__(self, head=None, tail=None, head_length=50, tail_length=50):
+    def __init__(self, head=None, tail=None, min_head_length=0):
         self.head = []
         self.tail = []
 
-        self.head_length = head_length
-        self.tail_length = tail_length
+        self.min_head_length = min_head_length
         self.target_point = None
         self.drain = False
 
@@ -74,17 +82,8 @@ class PointWindow:
         if tail is not None:
             self.tail += tail
 
-    def __get_head_points(self, size):
-        return self.head[0:(min(size, len(self.head), self.head_length))]
-
-    def __get_target_point(self):
-        return self.target_point
-
-    def __get_tail_points(self, size):
-        return self.tail[-min(size, len(self.tail), self.tail_length):]
-
-    def current_point(self):
-        return self.target_point
+    def __str__(self):
+        return '[PointWindow][head={:d}][tail={:d}]'.format(len(self.head), len(self.tail))
 
     def extract(self, window_type, size):
         """
@@ -92,7 +91,7 @@ class PointWindow:
         @param window_type: window direction:
             FORWARD - points ahead of the current point
             BACKWARD - points behind the current point
-            MIDPOINT - poinds equally either side of the current point
+            MIDPOINT - points equally either side of the current point
         @param size: size of the window
         @return: a list of points, including the current point
         """
@@ -104,18 +103,18 @@ class PointWindow:
         # Forward looking window
         if window_type == WindowKey.FORWARD:
             # Set of points from target point into the head
-            points = [self.__get_target_point()] + self.head[:size - 1]
+            points = [self.target_point] + self.head[:size - 1]
             return points
 
         elif window_type == WindowKey.MIDPOINT:
             # Load equally either side of target point
-            mp = floor((size - 1) / 2)
-            points = self.__get_tail_points(mp) + [self.__get_target_point()] + self.__get_head_points(mp)
+            mp = floor((size - 1) / 2.0)
+            points = self.tail[-mp:] + [self.target_point] + self.head[:mp]
             return points
 
         elif window_type == WindowKey.BACKWARD:
             # Set of points into the tail plus the target point
-            points = self.__get_tail_points(size - 1) + [self.__get_target_point()]
+            points = self.tail[-(size - 1):] + [self.target_point]
             return points
 
     def load_points(self, points):
@@ -124,39 +123,34 @@ class PointWindow:
         @param points: the points to add
         """
         self.head += points
-        log.debug('head: %s', self.head)
+        log.debug('%s Loaded %s points', self, len(points))
 
     def process(self):
         """
         Process a point, moving it from the top of the head to the bottom of the tail.
         @return: True if the buffers remain full or the window is draining, false otherwise
         """
+
         if self.target_point is not None:
             # Add target point to end of tail
             self.tail.append(self.target_point)
 
-        # Stop if head is empty and we're draining
-        if self.drain and len(self.head) == 0:
-            return False
-
-        # Extract point from top of head
-        self.target_point = self.head.pop(0) if len(self.head) > 0 else None
-
-        return self.drain or (len(self.head) + 1) >= self.head_length
-
-    def reset_target(self):
-        """
-
-        """
-        if not self.drain:
-            self.head.insert(0, self.target_point)
+        # Reset target point, prevents it being duplicated
         self.target_point = None
 
-    def trim(self):
-        """
-        Reduce the tail to the target length.
-        """
-        self.tail = self.tail[0:self.tail_length]
+        # Stop if head is empty and we're draining
+        if self.drain and len(self.head) == 0:
+            log.debug('%s Window drained', self)
+            return False
+
+        if self.drain or len(self.head) > max(0, self.min_head_length):
+            # Extract point from top of head
+            self.target_point = self.head.pop(0)
+            log.debug('%s Process window: OK', self)
+            return True
+
+        log.debug('%s Process window: closed (min_head=%d < %d)', self, self.min_head_length, len(self.head))
+        return False
 
 
 class WindowKey:

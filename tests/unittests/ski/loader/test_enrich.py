@@ -9,7 +9,7 @@ from ski.loader.enrich import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 
 class TestEnrich(unittest.TestCase):
@@ -155,42 +155,6 @@ class TestEnrich(unittest.TestCase):
         self.assertEqual(1, res['speed_min'])
 
     """
-    enrich_batch
-    """
-    def test_enrich_batch(self):
-        # Prepare data
-        points = [
-            ExtendedGPSPoint(dst=1, alt=10, spd=1),
-            ExtendedGPSPoint(dst=1, alt=20, spd=2),
-            ExtendedGPSPoint(dst=1, alt=40, spd=3),
-            ExtendedGPSPoint(dst=1, alt=70, spd=4),
-            ExtendedGPSPoint(dst=1, alt=110, spd=5)
-        ]
-        batch = BatchWindow(body_size=3, overlap=3)
-        batch.body += points
-
-        # Window key looking forward (in the body)
-        wk = WindowKey(WindowKey.FORWARD, 3)
-
-        res = enrich_batch(batch, [wk])
-
-        self.assertEqual(3, len(res))
-        self.assertIsNotNone(points[0].windows[wk])
-
-        # Verify distance
-        self.assertEqual(3, points[0].windows[wk].distance)
-
-        # Verify altitude delta values
-        self.assertEqual(30, points[0].windows[wk].alt_delta)
-        self.assertEqual(50, points[1].windows[wk].alt_delta)
-        self.assertEqual(70, points[2].windows[wk].alt_delta)
-
-        # Verify maximum speed values
-        self.assertEqual(3, points[0].windows[wk].speed_max)
-        self.assertEqual(4, points[1].windows[wk].speed_max)
-        self.assertEqual(5, points[2].windows[wk].speed_max)
-
-    """
     enrich_points
     """
     def test_enrich_points(self):
@@ -202,26 +166,17 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(dst=1, alt=70, spd=4),
             ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
-        window = PointWindow(head_length=3, tail_length=3)
+        window = PointWindow(head=points, min_head_length=2)
 
-        wk = WindowKey(WindowKey.BACKWARD, 3)
-        res = enrich_points(points, window, [wk])
+        # Window key looking forward (in the body)
+        wk = WindowKey(WindowKey.FORWARD, 3)
+
+        res = enrich_points(window, [wk])
 
         self.assertEqual(3, len(res))
         self.assertIsNotNone(points[0].windows[wk])
-        self.assertEqual(1, points[0].windows[wk].distance)
 
-        # Verify altitude delta values
-        self.assertEqual(0, points[0].windows[wk].alt_delta)
-        self.assertEqual(10, points[1].windows[wk].alt_delta)
-        self.assertEqual(30, points[2].windows[wk].alt_delta)
-
-        # Verify maximum speed values
-        self.assertEqual(1, points[0].windows[wk].speed_max)
-        self.assertEqual(2, points[1].windows[wk].speed_max)
-        self.assertEqual(3, points[2].windows[wk].speed_max)
-
-    def test_enrich_points_draining(self):
+    def test_enrich_points_drain(self):
         # Prepare data
         points = [
             ExtendedGPSPoint(dst=1, alt=10, spd=1),
@@ -230,30 +185,37 @@ class TestEnrich(unittest.TestCase):
             ExtendedGPSPoint(dst=1, alt=70, spd=4),
             ExtendedGPSPoint(dst=1, alt=110, spd=5)
         ]
-        window = PointWindow(head_length=3, tail_length=3)
-        window.drain = True
+        # Call enrich_batch is no min_head_length to drain it
+        window = PointWindow(head=points)
 
-        wk = WindowKey(WindowKey.BACKWARD, 3)
+        wk = WindowKey(WindowKey.FORWARD, 3)
 
-        res = enrich_points(points, window, [wk])
+        # Call enrich_batch is no min_head_length to drain it
+        res = enrich_points(window, [wk])
 
         self.assertEqual(5, len(res))
         self.assertIsNotNone(points[0].windows[wk])
-        self.assertEqual(1, points[0].windows[wk].distance)
 
-        # Verify altitude delta values
-        self.assertEqual(0, points[0].windows[wk].alt_delta)
-        self.assertEqual(10, points[1].windows[wk].alt_delta)
-        self.assertEqual(30, points[2].windows[wk].alt_delta)
-        self.assertEqual(50, points[3].windows[wk].alt_delta)
-        self.assertEqual(70, points[4].windows[wk].alt_delta)
+    """
+    enrich_batch
+    """
+    def test_enrich_batch(self):
+        # Prepare data
+        points = [
+            ExtendedGPSPoint(dst=1, alt=10, spd=1),
+            ExtendedGPSPoint(dst=1, alt=20, spd=2),
+            ExtendedGPSPoint(dst=1, alt=40, spd=3),
+            ExtendedGPSPoint(dst=1, alt=70, spd=4),
+            ExtendedGPSPoint(dst=1, alt=110, spd=5)
+        ]
+        batch = BatchWindow(batch_size=3)
+        batch.body += points
 
-        # Verify maximum speed values
-        self.assertEqual(1, points[0].windows[wk].speed_max)
-        self.assertEqual(2, points[1].windows[wk].speed_max)
-        self.assertEqual(3, points[2].windows[wk].speed_max)
-        self.assertEqual(4, points[3].windows[wk].speed_max)
-        self.assertEqual(5, points[4].windows[wk].speed_max)
+        wk = WindowKey(WindowKey.FORWARD, 3)
+
+        res = enrich_batch(batch, [wk], min_head_length=3)
+        self.assertEqual(2, len(res))
+        self.assertIsNotNone(points[0].windows[wk])
 
 
 if __name__ == '__main__':

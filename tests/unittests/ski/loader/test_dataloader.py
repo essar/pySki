@@ -48,60 +48,68 @@ class TestDataLoader(unittest.TestCase):
         tz = timezone('UTC')
         self.track = Track('unittest', 'TEST', datetime.now(tz))
 
-    def test_drain_window(self):
-        # Prepare window
-        loader = TestLoader(points=10)
-        window = PointWindow(head_length=30)
-        window.head = loader.points
-
-        drain_window(window, self.db, self.track)
-
-        self.assertEqual(10, self.db.insert_count)
-
+    """
+    load_all_points(loader, db, track)
+    """
     def test_load_all_points(self):
         # Prepare loader
-        loader = TestLoader(points=50)
+        loader = TestLoader(points=100)
 
         load_all_points(loader, self.db, self.track)
 
-        self.assertEqual(50, self.db.insert_count)
+        self.assertEqual(100, self.db.insert_count)
 
     def test_load_all_points_exceeds_buffer(self):
         # Prepare loader
-        loader = TestLoader(101)
+        loader = TestLoader(200)
 
         load_all_points(loader, self.db, self.track)
 
-        self.assertEqual(101, self.db.insert_count)
+        self.assertEqual(200, self.db.insert_count)
 
+    """
+    load_points(loader, batch, db, track)
+    """
     def test_load_points(self):
         # Prepare loader
-        loader = TestLoader(points=50)
-        window = PointWindow(head_length=30)
+        loader = TestLoader(points=100)
+        batch = BatchWindow(batch_size=50, overlap=30)
+        window = PointWindow(min_head_length=30)
 
-        res = load_points(loader, window, self.db, self.track)
+        res = load_points(loader, batch, window, self.db, self.track)
         self.assertTrue(res)
-        self.assertEqual(21, self.db.insert_count)
+        self.assertEqual(70, self.db.insert_count)
+
+    def test_load_points_shortfall(self):
+        # Prepare loader
+        loader = TestLoader(points=40)
+        batch = BatchWindow(batch_size=50, overlap=30)
+        window = PointWindow(min_head_length=30)
+
+        res = load_points(loader, batch, window, self.db, self.track)
+        self.assertTrue(res)
+        self.assertEqual(0, self.db.insert_count)
 
     def test_load_points_draining(self):
         # Prepare loader
-        loader = TestLoader(points=50)
-        window = PointWindow(head_length=30)
+        loader = TestLoader(points=100)
+        batch = BatchWindow(batch_size=50, overlap=30)
+        window = PointWindow(min_head_length=30)
 
         window.drain = True
 
-        res = load_points(loader, window, self.db, self.track)
+        res = load_points(loader, batch, window, self.db, self.track)
         self.assertTrue(res)
-        self.assertEqual(50, self.db.insert_count)
+        self.assertEqual(100, self.db.insert_count)
 
-    def test_load_points_no_data(self):
+    def test_load_points_draining_no_data(self):
         # Prepare loader
         loader = EmptyLoader()
-        window = PointWindow()
+        batch = BatchWindow(batch_size=50, overlap=30)
 
-        window.drain = True
+        window = PointWindow(min_head_length=30)
 
-        res = load_points(loader, window, self.db, self.track)
+        res = load_points(loader, batch, window, self.db, self.track)
         self.assertFalse(res)
         self.assertEqual(0, self.db.insert_count)
 

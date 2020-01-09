@@ -7,7 +7,7 @@ from ski.loader.window import *
 
 # Set up logger
 logging.basicConfig()
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)
 
 
 class TestBatchWindow(unittest.TestCase):
@@ -15,48 +15,48 @@ class TestBatchWindow(unittest.TestCase):
     BatchWindow()
     """
     def test_BatchWindow_overlap_exceeds_size(self):
-        body_size = 10
-        overlap = body_size + 1
+        batch_size = 10
+        overlap = batch_size + 1
 
         with self.assertRaises(ValueError):
-            BatchWindow(body_size=body_size, overlap=overlap)
+            BatchWindow(batch_size=batch_size, overlap=overlap)
 
     """
     BatchWindow.load_points(points)
     """
     def test_BatchWindow_load_points(self):
-        body_size = 10
+        batch_size = 10
         overlap = 3
-        batch_size = (body_size - 1)
+        data_size = (batch_size - 1)
 
-        batch = BatchWindow(body_size=body_size, overlap=overlap)
-        new_data = [x for x in range(0, batch_size)]
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
 
         batch.load_points(new_data, lambda body, tail: self.fail('Batch not full'))
-        self.assertEqual(batch_size, len(batch.body))
+        self.assertEqual(data_size, len(batch.body))
         self.assertEqual(0, len(batch.tail))
         self.assertListEqual(new_data, batch.body)
 
     def test_BatchWindow_load_points_batch_filled(self):
-        body_size = 10
+        batch_size = 10
         overlap = 3
-        batch_size = body_size
+        data_size = batch_size
 
-        batch = BatchWindow(body_size=body_size, overlap=overlap)
-        new_data = [x for x in range(0, batch_size)]
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(body_size, len(body)))
+        batch.load_points(new_data, lambda body, tail: self.assertEqual(batch_size, len(body)))
         self.assertEqual(0, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
         self.assertListEqual(new_data[-overlap:], batch.tail)
 
     def test_BatchWindow_load_points_batch_filled_no_function(self):
-        body_size = 10
+        batch_size = 10
         overlap = 3
-        batch_size = body_size
+        data_size = batch_size
 
-        batch = BatchWindow(body_size=body_size, overlap=overlap)
-        new_data = [x for x in range(0, batch_size)]
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
 
         batch.load_points(new_data)
         self.assertEqual(0, len(batch.body))
@@ -64,31 +64,42 @@ class TestBatchWindow(unittest.TestCase):
         self.assertListEqual(new_data[-overlap:], batch.tail)
 
     def test_BatchWindow_load_points_batch_filled_twice(self):
-        body_size = 10
+        batch_size = 10
         overlap = 3
-        batch_size = body_size * 2
+        data_size = batch_size * 2
 
-        batch = BatchWindow(body_size=body_size, overlap=overlap)
-        new_data = [x for x in range(0, batch_size)]
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(body_size, len(body)))
+        batch.load_points(new_data, lambda body, tail: self.assertEqual(batch_size, len(body)))
         self.assertEqual(0, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
         self.assertListEqual(new_data[-overlap:], batch.tail)
 
     def test_BatchWindow_load_points_batch_filled_and_overflow(self):
-        body_size = 10
+        batch_size = 10
         overlap = 3
         overflow = 5
-        batch_size = body_size + overflow
+        data_size = batch_size + overflow
 
-        batch = BatchWindow(body_size=body_size, overlap=overlap)
-        new_data = [x for x in range(0, batch_size)]
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(body_size, len(body)))
+        batch.load_points(new_data, lambda body, tail: self.assertEqual(batch_size, len(body)))
         self.assertEqual(overflow, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
         self.assertListEqual(new_data[-overlap - overflow:-overflow], batch.tail)
+
+    def test_BatchWindow_load_points_eof(self):
+        batch_size = 10
+        overlap = 3
+
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = None
+
+        batch.load_points(new_data, lambda body, tail: self.assertEqual(0, len(body)))
+        self.assertEqual(0, len(batch.body))
+        self.assertEqual(0, len(batch.tail))
 
     """
     PointWindow.extract(window_key)
@@ -209,38 +220,45 @@ class TestBatchWindow(unittest.TestCase):
     """
     PointWindow.process()
     """
-    def test_PointWindow_process(self):
-        head = [x for x in range(0, 10)]
-        tail = [x for x in range(0, 10)]
-
-        window = PointWindow(head=head, tail=tail, head_length=10)
-
-        self.assertTrue(window.process())
-
-    def test_PointWindow_process_points_remain(self):
+    def test_PointWindow_process_points(self):
         head = [x for x in range(0, 15)]
-        tail = [x for x in range(0, 10)]
 
-        window = PointWindow(head=head, tail=tail, head_length=10)
+        window = PointWindow(head=head, min_head_length=10)
 
         self.assertTrue(window.process())
+
+    def test_PointWindow_process_points_exhausted(self):
+        head = [x for x in range(0, 5)]
+
+        window = PointWindow(head=head, min_head_length=10)
+
+        self.assertFalse(window.process())
 
     def test_PointWindow_process_draining(self):
         head = [x for x in range(0, 10)]
-        tail = [x for x in range(0, 10)]
 
-        window = PointWindow(head=head, tail=tail, head_length=10)
+        window = PointWindow(head=head, min_head_length=10)
         window.drain = True
 
         self.assertTrue(window.process())
 
     def test_PointWindow_process_empty_head(self):
         head = []
-        tail = [x for x in range(0, 10)]
 
-        window = PointWindow(head=head, tail=tail, head_length=10)
+        window = PointWindow(head=head, min_head_length=10)
 
         self.assertFalse(window.process())
+
+    def test_PointWindow_process_count(self):
+        head = [x for x in range(0, 20)]
+
+        window = PointWindow(head=head, min_head_length=10)
+
+        count = 0
+        while window.process():
+            count += 1
+
+        self.assertEqual(10, count)
 
 
 if __name__ == '__main__':
