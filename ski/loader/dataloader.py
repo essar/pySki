@@ -19,7 +19,7 @@ from ski.loader.window import BatchWindow, PointWindow, WindowKey
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 #################
@@ -70,11 +70,11 @@ t = Timings()
 start_time = time.time()
 
 
-def dummy_process_batch(batch_idx, body, tail):
+def dummy_process_batch(batch_idx, body, tail, drain):
     log.info('Process batch of %d points, %d tail', len(body), len(tail))
 
 
-def file_process_batch(batch_idx, body, tail, track):
+def file_process_batch(batch_idx, body, tail, drain, track):
 
     file = 'tests/batch_output/{:04d}.json'.format(batch_idx)
     with open(file, 'w') as f:
@@ -89,10 +89,16 @@ def file_process_batch(batch_idx, body, tail, track):
     t.write_time += (time.time() - start_time)
 
 
-def direct_process_batch(batch_idx, body, tail, window, db, track):
+def direct_process_batch(batch_idx, body, tail, drain, db, track):
+
+    # Prepare a window from points
+    window = PointWindow(tail=tail, min_head_length=head_length)
+    window.drain = drain
+    window.load_points(body)
+
 
     # Load new batched points to the window
-    window.load_points(body)
+    #window.load_points(body)
     log.debug('[batch=%03d] window: head=%d, tail=%d', batch_idx, len(window.head), len(window.tail))
 
     # Enrich the points
@@ -106,12 +112,11 @@ def direct_process_batch(batch_idx, body, tail, window, db, track):
     log.info('[batch=%03d] Written %d points', batch_idx, db.insert_count)
 
 
-def load_points(loader, batch, window, db, track):
+def load_points(loader, batch, db, track, drain=False):
     """
     Loads a set of points from a loader object, clean these and store in the data store as part of a specified track.
     @param loader: a Loader class providing the input data.
     @param batch: reference to the batch handler.
-    @param window: a point window for generating enrichment values.
     @param db: a db class providing the output data store.
     @param track: the track to store these points to.
     @return true if a point is added successfully, false if there are no more points to add.
@@ -133,8 +138,8 @@ def load_points(loader, batch, window, db, track):
         cleaned_points = None
 
     # Load points into the batch
-    batch.load_points(cleaned_points, direct_process_batch, window=window, db=db, track=track)
-    #batch.load_points(cleaned_points, file_process_batch, track=track)
+    batch.load_points(cleaned_points, drain=drain, process_f=direct_process_batch, db=db, track=track)
+    #batch.load_points(cleaned_points, drain=drain, process_f=file_process_batch, track=track)
 
     return points is not None
 
@@ -157,13 +162,13 @@ def load_all_points(loader, db, track):
     batch_count = 0
 
     # Load all points from the loader, store in the database
-    while load_points(loader, batch, window, db, track):
+    while load_points(loader, batch, db, track):
         batch_count += 1
 
     # Drain the window
     window.drain = True
     # Call to drain the buffer
-    load_points(loader, batch, window, db, track)
+    load_points(loader, batch, db, track, True)
 
     log.info('Load complete: %d points loaded for %s', db.insert_count, track.track_id)
     log.info('%s', t)

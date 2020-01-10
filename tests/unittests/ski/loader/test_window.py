@@ -32,7 +32,7 @@ class TestBatchWindow(unittest.TestCase):
         batch = BatchWindow(batch_size=batch_size, overlap=overlap)
         new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.fail('Batch not full'))
+        batch.load_points(new_data, process_f=lambda idx, body, tail, drain: self.fail('Batch not full'))
         self.assertEqual(data_size, len(batch.body))
         self.assertEqual(0, len(batch.tail))
         self.assertListEqual(new_data, batch.body)
@@ -45,10 +45,11 @@ class TestBatchWindow(unittest.TestCase):
         batch = BatchWindow(batch_size=batch_size, overlap=overlap)
         new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(batch_size, len(body)))
-        self.assertEqual(0, len(batch.body))
+        batch.load_points(new_data, process_f=lambda idx, body, tail, drain: self.assertEqual(batch_size, len(body)))
+        self.assertEqual(overlap, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
-        self.assertListEqual(new_data[-overlap:], batch.tail)
+        self.assertListEqual(new_data[4:7], batch.tail)
+        self.assertListEqual(new_data[7:10], batch.body)
 
     def test_BatchWindow_load_points_batch_filled_no_function(self):
         batch_size = 10
@@ -59,9 +60,10 @@ class TestBatchWindow(unittest.TestCase):
         new_data = [x for x in range(0, data_size)]
 
         batch.load_points(new_data)
-        self.assertEqual(0, len(batch.body))
+        self.assertEqual(overlap, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
-        self.assertListEqual(new_data[-overlap:], batch.tail)
+        self.assertListEqual(new_data[4:7], batch.tail)
+        self.assertListEqual(new_data[7:10], batch.body)
 
     def test_BatchWindow_load_points_batch_filled_twice(self):
         batch_size = 10
@@ -71,10 +73,11 @@ class TestBatchWindow(unittest.TestCase):
         batch = BatchWindow(batch_size=batch_size, overlap=overlap)
         new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(batch_size, len(body)))
-        self.assertEqual(0, len(batch.body))
+        batch.load_points(new_data, process_f=lambda idx, body, tail, drain: self.assertEqual(batch_size, len(body)))
+        self.assertEqual(overlap * 2, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
-        self.assertListEqual(new_data[-overlap:], batch.tail)
+        self.assertListEqual(new_data[11:14], batch.tail)
+        self.assertListEqual(new_data[14:20], batch.body)
 
     def test_BatchWindow_load_points_batch_filled_and_overflow(self):
         batch_size = 10
@@ -85,10 +88,11 @@ class TestBatchWindow(unittest.TestCase):
         batch = BatchWindow(batch_size=batch_size, overlap=overlap)
         new_data = [x for x in range(0, data_size)]
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(batch_size, len(body)))
-        self.assertEqual(overflow, len(batch.body))
+        batch.load_points(new_data, process_f=lambda idx, body, tail, drain: self.assertEqual(batch_size, len(body)))
+        self.assertEqual(overflow + overlap, len(batch.body))
         self.assertEqual(overlap, len(batch.tail))
-        self.assertListEqual(new_data[-overlap - overflow:-overflow], batch.tail)
+        self.assertListEqual(new_data[4:7], batch.tail)
+        self.assertListEqual(new_data[7:15], batch.body)
 
     def test_BatchWindow_load_points_eof(self):
         batch_size = 10
@@ -97,7 +101,31 @@ class TestBatchWindow(unittest.TestCase):
         batch = BatchWindow(batch_size=batch_size, overlap=overlap)
         new_data = None
 
-        batch.load_points(new_data, lambda body, tail: self.assertEqual(0, len(body)))
+        batch.load_points(new_data, process_f=lambda idx, body, tail, drain: self.assertEqual(0, len(body)))
+        self.assertEqual(0, len(batch.body))
+        self.assertEqual(0, len(batch.tail))
+
+    def test_BatchWindow_load_points_overlap_zero(self):
+        batch_size = 10
+        overlap = 0
+        data_size = batch_size
+
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
+
+        batch.load_points(new_data, process_f=lambda idx, body, tail, drain: self.assertEqual(batch_size, len(body)))
+        self.assertEqual(overlap, len(batch.body))
+        self.assertEqual(overlap, len(batch.tail))
+
+    def test_BatchWindow_load_points_draining(self):
+        batch_size = 10
+        overlap = 3
+        data_size = batch_size
+
+        batch = BatchWindow(batch_size=batch_size, overlap=overlap)
+        new_data = [x for x in range(0, data_size)]
+
+        batch.load_points(new_data, drain=True, process_f=lambda idx, body, tail, drain: self.assertEqual(batch_size, len(body)))
         self.assertEqual(0, len(batch.body))
         self.assertEqual(0, len(batch.tail))
 

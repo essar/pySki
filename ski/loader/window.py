@@ -20,7 +20,7 @@ class BatchWindow:
         if self.overlap > self.batch_size:
             raise ValueError('Overlap size cannot exceed batch size')
 
-    def __process_batch(self, process_f, **kwargs):
+    def __process_batch(self, drain, process_f, **kwargs):
         self.batch_count += 1
 
         body_out = self.body[:self.batch_size]
@@ -29,28 +29,31 @@ class BatchWindow:
 
         if process_f is not None:
             # Invoke process function
-            process_f(self.batch_count, body_out, self.tail, **kwargs)
+            process_f(self.batch_count, body_out, self.tail, drain, **kwargs)
 
         # Append output elements of body to tail
         self.tail += body_out
 
-        # Trim to length
-        self.tail = self.tail[-self.overlap:]
+        # Use overlap of 0 if we're draining
+        ol = 0 if drain else self.overlap
 
-        # Leave any unprocessed elements in the body
-        self.body = self.body[len(body_out):]
+        # Trim to length
+        self.tail = self.tail[-(self.overlap * 2):-ol]
+
+        # Leave any unprocessed elements in the body, plus the overlap
+        self.body = self.body[len(body_out)-ol:]
 
         log.debug('%s[batch=%03d] %d points processed', self, self.batch_count, len(body_out))
 
     def __str__(self):
         return '[BatchWindow][body={:d}][tail={:d}]'.format(len(self.body), len(self.tail))
 
-    def load_points(self, points, output_f=None, **kwargs):
+    def load_points(self, points, drain=False, process_f=None, **kwargs):
         """ Loads points into the window. If the window is full, call `output_f(points, tail)` with the window data."""
 
         if points is None:
             # End of input, process the batch
-            self.__process_batch(output_f, **kwargs)
+            self.__process_batch(drain, process_f, **kwargs)
 
         else:
             # Append points in to the body
@@ -58,7 +61,7 @@ class BatchWindow:
             log.debug('%s Loaded %d points', self, len(points))
 
             while len(self.body) >= self.batch_size:
-                self.__process_batch(output_f, **kwargs)
+                self.__process_batch(drain, process_f, **kwargs)
 
 
 class PointWindow:
