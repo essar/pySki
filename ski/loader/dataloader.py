@@ -152,12 +152,8 @@ def load_all_points(loader, db, track):
     total_time = sum([x['process_time'] for x in [loader_stats, cleanup_stats, enrich_stats, write_stats]])
 
     log.info('Timings: load=%.3fs (%.1f%%), cleanup=%.3fs (%.1f%%), enrich=%.3fs (%.1f%%), write=%.3fs (%.1f%%)',
-             loader_stats['process_time'],
-             (loader_stats['process_time'] / total_time) * 100.0,
-             cleanup_stats['process_time'],
-             (cleanup_stats['process_time'] / total_time) * 100.0,
-             enrich_stats['process_time'],
-             (enrich_stats['process_time'] / total_time) * 100.0,
-             write_stats['process_time'],
-             (write_stats['process_time'] / total_time) * 100.0,
+             loader_stats['process_time'], (loader_stats['process_time'] / total_time) * 100.0,
+             cleanup_stats['process_time'], (cleanup_stats['process_time'] / total_time) * 100.0,
+             enrich_stats['process_time'], (enrich_stats['process_time'] / total_time) * 100.0,
+             write_stats['process_time'], (write_stats['process_time'] / total_time) * 100.0,
              )
