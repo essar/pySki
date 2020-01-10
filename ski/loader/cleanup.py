@@ -3,9 +3,10 @@ Performs clean up operations on GPS points. First phase in data load pipeline.
 [CLEANUP] -> ENRICH
 """
 import logging
+import time
 
 from ski.config import config
-from ski.logging import debug_point_event, log_json
+from ski.logging import debug_point_event, increment_stat, log_json
 from ski.data.coordinate import WGSCoordinate, wgs_to_utm
 from ski.data.pointutils import get_distance, get_heading, get_ts_delta
 from ski.loader.interpolate import linear_interpolate
@@ -15,6 +16,8 @@ from ski.loader.outlyer import is_outlyer
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+
+stats = {}
 
 skip_interpolate = config['cleanup']['skip_interpolate']
 skip_outlyers = config['cleanup']['skip_outlyers']
@@ -67,6 +70,8 @@ def cleanup_points(track, points, outlyers=None):
     if outlyers is None:
         outlyers = []
 
+    start_time = time.time()
+
     # Prepare output list
     output = []
 
@@ -83,8 +88,8 @@ def cleanup_points(track, points, outlyers=None):
         # Calculate X & Y coordinates for point
         calculate_coords(point)
 
-        # First point in the list; process and add to output
         if prev_point is None:
+            # First point in the list; process and add to output
             output.append(point)
             prev_point = point
             continue
@@ -97,6 +102,7 @@ def cleanup_points(track, points, outlyers=None):
                 continue
 
         if not skip_interpolate:
+            # Calculate the previous point by interpolation
             prev_point = interpolate_point(linear_interpolate, prev_point, point, output)
 
         # Calculate deltas for point
@@ -105,7 +111,12 @@ def cleanup_points(track, points, outlyers=None):
         output.append(point)
         prev_point = point
 
-    log_json(log, logging.INFO, track, message='Clean up complete', points_in=len(points), points_out=len(output))
+    end_time = time.time()
+    increment_stat(stats, 'process_time', (end_time - start_time))
+    increment_stat(stats, 'points_in', len(points))
+    increment_stat(stats, 'points_out', len(output))
+
+    log_json(log, logging.INFO, track, message='Clean up complete', **stats)
 
     return output
 
@@ -114,20 +125,20 @@ def interpolate_point(interp_f, prev_point, point, output):
     # Calculate time delta
     ts_delta = get_ts_delta(prev_point, point)
 
-    # Point occurred before the previous point
     if ts_delta < 0:
+        # Point occurred before the previous point
         log.warning('[%010d] Dropping point; negative time delta', point.ts)
         # Ignore the point
         return prev_point
 
-    # Point timestamp is equal to previous point
     if ts_delta == 0:
+        # Point timestamp is equal to previous point
         log.warning('[%010d] Dropping point; duplicate timestamp', point.ts)
         # Ignore the point
         return prev_point
 
-    # More than one second between points, so interpolate to fill the gap
     while ts_delta > 1:
+        # More than one second between points, so interpolate to fill the gap
         # Interpolate a new point mediating point and next point
         new_point = interp_f(prev_point, point, ts_delta)
         debug_point_event(log, point, 'Adding interpolated point: {%s}', new_point)

@@ -43,3 +43,7 @@ def log_json(logger, level, track=None, point=None, message=None, **obj):
         log_msg.update(obj)
 
     logger.log(level, log_msg)
+
+
+def increment_stat(stats, stat_name, value):
+    stats[stat_name] = (stats[stat_name] if stat_name in stats else 0) + value

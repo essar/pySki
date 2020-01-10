@@ -12,15 +12,18 @@ import time
 
 from ski.logging import log_json
 from ski.config import config
+from ski.logging import increment_stat
+from ski.aws.dynamo import stats as write_stats
 from ski.data.commons import basic_to_extended_point
-from ski.loader.cleanup import cleanup_points
-from ski.loader.enrich import enrich_points
+from ski.loader.cleanup import cleanup_points, stats as cleanup_stats
+from ski.loader.enrich import enrich_points, stats as enrich_stats
 from ski.loader.window import BatchWindow, PointWindow, WindowKey
 
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+direct_write_stats = {}
 
 #################
 # Adjust these parameters depending on what windows you want to add
@@ -37,44 +40,13 @@ tail_length = 30
 #################
 
 
-class Timings:
-
-    def __init__(self):
-        self.load_time = 0.0
-        self.clean_time = 0.0
-        self.enrich_time = 0.0
-        self.write_time = 0.0
-
-    def __repr__(self):
-        return {
-            'load': self.load_time,
-            'clean': (self.clean_time - self.load_time),
-            'enrich': (self.enrich_time - self.clean_time),
-            'write': (self.write_time - self.enrich_time)
-        }
-
-    def __str__(self):
-        return 'load={:.3f}s ({:.1f}%), clean={:.3f}s ({:.1f}%), enrich={:.3f}s ({:.1f}%), write={:.3f}s ({:.1f}%)'.format(
-            self.load_time,
-            (self.load_time / self.write_time) * 100.0,
-            (self.clean_time - self.load_time),
-            ((self.clean_time - self.load_time) / self.write_time) * 100.0,
-            (self.enrich_time - self.clean_time),
-            ((self.enrich_time - self.clean_time) / self.write_time) * 100.0,
-            (self.write_time - self.enrich_time),
-            ((self.write_time - self.enrich_time) / self.write_time) * 100.0
-        )
-
-
-t = Timings()
-start_time = time.time()
-
-
 def dummy_process_batch(batch_idx, body, tail, drain):
     log.info('Process batch of %d points, %d tail', len(body), len(tail))
 
 
 def file_process_batch(batch_idx, body, tail, drain, track):
+
+    start_time = time.time()
 
     file = 'tests/batch_output/{:04d}.json'.format(batch_idx)
     with open(file, 'w') as f:
@@ -85,8 +57,10 @@ def file_process_batch(batch_idx, body, tail, drain, track):
             'tail': list(map(lambda x: x.values(), tail))
         }, f)
 
-    t.enrich_time += (time.time() - start_time)
-    t.write_time += (time.time() - start_time)
+    end_time = time.time()
+    increment_stat(direct_write_stats, 'process_time', (end_time - start_time))
+    increment_stat(direct_write_stats, 'point_count', len(body))
+    increment_stat(direct_write_stats, 'file_count', 1)
 
 
 def direct_process_batch(batch_idx, body, tail, drain, db, track):
@@ -103,12 +77,10 @@ def direct_process_batch(batch_idx, body, tail, drain, db, track):
 
     # Enrich the points
     enriched_points = enrich_points(window, window_keys)
-    t.enrich_time += (time.time() - start_time)
     log.info('[batch=%03d] Enriched %d points', batch_idx, len(enriched_points))
 
     # Save points to data store
     db.add_points_to_track(track, enriched_points)
-    t.write_time += (time.time() - start_time)
     log.info('[batch=%03d] Written %d points', batch_idx, db.insert_count)
 
 
@@ -125,14 +97,12 @@ def load_points(loader, batch, db, track, drain=False):
     points = loader.load_points()
 
     if points is not None:
-        t.load_time += time.time() - start_time
 
         # Convert to extended points
         ext_points = list(map(basic_to_extended_point, points))
 
         # Do clean up
         cleaned_points = cleanup_points(track, ext_points)
-        t.clean_time += (time.time() - start_time)
 
     else:
         cleaned_points = None
@@ -171,4 +141,23 @@ def load_all_points(loader, db, track):
     load_points(loader, batch, db, track, True)
 
     log.info('Load complete: %d points loaded for %s', db.insert_count, track.track_id)
-    log.info('%s', t)
+
+    loader_stats = loader.get_stats()
+
+    log.info('Load: %s', loader_stats)
+    log.info('Clean up: %s', cleanup_stats)
+    log.info('Enrich: %s', enrich_stats)
+    log.info('Write: %s', write_stats)
+
+    total_time = sum([x['process_time'] for x in [loader_stats, cleanup_stats, enrich_stats, write_stats]])
+
+    log.info('Timings: load=%.3fs (%.1f%%), cleanup=%.3fs (%.1f%%), enrich=%.3fs (%.1f%%), write=%.3fs (%.1f%%)',
+             loader_stats['process_time'],
+             (loader_stats['process_time'] / total_time) * 100.0,
+             cleanup_stats['process_time'],
+             (cleanup_stats['process_time'] / total_time) * 100.0,
+             enrich_stats['process_time'],
+             (enrich_stats['process_time'] / total_time) * 100.0,
+             write_stats['process_time'],
+             (write_stats['process_time'] / total_time) * 100.0,
+             )

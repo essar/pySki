@@ -2,8 +2,10 @@
   Module containing classes for loading GPS data from GSD files.
 """
 import logging
+import time
 
 from ski.aws.s3 import S3File
+from ski.logging import increment_stat
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import add_seconds, DMSCoordinate, dms_to_wgs
 from datetime import datetime
@@ -11,6 +13,8 @@ from datetime import datetime
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+
+stats = {}
 
 
 class GSDLoader:
@@ -29,6 +33,9 @@ class GSDLoader:
     """
     def load_points(self):
         """Load all the GPS points from a GSD section."""
+
+        start_time = time.time()
+
         # Prepare a new array
         points = []
 
@@ -51,6 +58,10 @@ class GSDLoader:
             points.append(parse_gsd_line(line))
 
         log.info('load_points: loaded %d points from section %s', len(points), section)
+
+        end_time = time.time()
+        increment_stat(stats, 'process_time', (end_time - start_time))
+        increment_stat(stats, 'point_count', len(points))
 
         # Return points array
         return points
@@ -76,6 +87,8 @@ class GSDLoader:
         self.sections = self.sections[off:lim]
         log.info('load_sections: loaded %d GSD sections', len(self.sections))
 
+        increment_stat(stats, 'section_count', len(self.sections))
+
 
 class GSDFileLoader(GSDLoader):
     """Load GSD data from a local file."""
@@ -84,6 +97,10 @@ class GSDFileLoader(GSDLoader):
 
         log.info('Loading GSD data from local file (%s)', gsd_file.name)
         self.load_sections(section_offset, section_limit)
+
+    @staticmethod
+    def get_stats():
+        return stats
 
 
 class GSDS3Loader(GSDLoader):

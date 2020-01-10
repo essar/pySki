@@ -2,6 +2,7 @@
   Module providing functions for working with AWS DynamoDB.
 """
 import logging
+import time
 
 from boto3 import client, resource
 from boto3.dynamodb.conditions import Key
@@ -9,6 +10,7 @@ from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Inexact, Rounded, localcontext
 from datetime import datetime
 from ski.config import config
+from ski.logging import increment_stat
 from ski.data.commons import ExtendedGPSPoint
 from ski.logging import debug_point_event
 from ski.io.db import DataStore
@@ -16,6 +18,8 @@ from ski.io.db import DataStore
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+
+stats = {}
 
 db_endpoint = config['db']['dynamo']['endpoint_url']
 db_table_points = config['db']['dynamo']['points_table_name']
@@ -32,6 +36,9 @@ class DynamoDataStore(DataStore):
         self.error_count = 0
 
     def add_points_to_track(self, track, points):
+
+        start_time = time.time()
+
         # Get Dynamo table
         table = ddb.Table(db_table_points)
 
@@ -46,10 +53,15 @@ class DynamoDataStore(DataStore):
                     response = batch.put_item(Item=item)
                     self.insert_count += 1
                     debug_point_event(log, point, 'add_points_to_track: put_item %s=%s', track.track_id, response)
+                    increment_stat(stats, 'point_count', 1)
                 except Exception as e:
                     # Something went wrong, log the error
                     log.error(e)
                     self.error_count += 1
+
+        end_time = time.time()
+        increment_stat(stats, 'process_time', (end_time - start_time))
+
 
     def get_track_points(self, track, offset=0, length=-1):
         # Get dynamo table

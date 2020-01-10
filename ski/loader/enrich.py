@@ -1,8 +1,9 @@
 """
 """
 import logging
+import time
 
-from ski.logging import debug_point_event
+from ski.logging import debug_point_event, increment_stat
 from ski.data.commons import EnrichedWindow
 
 
@@ -10,8 +11,12 @@ from ski.data.commons import EnrichedWindow
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+stats = {}
+
 
 def enrich_points(window, default_keys):
+
+    start_time = time.time()
 
     # Initialize output
     output = []
@@ -34,6 +39,10 @@ def enrich_points(window, default_keys):
 
         # Add enriched point to output
         output.append(point)
+
+    end_time = time.time()
+    increment_stat(stats, 'process_time', (end_time - start_time))
+    increment_stat(stats, 'point_count', len(output))
 
     # Return enriched points
     return output
