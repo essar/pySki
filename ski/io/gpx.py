@@ -2,27 +2,32 @@
   Module containing classes for loading GPS data from GPX files.
 """
 import logging
+import time
 
 from datetime import datetime
 from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
+from ski.logging import increment_stat
 from xml.dom.minidom import parse, parseString
 
 # Set up logger
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+stats = {}
+
 default_batch = 64
 
 
-class GPXLoader:
+class GPXSource:
     """
     Load GPX formatted data.
     """
-    def __init__(self):
+    def __init__(self, batch_size=default_batch):
+        self.batch_size = batch_size
         # Set up array and internal pointer
         self.elems = []
-        self.elemPtr = 0
+        self.elem_ptr = 0
 
     def load_data(self, doc):
         """
@@ -36,45 +41,46 @@ class GPXLoader:
         log.info('%d elements found', len(doc_elems))
         self.elems.extend(doc_elems)
 
-    def load_points(self, batch_size=default_batch):
+    def load_points(self):
         """Load all the GPS points from a GPX document."""
         # Get next element from document, return if no points remain
-        if self.elemPtr < len(self.elems) and (batch_size < 0 or self.elemPtr < batch_size):
-            # Look up next element
-            elem = self.elems[self.elemPtr]
+        if self.elem_ptr < len(self.elems): # and (batch_size < 0 or self.elem_ptr < batch_size):
+            # Look elements
+            s = self.elem_ptr
+            e = self.elem_ptr + self.batch_size
+            elems = self.elems[s:e]
             # Increment pointer
-            self.elemPtr += 1
+            self.elem_ptr += len(elems)
         else:
             return None
 
-        return [parse_gpx_elem(elem)]
+        return [parse_gpx_elem(x) for x in elems]
 
 
-class GPXFileLoader(GPXLoader):
+class GPXFileSource(GPXSource):
     """Load GPX data from a local file."""
-    def __init__(self, gpx_file):
-        super().__init__()
-        
-        with open(gpx_file, 'r') as f:
-            log.info('Loading GPX data from local file (%s)', gpx_file)
-            self.load_data(parse(f))
+    def __init__(self, gpx_file_handle, batch_size=default_batch):
+        super().__init__(batch_size)
+
+        log.info('Loading GPX data from local file (%s)', gpx_file_handle.name)
+        self.load_data(parse(gpx_file_handle))
 
 
-class GPXS3Loader(GPXLoader):
+class GPXS3Source(GPXSource):
     """Load GPX data from a resource on S3."""
-    def __init__(self, s3_file):
-        if type(s3_file) != S3File:
+    def __init__(self, s3_file_handle, batch_size=default_batch):
+        if type(s3_file_handle) != S3File:
             raise TypeError('s3_file parameter must be an S3File')
-        super().__init__()
+        super().__init__(batch_size)
 
-        log.info('Loading GPX data from S3 (%s)', s3_file)
-        self.load_data(parse(s3_file))
+        log.info('Loading GPX data from S3 (%s)', s3_file_handle.name)
+        self.load_data(parse(s3_file_handle))
 
 
-class GPXStringLoader(GPXLoader):
+class GPXStringSource(GPXSource):
     """Load GSD data from a provided String."""
-    def __init__(self, gpx_string):
-        super().__init__()
+    def __init__(self, gpx_string, batch_size=default_batch):
+        super().__init__(batch_size)
         
         log.info('Loading GPX data from string (%d bytes)', len(gpx_string))
         self.load_data(parseString(gpx_string))
@@ -147,3 +153,18 @@ def parse_gpx_elem(elem):
         
     # Return data item
     return point
+
+
+def parse_gpx(gpx_source, **kwargs):
+
+    start_time = time.time()
+
+    # Prepare a new array
+    points = gpx_source.load_points()
+
+    end_time = time.time()
+    increment_stat(stats, 'process_time', (end_time - start_time))
+    increment_stat(stats, 'point_count', len(points) if points is not None else 0)
+
+    # Return points array
+    return points

@@ -9,7 +9,7 @@ from pytz import timezone
 from ski.aws.s3 import S3File
 from ski.data.commons import Track
 from ski.io.db import TestDataStore
-from ski.io.gsd import GSDS3Loader
+from ski.io.gsd import GSDS3Source
 
 from ski.loader.dataloader import *
 
@@ -30,6 +30,6 @@ track = Track('test','TEST', datetime.now(tz))
 
 # Create S3 loader; load a single GSD section (64 points)
 s3f = S3File(TEST_DATA_S3, True)
-loader = GSDS3Loader(s3f, section_limit=1)
+loader = GSDS3Source(s3f, section_limit=1)
 # Load points
 load_all_points(loader, db, track, extended=False)

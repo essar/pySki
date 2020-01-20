@@ -8,7 +8,7 @@ from datetime import datetime
 from pytz import timezone
 from ski.aws.dynamo import DynamoDataStore
 from ski.data.commons import Track
-from ski.io.gsd import GSDFileLoader
+from ski.io.gsd import GSDFileSource
 
 from ski.loader.dataloader import *
 
@@ -28,6 +28,6 @@ track = Track('test','TEST', datetime.now(tz))
 
 # Create file loader; load the whole file
 with open(TEST_DATA_FILE, mode='r') as f:
-    loader = GSDFileLoader(f)
+    loader = GSDFileSource(f)
     # Load points
     load_all_points(loader, db, track)

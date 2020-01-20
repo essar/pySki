@@ -1,0 +1,12 @@
+id: unittest_2
+group: test
+start_time: 2017-03-16T09:02:00
+timezone: US/Mountain
+
+datafile: testdata.gpx
+
+properties:
+  day: 8
+  day_of: 9
+  skiier: SJR
+  resort: Sunshine Village

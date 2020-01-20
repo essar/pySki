@@ -4,7 +4,7 @@
   Loads GSD data from a local file.
 """
 from ski.aws.dynamo import DynamoDataStore, stats as write_stats
-from ski.io.gsd import GSDFileSource, stats as loader_stats
+from ski.io.gpx import GPXFileSource, stats as loader_stats
 from ski.io.track import TrackFileLoader
 from ski.loader.cleanup import stats as cleanup_stats
 from ski.loader.enrich import stats as enrich_stats
@@ -12,8 +12,8 @@ from ski.loader.enrich import stats as enrich_stats
 from ski.loader.dataloader import *
 
 
-TEST_TRACK_FILE = 'tests/testdata/ski_unittest.yaml'
-TEST_DATA_FILE = 'tests/testdata/testdata.gsd'
+TEST_TRACK_FILE = 'tests/testdata/ski_unittest2.yaml'
+TEST_DATA_FILE = 'tests/testdata/testdata.gpx'
 
 # Set up logger
 logging.basicConfig()
@@ -30,11 +30,11 @@ start = time.time()
 
 # Create file loader; load a single GSD section (64 points)
 with open(TEST_DATA_FILE, mode='r') as f:
-    source = GSDFileSource(f)
+    source = GPXFileSource(f)
     # Load points
 
-    gsd_file_to_db(source, track, db)
-    # gsd_file_to_directory(source, track)
+    gpx_file_to_db(source, track, db)
+    # gpx_file_to_directory(source, track)
 
 
 end = time.time()

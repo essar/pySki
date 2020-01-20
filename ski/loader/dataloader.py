@@ -12,11 +12,11 @@ import time
 
 from ski.config import config
 from ski.logging import increment_stat
-from ski.aws.dynamo import stats as write_stats
 from ski.data.commons import basic_to_extended_point
-from ski.io.gsd import load_gsd_points, stats as loader_stats
-from ski.loader.cleanup import cleanup_points, stats as cleanup_stats
-from ski.loader.enrich import enrich_points, stats as enrich_stats
+from ski.io.gpx import parse_gpx
+from ski.io.gsd import parse_gsd
+from ski.loader.cleanup import cleanup_points
+from ski.loader.enrich import enrich_points
 from ski.loader.window import BatchWindow, PointWindow, WindowKey
 
 # Set up logger
@@ -41,11 +41,11 @@ tail_length = 30
 #################
 
 
-def dummy_process_batch(track, body, tail, drain):
+def dummy_process_batch(body, tail, drain):
     log.info('Process batch of %d points, %d tail', len(body), len(tail))
 
 
-def file_process_batch(track, body, tail, drain, batch_idx):
+def file_process_batch(body, tail, drain, batch_idx, track):
 
     start_time = time.time()
 
@@ -137,62 +137,42 @@ def load_all_points(source, parser_f, process_f, **kwargs):
     load_into_batch(source, batch, True, parser_f, process_f, batch_idx=batch_count, **kwargs)
 
 
-def old_load_all_points(loader, db, track):
-    """
-    Iterates across all points held in a loader and store all points in the data store.
-    @param loader: a Loader class providing the input data.
-    @param db: a db class providing the output data store.
-    @param track: the track to store these points to.
-    """
+def gsd_file_to_db(source, track, db):
 
-    # Initialize a new batch
-    batch = BatchWindow(batch_size=batch_size, overlap=tail_length)
-
-    # Initialise a new point window
-    window = PointWindow(min_head_length=head_length)
-
-    # Initialize a batch counter
-    batch_count = 0
-
-    # Load all points from the loader, store in the database
-    while load_points(loader, batch, db, track):
-        batch_count += 1
-
-    # Drain the window
-    window.drain = True
-    # Call to drain the buffer
-    load_points(loader, batch, db, track, True)
-
-    log.info('Load complete: %d points loaded for %s', db.insert_count, track.track_id)
-
-    log.info('Load: %s', loader_stats)
-    log.info('Clean up: %s', cleanup_stats)
-    log.info('Enrich: %s', enrich_stats)
-    log.info('Write: %s', write_stats)
-
-    total_time = sum([x['process_time'] for x in [loader_stats, cleanup_stats, enrich_stats, write_stats]])
-
-    log.info('Timings: load=%.3fs (%.1f%%), cleanup=%.3fs (%.1f%%), enrich=%.3fs (%.1f%%), write=%.3fs (%.1f%%)',
-             loader_stats['process_time'], (loader_stats['process_time'] / total_time) * 100.0,
-             cleanup_stats['process_time'], (cleanup_stats['process_time'] / total_time) * 100.0,
-             enrich_stats['process_time'], (enrich_stats['process_time'] / total_time) * 100.0,
-             write_stats['process_time'], (write_stats['process_time'] / total_time) * 100.0,
-             )
-
-
-def gsd_file_to_db(file, track, db):
-
-    source = file
-    parser_function = None
+    parser_function = parse_gsd
     loader_function = direct_process_batch
 
-    load_all_points(source, track, parser_function, loader_function, db=db)
+    load_all_points(source, parser_function, loader_function, db=db, track=track)
 
 
-def s3_to_db(s3_file, track, db):
+def gsd_file_to_directory(source, track):
+
+    parser_function = parse_gsd
+    loader_function = file_process_batch
+
+    load_all_points(source, parser_function, loader_function, track=track)
+
+
+def gpx_file_to_db(source, track, db):
+
+    parser_function = parse_gpx
+    loader_function = direct_process_batch
+
+    load_all_points(source, parser_function, loader_function, db=db, track=track)
+
+
+def gpx_file_to_directory(source, track):
+
+    parser_function = parse_gpx
+    loader_function = file_process_batch
+
+    load_all_points(source, parser_function, loader_function, track=track)
+
+
+def s3_to_dynamo(s3_file, track, db):
 
     source = s3_file
     parser_function = None
     loader_function = direct_process_batch
 
-    load_all_points(source, track, parser_function, loader_function, db=db)
+    load_all_points(source, parser_function, loader_function, db=db, track=track)
