@@ -54,3 +54,7 @@ class TestDataStore(DataStore):
             
             log.info('[TestDataStore] Saving point: %s|%s', key, point)
             log.debug('[TestDataStore] Inserted %d/%d', self.insert_count, len(points))
+
+
+def process_to_test_db(body, tail, drain, db, track=None, **kwargs):
+    db.add_points_to_track(track, body)
