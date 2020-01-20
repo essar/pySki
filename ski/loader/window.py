@@ -12,7 +12,8 @@ stats = {}
 
 class BatchWindow:
 
-    def __init__(self, batch_size=30, overlap=0):
+    def __init__(self, track, batch_size=30, overlap=0):
+        self.track = track
         self.batch_size = batch_size
         self.overlap = overlap
         self.body = []
@@ -31,7 +32,7 @@ class BatchWindow:
 
         if process_f is not None:
             # Invoke process function
-            process_f(self.batch_count, body_out, self.tail, drain, **kwargs)
+            process_f(self.track, body_out, self.tail, drain, **kwargs)
 
         # Append output elements of body to tail
         self.tail += body_out
