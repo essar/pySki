@@ -64,7 +64,7 @@ def file_process_batch(track, body, tail, drain, batch_idx):
     increment_stat(direct_write_stats, 'file_count', 1)
 
 
-def direct_process_batch(track, body, tail, drain, db, batch_idx):
+def direct_process_batch(body, tail, drain, db, batch_idx, track):
 
     # Prepare a window from points
     window = PointWindow(tail=tail, min_head_length=head_length)
@@ -83,11 +83,10 @@ def direct_process_batch(track, body, tail, drain, db, batch_idx):
     log.info('[batch=%03d] Written %d points', batch_idx, db.insert_count)
 
 
-def load_into_batch(source, track, batch, drain, parser_f, process_f, **kwargs):
+def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
     """
     Loads a set of points from a source object, clean these and send to a processor function.
     @param source: reference to data source object.
-    @param track: the track to store these points to.
     @param batch: reference to the batch window.
     @param drain: flag to clear all points from the batch.
     @param parser_f: parsing function used for extracting data from the source.
@@ -105,7 +104,7 @@ def load_into_batch(source, track, batch, drain, parser_f, process_f, **kwargs):
         ext_points = list(map(basic_to_extended_point, points))
 
         # Do clean up
-        cleaned_points = cleanup_points(track, ext_points)
+        cleaned_points = cleanup_points(ext_points)
 
     else:
         cleaned_points = None
@@ -116,27 +115,26 @@ def load_into_batch(source, track, batch, drain, parser_f, process_f, **kwargs):
     return points is not None
 
 
-def load_all_points(source, track, parser_f, process_f, **kwargs):
+def load_all_points(source, parser_f, process_f, **kwargs):
     """
     Iterates across app points in a source and batch load all points.
     @param source: reference to data source object.
-    @param track: the track to store these points to.
     @param parser_f: parsing function.
     @param process_f: processor function.
     @param kwargs: dict of additional arguments passed to the parser and processor functions.
     """
     # Initialize a new batch
-    batch = BatchWindow(track, batch_size=batch_size, overlap=tail_length)
+    batch = BatchWindow(batch_size=batch_size, overlap=tail_length)
 
     # Initialize a batch counter
     batch_count = 0
 
     # Load all points from the loader, store in the database
-    while load_into_batch(source, track, batch, False, parser_f, process_f, batch_idx=batch_count, **kwargs):
+    while load_into_batch(source, batch, False, parser_f, process_f, batch_idx=batch_count, **kwargs):
         batch_count += 1
 
     # Call again to drain the buffer
-    load_into_batch(source, track, batch, True, parser_f, process_f, batch_idx=batch_count, **kwargs)
+    load_into_batch(source, batch, True, parser_f, process_f, batch_idx=batch_count, **kwargs)
 
 
 def old_load_all_points(loader, db, track):

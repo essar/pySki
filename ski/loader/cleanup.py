@@ -59,7 +59,7 @@ def calculate_deltas(prev_point, point):
                           point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
 
 
-def cleanup_points(track, points, outlyers=None):
+def cleanup_points(points, outlyers=None):
     """
     Clean up a list of points, removing outlyers and interpolating gaps.
     @param points: List of points to clean up.
@@ -116,7 +116,7 @@ def cleanup_points(track, points, outlyers=None):
     increment_stat(stats, 'points_in', len(points))
     increment_stat(stats, 'points_out', len(output))
 
-    log_json(log, logging.INFO, track, message='Clean up complete', **stats)
+    #log_json(log, logging.INFO, track, message='Clean up complete', **stats)
 
     return output
 

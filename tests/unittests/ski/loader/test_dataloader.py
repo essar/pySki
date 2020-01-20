@@ -50,7 +50,7 @@ def test_parser(loader, load_size=64, **kwargs):
     return None
 
 
-def test_process(track, body, tail, drain, db, **kwargs):
+def test_process(body, tail, drain, db, track=None, **kwargs):
     db.add_points_to_track(track, body)
 
 
@@ -65,13 +65,13 @@ class TestDataLoader(unittest.TestCase):
         self.track = Track('unittest', 'TEST', datetime.now(tz))
 
     """
-    load_all_points(source, track, parser_f, loader_f, ** kwargs)
+    load_all_points(source, parser_f, loader_f, ** kwargs)
     """
     def test_load_all_points(self):
         # Prepare source
         source = TestSource(size=1000)
 
-        load_all_points(source, self.track, test_parser, direct_process_batch, db=self.db)
+        load_all_points(source, test_parser, direct_process_batch, track=self.track, db=self.db)
 
         self.assertEqual(1000, self.db.insert_count)
 
@@ -79,19 +79,19 @@ class TestDataLoader(unittest.TestCase):
         # Prepare source
         source = TestSource(size=1200)
 
-        load_all_points(source, self.track, test_parser, direct_process_batch, db=self.db)
+        load_all_points(source, test_parser, direct_process_batch, track=self.track, db=self.db)
 
         self.assertEqual(1200, self.db.insert_count)
 
     """
-    load_into_batch(source, track, batch, drain, parser_f, process_f, **kwargs)
+    load_into_batch(source, batch, drain, parser_f, process_f, **kwargs)
     """
     def test_load_into_batch(self):
         # Prepare source
         source = TestSource(size=50)
         batch = TestBatchWindow()
 
-        res = load_into_batch(source, self.track, batch, False, test_parser, None)
+        res = load_into_batch(source, batch, False, test_parser, None)
         self.assertTrue(res)
         self.assertEqual(50, len(batch.body))
 
@@ -100,7 +100,7 @@ class TestDataLoader(unittest.TestCase):
         source = EmptyLoader()
         batch = TestBatchWindow()
 
-        res = load_into_batch(source, self.track, batch, True, test_parser, test_process, db=self.db)
+        res = load_into_batch(source, batch, True, test_parser, test_process, track=self.track, db=self.db)
         self.assertFalse(res)
         self.assertEqual(0, self.db.insert_count)
 
@@ -109,9 +109,9 @@ class TestDataLoader(unittest.TestCase):
     def test_load_into_batch_incomplete_batch(self):
         # Prepare source
         source = TestSource(size=40)
-        batch = BatchWindow(self.track, batch_size=50, overlap=0)
+        batch = BatchWindow(batch_size=50, overlap=0)
 
-        res = load_into_batch(source, self.track, batch, False, test_parser, test_process, db=self.db)
+        res = load_into_batch(source, batch, False, test_parser, test_process, track=self.track, db=self.db)
         self.assertTrue(res)
         self.assertEqual(0, self.db.insert_count)
         self.assertEqual(40, len(batch.body))
@@ -119,9 +119,9 @@ class TestDataLoader(unittest.TestCase):
     def test_load_into_batch_draining(self):
         # Prepare source
         source = TestSource(size=64)
-        batch = BatchWindow(self.track, batch_size=50, overlap=30)
+        batch = BatchWindow(batch_size=50, overlap=30)
 
-        res = load_into_batch(source, self.track, batch, True, test_parser, test_process, db=self.db)
+        res = load_into_batch(source, batch, True, test_parser, test_process, track=self.track, db=self.db)
         self.assertTrue(res)
         self.assertEqual(50, self.db.insert_count)
         self.assertEqual(14, len(batch.body))
@@ -129,9 +129,9 @@ class TestDataLoader(unittest.TestCase):
     def test_load_into_batch_drain_with_overflow(self):
         # Prepare source
         source = TestSource(size=100)
-        batch = BatchWindow(self.track, batch_size=50, overlap=30)
+        batch = BatchWindow(batch_size=50, overlap=30)
 
-        res = load_into_batch(source, self.track, batch, True, test_parser, test_process, db=self.db)
+        res = load_into_batch(source, batch, True, test_parser, test_process, track=self.track, db=self.db)
         self.assertTrue(res)
         self.assertEqual(50, self.db.insert_count)
 
