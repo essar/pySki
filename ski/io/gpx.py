@@ -23,7 +23,8 @@ class GPXSource:
     """
     Load GPX formatted data.
     """
-    def __init__(self, source, batch_size=default_batch):
+    def __init__(self, url, source, batch_size=default_batch):
+        self.url = None
         self.source = source
         self.batch_size = batch_size
         # Set up array and internal pointer
@@ -61,11 +62,11 @@ class GPXSource:
         for elem in elems:
             parsed_point = parse_gpx_elem(elem)
 
-            # Write to pointlog
-            log_point(parsed_point.ts, 'Point load from GPX', source=self.source, **parsed_point.values())
-
             # Add the point to output
             points.append(parsed_point)
+
+            # Write to pointlog
+            log_point(parsed_point.ts, 'Point load from GPX', source=self.url, **parsed_point.values())
 
         # Return points array
         return points
@@ -177,8 +178,17 @@ def parse_gpx(gpx_source, **kwargs):
     points = gpx_source.load_points()
 
     end_time = time.time()
-    increment_stat(stats, 'process_time', (end_time - start_time))
-    increment_stat(stats, 'point_count', len(points) if points is not None else 0)
+    process_time = end_time - start_time
+    point_count = len(points) if points is not None else 0
+
+    increment_stat(stats, 'process_time', process_time)
+    increment_stat(stats, 'point_count', point_count)
+
+    log.info('Phase complete %s', {
+        'phase': 'load (GPX)',
+        'point_count': point_count,
+        'process_time': process_time
+    })
 
     # Return points array
     return points
