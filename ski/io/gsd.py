@@ -307,7 +307,6 @@ def parse_gsd(gsd_source, **kwargs):
 
     log.info('Phase complete %s', {
         'phase': 'load (GSD)',
-        'state': 'complete',
         'point_count': point_count,
         'process_time': process_time
     })
