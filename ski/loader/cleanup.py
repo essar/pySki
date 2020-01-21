@@ -60,16 +60,16 @@ def calculate_deltas(prev_point, point):
                   point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
 
 
-def cleanup_points(points, outlyers=None):
+def cleanup_points(points, outliers=None):
     """
-    Clean up a list of points, removing outlyers and interpolating gaps.
+    Clean up a list of points, removing outliers and interpolating gaps.
     @param points: List of points to clean up.
-    @param outlyers: a list of points removed from the input, as outlyers.
+    @param outliers: a list of points removed from the input, as outliers.
     @return: a cleaned list of points, expanded with delta values.
     """
 
-    if outlyers is None:
-        outlyers = []
+    if outliers is None:
+        outliers = []
 
     start_time = time.time()
 
@@ -101,10 +101,10 @@ def cleanup_points(points, outlyers=None):
             continue
 
         if not skip_outlyers:
-            # Test to see if the point is an outlyer
+            # Test to see if the point is an outlier
             if is_outlyer(prev_point, point):
-                # Add to outlyers list
-                outlyers.append(point)
+                # Add to outliers list
+                outliers.append(point)
                 continue
 
         if not skip_interpolate:
@@ -122,20 +122,20 @@ def cleanup_points(points, outlyers=None):
         prev_point = point
 
     end_time = time.time()
-
     process_time = end_time - start_time
+    point_count = len(output)
 
     increment_stat(stats, 'process_time', process_time)
-    increment_stat(stats, 'point_count', len(points))
+    increment_stat(stats, 'point_count', point_count)
     increment_stat(stats, 'points_in', len(points))
     increment_stat(stats, 'points_out', len(output))
+    increment_stat(stats, 'outliers', len(outliers))
 
     log.info('Phase complete %s', {
         'phase': 'cleanup',
-        'state': 'complete',
-        'point_count': len(points),
+        'point_count': point_count,
         'process_time': process_time,
-        'outlyer_count': len(outlyers),
+        'outlier_count': len(outliers),
     })
 
     return output
