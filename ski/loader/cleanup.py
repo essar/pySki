@@ -122,10 +122,21 @@ def cleanup_points(points, outlyers=None):
         prev_point = point
 
     end_time = time.time()
-    increment_stat(stats, 'process_time', (end_time - start_time))
+
+    process_time = end_time - start_time
+
+    increment_stat(stats, 'process_time', process_time)
     increment_stat(stats, 'point_count', len(points))
     increment_stat(stats, 'points_in', len(points))
     increment_stat(stats, 'points_out', len(output))
+
+    log.info('Phase complete %s', {
+        'phase': 'cleanup',
+        'state': 'complete',
+        'point_count': len(points),
+        'process_time': process_time,
+        'outlyer_count': len(outlyers),
+    })
 
     return output
 

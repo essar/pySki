@@ -22,12 +22,14 @@ class GSDSource:
     Load GSD formatted data.
     """
     def __init__(self, data_stream, section_offset=None, section_limit=None):
+        self.url = None
         # Store data reference
         self.data_stream = data_stream
-        # Set up array and internal pointer
+        # Set up array and internal pointers
         self.sections = []
         self.section_ptr = 0
 
+        # Initialize by loading section names from header
         self.__load_sections(section_offset, section_limit)
 
     def __load_sections(self, section_offset, section_limit):
@@ -77,18 +79,19 @@ class GSDSource:
 
         # Load section data into array
         lines = load_gsd_section(self.data_stream, section)
+        log.debug('load_points: section %s: loaded %d lines', section, len(lines))
 
         # Get all lines in the section
         for line in lines:
             parsed_point = parse_gsd_line(line)
 
-            # Write to pointlog
-            log_point(parsed_point.ts, 'Point load from GSD', source=self.data_stream.name, **parsed_point.values())
-
             # Add the line to output
             points.append(parsed_point)
 
-        log.debug('load_points: loaded %d points from section %s', len(points), section)
+            # Write to pointlog
+            log_point(parsed_point.ts, 'Point load from GSD', source=self.url, **parsed_point.values())
+
+        log.debug('load_points: section %s: loaded %d points', section, len(points))
 
         # Return points array
         return points
@@ -96,20 +99,20 @@ class GSDSource:
 
 class GSDFileSource(GSDSource):
     """Load GSD data from a local file."""
-    def __init__(self, local_file_handler, section_offset=None, section_limit=None):
-        log.info('Loading GSD data from local file (%s)', local_file_handler.name)
+    def __init__(self, file, section_offset=None, section_limit=None):
+        log.info('Loading GSD data from local file (%s)', file.name)
 
-        super().__init__(local_file_handler, section_offset, section_limit)
+        super().__init__(file, section_offset, section_limit)
 
 
 class GSDS3Source(GSDSource):
     """Load GSD data from a resource on S3."""
-    def __init__(self, s3_file_handler, section_offset=None, section_limit=None):
-        if type(s3_file_handler) != S3File:
+    def __init__(self, s3_file, section_offset=None, section_limit=None):
+        if type(s3_file) != S3File:
             raise TypeError('s3_file parameter must be an S3File')
 
-        log.info('Loading GSD data from S3 (%s)', s3_file_handler)
-        super().__init__(s3_file_handler.body, section_offset, section_limit)
+        log.info('Loading GSD data from S3 (%s)', s3_file)
+        super().__init__(s3_file.body, section_offset, section_limit)
 
 
 def __get_alt(line):
@@ -160,7 +163,7 @@ def __parse_gsd_coord(coord):
 
 def __parse_header_line(line):
     # Get line parts
-    line_parts = split_line(line)
+    line_parts = split_line(line, True)
     return int(line_parts[0].strip()), line_parts[1].strip()
 
 
@@ -240,7 +243,7 @@ def parse_gsd_line(line):
     if line is None:
         return None
 
-    log.debug('Parsing line: %s', line)
+    log.debug('parse_gsd_line: %s', line)
 
     # Read data from GSD line
     gsd_lat = __get_lat(line)
@@ -249,7 +252,6 @@ def parse_gsd_line(line):
     gsd_tm = __get_time(line)
     gsd_alt = __get_alt(line)
     gsd_spd = __get_speed(line)
-    log.debug('GSD: lat=%s; lon=%s; dt=%s; tm=%s; alt=%s; spd=%s', gsd_lat, gsd_lon, gsd_dt, gsd_tm, gsd_alt, gsd_spd)
 
     point = BasicGPSPoint()
     
@@ -257,7 +259,7 @@ def parse_gsd_line(line):
         # GSD date and time in DDMMYYHHMMSS format
         dt_str = '{:06d}{:06d}'.format(int(gsd_dt), int(gsd_tm))
         dt = datetime.strptime(dt_str, '%d%m%y%H%M%S')
-        log.debug('Date: %s, %s', dt_str, dt)
+        log.debug('parse_gsd_line: date=%s; %s', dt_str, dt)
         # Convert to timestamp
         point.ts = int(dt.timestamp())
 
@@ -269,9 +271,8 @@ def parse_gsd_line(line):
 
         # Convert to WGS
         dms = DMSCoordinate(latD, latM, latS, lonD, lonM, lonS)
-        log.debug('DMS: %s', dms)
         wgs = dms_to_wgs(dms)
-        log.debug('WGS: %s', wgs)
+        log.debug('parse_gsd_line: DMS=%s; WGS=%s', dms, wgs)
 
         # Latitude & Longitude
         point.lat = wgs.get_latitude_degrees()
@@ -298,8 +299,18 @@ def parse_gsd(gsd_source, **kwargs):
     points = gsd_source.load_points()
 
     end_time = time.time()
-    increment_stat(stats, 'process_time', (end_time - start_time))
-    increment_stat(stats, 'point_count', len(points) if points is not None else 0)
+    process_time = end_time - start_time
+    point_count = len(points) if points is not None else 0
+
+    increment_stat(stats, 'process_time', process_time)
+    increment_stat(stats, 'point_count', point_count)
+
+    log.info('Phase complete %s', {
+        'phase': 'load (GSD)',
+        'state': 'complete',
+        'point_count': point_count,
+        'process_time': process_time
+    })
 
     # Return points array
     return points
@@ -320,7 +331,7 @@ def split_line(line, as_header=False):
     if as_header:
         # Headers should have 2 parts
         if len(parts) < 2:
-            log.warning('Unexpected number of data parts in GSD header line')
+            log.warning('Unexpected number of data parts (%d) in GSD header line', len(parts))
             # Ensure that we return 2 parts, pad with zeros
             return [parts[i] if len(parts) > i else 0 for i in range(0, 2)]
 
@@ -329,7 +340,7 @@ def split_line(line, as_header=False):
     else:
         # Data lines have 6 parts
         if len(parts) < 6:
-            log.warning('Unexpected number of data parts in GSD data line')
+            log.warning('Unexpected number of data parts (%d) in GSD data line', len(parts))
             # Ensure that we return 6 parts, pad with zeros
             return [parts[i] if len(parts) > i else 0 for i in range(0, 6)]
 

@@ -86,7 +86,6 @@ def increment_stat(stats, stat_name, value):
 
 
 def log_point(point_id, phase, level=logging.INFO, **obj):
-
     log_msg = {
         'phase': phase
     }
@@ -96,4 +95,4 @@ def log_point(point_id, phase, level=logging.INFO, **obj):
 
 
 # Configure logging
-configure_logging()
+configure_logging(logging.WARNING)

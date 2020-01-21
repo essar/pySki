@@ -15,7 +15,7 @@ cleanup:
   skip_outlyers: no
 
 logging:
-  point_log: file
+  point_log: off
 
 outlyer:
   max_speed: 100
