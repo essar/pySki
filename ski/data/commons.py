@@ -70,17 +70,20 @@ class ExtendedGPSPoint(BasicGPSPoint):
         # Windows
         self.windows = {}
 
-    def values(self):
-        v = super().values()
-        v.update({
+    def ext_values(self):
+        v = {
             'x': self.x,
             'y': self.y,
             'dst': self.dst,
             'hdg': self.hdg,
             'alt_d': self.alt_d,
-            'spd_d': self.spd_d,
-            'hdg_d': self.hdg_d,
-        })
+            'spd_d': self.spd_d
+        }
+        return v
+
+    def values(self):
+        v = super().values()
+        v.update(self.ext_values())
         v.update(self.windows)
         return v
 

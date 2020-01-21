@@ -6,7 +6,7 @@ import logging
 import time
 
 from ski.config import config
-from ski.logging import debug_point_event, increment_stat, log_json
+from ski.logging import increment_stat, log_point
 from ski.data.coordinate import WGSCoordinate, wgs_to_utm
 from ski.data.pointutils import get_distance, get_heading, get_ts_delta
 from ski.loader.interpolate import linear_interpolate
@@ -19,6 +19,7 @@ log.setLevel(logging.INFO)
 
 stats = {}
 
+# Load config values
 skip_interpolate = config['cleanup']['skip_interpolate']
 skip_outlyers = config['cleanup']['skip_outlyers']
 
@@ -36,7 +37,7 @@ def calculate_coords(point):
     # Extract cartesian X & Y
     point.x = utm.x
     point.y = utm.y
-    debug_point_event(log, point, 'wgs=%s; utm=%s', wgs, utm)
+    log.debug('wgs=%s; utm=%s', wgs, utm)
 
 
 def calculate_deltas(prev_point, point):
@@ -55,8 +56,8 @@ def calculate_deltas(prev_point, point):
         point.alt_d = point.alt - prev_point.alt
         point.spd_d = point.spd - prev_point.spd
         point.hdg_d = point.hdg - prev_point.hdg
-        debug_point_event(log, point, 'calculate_deltas: dst=%.2f, hdg=%05.1f, alt_d=%04d, spd_d=%.2f, hsg_d=%05.1f',
-                          point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
+        log.debug('calculate_deltas: dst=%.2f, hdg=%05.1f, alt_d=%04d, spd_d=%.2f, hsg_d=%05.1f',
+                  point.dst, point.hdg, point.alt_d, point.spd_d, point.hdg_d)
 
 
 def cleanup_points(points, outlyers=None):
@@ -89,7 +90,12 @@ def cleanup_points(points, outlyers=None):
         calculate_coords(point)
 
         if prev_point is None:
-            # First point in the list; process and add to output
+            # First point in the list
+
+            # Record in pointlog
+            log_point(point.ts, 'Clean up', ts=point.ts, **point.ext_values())
+
+            # Add point to output
             output.append(point)
             prev_point = point
             continue
@@ -107,16 +113,19 @@ def cleanup_points(points, outlyers=None):
 
         # Calculate deltas for point
         calculate_deltas(prev_point, point)
+
+        # Record in pointlog
+        log_point(point.ts, 'Clean up', ts=point.ts, **point.ext_values())
+
         # Add point to output
         output.append(point)
         prev_point = point
 
     end_time = time.time()
     increment_stat(stats, 'process_time', (end_time - start_time))
+    increment_stat(stats, 'point_count', len(points))
     increment_stat(stats, 'points_in', len(points))
     increment_stat(stats, 'points_out', len(output))
-
-    #log_json(log, logging.INFO, track, message='Clean up complete', **stats)
 
     return output
 
@@ -141,7 +150,7 @@ def interpolate_point(interp_f, prev_point, point, output):
         # More than one second between points, so interpolate to fill the gap
         # Interpolate a new point mediating point and next point
         new_point = interp_f(prev_point, point, ts_delta)
-        debug_point_event(log, point, 'Adding interpolated point: {%s}', new_point)
+        log.debug('Adding interpolated point: {%s}', new_point)
         # Calculate deltas for new point
         calculate_deltas(prev_point, new_point)
         # Add to output array

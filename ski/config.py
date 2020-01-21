@@ -8,7 +8,6 @@ import yaml
 __DEFAULT_CONFIG = 'ski/conf/config.yaml'
 
 # Set up logger
-logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 

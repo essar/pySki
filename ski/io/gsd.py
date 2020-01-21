@@ -5,7 +5,7 @@ import logging
 import time
 
 from ski.aws.s3 import S3File
-from ski.logging import increment_stat
+from ski.logging import increment_stat, log_point
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import add_seconds, DMSCoordinate, dms_to_wgs
 from datetime import datetime
@@ -49,7 +49,7 @@ class GSDSource:
 
         # Constrain section list according to offset and limit
         self.sections = self.sections[off:lim]
-        log.info('load_sections: loaded %d GSD sections', len(self.sections))
+        log.debug('load_sections: loaded %d GSD sections', len(self.sections))
 
         increment_stat(stats, 'section_count', len(self.sections))
 
@@ -72,7 +72,7 @@ class GSDSource:
         # Get next section from array, return if no sections remain
         section = self.__next_section()
         if section is None:
-            log.info('load_points: reached section %d; end of data', self.section_ptr)
+            log.debug('load_points: reached section %d; end of data', self.section_ptr)
             return None
 
         # Load section data into array
@@ -80,9 +80,15 @@ class GSDSource:
 
         # Get all lines in the section
         for line in lines:
-            points.append(parse_gsd_line(line))
+            parsed_point = parse_gsd_line(line)
 
-        log.info('load_points: loaded %d points from section %s', len(points), section)
+            # Write to pointlog
+            log_point(parsed_point.ts, 'Point load from GSD', source=self.data_stream.name, **parsed_point.values())
+
+            # Add the line to output
+            points.append(parsed_point)
+
+        log.debug('load_points: loaded %d points from section %s', len(points), section)
 
         # Return points array
         return points
@@ -279,7 +285,7 @@ def parse_gsd_line(line):
 
     except ValueError as e:
         log.warning('Failed to parse GSD line: %s; %s', line, e)
-        
+
     # Return data item
     return point
 

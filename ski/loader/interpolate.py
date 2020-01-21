@@ -4,7 +4,7 @@ import logging
 
 from math import floor
 from ski.data.commons import ExtendedGPSPoint
-from ski.logging import debug_point_event
+from ski.logging import log_point
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -40,6 +40,8 @@ def linear_interpolate(p1, p2, delta):
     # Interpolate speed
     p.spd = __linear_interpolate_f(p1.spd, p2.spd, delta)
 
-    debug_point_event(log, p2, 'linear_interpolate (delta=%d): {%s} {%s}: {%s}', delta, p1, p2, p)
+    log.debug('linear_interpolate (delta=%d): {%s} {%s}: {%s}', delta, p1, p2, p)
+
+    log_point(p.ts, 'Created by interpolation', ts1=p1.ts, ts2=p2.ts, delta=delta, **p.values())
 
     return p
