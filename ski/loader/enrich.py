@@ -3,7 +3,7 @@
 import logging
 import time
 
-from ski.logging import debug_point_event, increment_stat
+from ski.logging import log_point, increment_stat
 from ski.data.commons import EnrichedWindow
 
 
@@ -32,17 +32,29 @@ def enrich_points(window, default_keys):
             window_points = window.extract(*k.key())
             # Calculate the enriched values for this set of points
             enriched_values = get_enriched_data(window_points)
-            debug_point_event(log, window.target_point, 'Enriched data (%s): %s', k, enriched_values)
+            log.debug('Enriched data (%s): %s', k, enriched_values)
 
             # Save enriched values to the point
             window.target_point.windows[k] = EnrichedWindow(**enriched_values)
+
+            # Record in pointlog
+            log_point(point.ts, 'Enrich', key=k, ts=point.ts, **enriched_values)
 
         # Add enriched point to output
         output.append(point)
 
     end_time = time.time()
-    increment_stat(stats, 'process_time', (end_time - start_time))
-    increment_stat(stats, 'point_count', len(output))
+    process_time = end_time - start_time
+    point_count = len(output)
+
+    increment_stat(stats, 'process_time', process_time)
+    increment_stat(stats, 'point_count', point_count)
+
+    log.info('Phase complete %s', {
+        'phase': 'enrich',
+        'point_count': point_count,
+        'process_time': process_time
+    })
 
     # Return enriched points
     return output

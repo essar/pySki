@@ -76,11 +76,11 @@ def direct_process_batch(body, tail, drain, db, batch_idx, track):
 
     # Enrich the points
     enriched_points = enrich_points(window, window_keys)
-    log.info('[batch=%03d] Enriched %d points', batch_idx, len(enriched_points))
+    log.debug('[batch=%03d] Enriched %d points', batch_idx, len(enriched_points))
 
     # Save points to data store
     db.add_points_to_track(track, enriched_points)
-    log.info('[batch=%03d] Written %d points', batch_idx, db.insert_count)
+    log.debug('[batch=%03d] Written %d points', batch_idx, db.insert_count)
 
 
 def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):

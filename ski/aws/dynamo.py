@@ -10,9 +10,8 @@ from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from decimal import Inexact, Rounded, localcontext
 from datetime import datetime
 from ski.config import config
-from ski.logging import increment_stat
+from ski.logging import increment_stat, log_point
 from ski.data.commons import ExtendedGPSPoint
-from ski.logging import debug_point_event
 from ski.io.db import DataStore
 
 # Set up logger
@@ -37,6 +36,7 @@ class DynamoDataStore(DataStore):
 
     def add_points_to_track(self, track, points):
 
+        point_count = 0
         start_time = time.time()
 
         # Get Dynamo table
@@ -51,17 +51,28 @@ class DynamoDataStore(DataStore):
                     item = build_item(track, point)
                     # Add item to batch
                     response = batch.put_item(Item=item)
+
+                    # Record in pointlog
+                    log_point(point.ts, 'Write (DDB)', ts=point.ts, **item)
+
                     self.insert_count += 1
-                    debug_point_event(log, point, 'add_points_to_track: put_item %s=%s', track.track_id, response)
-                    increment_stat(stats, 'point_count', 1)
+                    point_count += 1
                 except Exception as e:
                     # Something went wrong, log the error
                     log.error(e)
                     self.error_count += 1
 
         end_time = time.time()
-        increment_stat(stats, 'process_time', (end_time - start_time))
+        process_time = end_time - start_time
 
+        increment_stat(stats, 'process_time', process_time)
+        increment_stat(stats, 'point_count', point_count)
+
+        log.info('Phase complete %s', {
+            'phase': 'write (DDB)',
+            'point_count': point_count,
+            'process_time': process_time
+        })
 
     def get_track_points(self, track, offset=0, length=-1):
         # Get dynamo table

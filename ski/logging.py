@@ -47,7 +47,7 @@ def configure_point_log(point_log_mode=cfg_point_log_mode):
     if point_log_mode is False or point_log_mode == 'off' or point_log_mode == 'OFF':
         point_log.setLevel(logging.ERROR)
         log.debug('Disabled point log')
-    elif point_log_mode == 'console' or point_log_mode == 'CONSOLE':
+    elif point_log_mode is True or point_log_mode == 'console' or point_log_mode == 'CONSOLE':
         point_log.setLevel(logging.INFO)
         log.debug('Enabled point log to console')
     elif point_log_mode == 'file' or point_log_mode == 'FILE':
@@ -95,4 +95,4 @@ def log_point(point_id, phase, level=logging.INFO, **obj):
 
 
 # Configure logging
-configure_logging(logging.WARNING)
+configure_logging()

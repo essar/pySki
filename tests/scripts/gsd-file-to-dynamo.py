@@ -8,11 +8,12 @@ from datetime import time as datetime
 from math import floor
 
 from ski.logging import calc_stats
+from ski.aws.dynamo import DynamoDataStore, stats as write_stats
 from ski.io.gsd import GSDFileSource, stats as loader_stats
 from ski.io.track import TrackFileLoader
 from ski.loader.cleanup import stats as cleanup_stats
 from ski.loader.enrich import stats as enrich_stats
-from ski.loader.dataloader import gsd_file_to_directory, direct_write_stats as write_stats
+from ski.loader.dataloader import gsd_file_to_db
 
 
 TEST_TRACK_FILE = 'tests/testdata/ski_unittest.yaml'
@@ -21,26 +22,25 @@ TEST_DATA_FILE = 'tests/testdata/testdata.gsd'
 # Script start time
 start = time.time()
 
+# Create data store
+db = DynamoDataStore()
+
 # Create track loader
 ldr = TrackFileLoader(TEST_TRACK_FILE)
 track = ldr.get_track()
 
-# Open the file
+# Create file loader; load a single GSD section (64 points)
 with open(TEST_DATA_FILE, mode='r') as f:
     # Create GSD source from file
     source = GSDFileSource(f)
 
     # Load points
-    gsd_file_to_directory(source, track)
+    gsd_file_to_db(source, track, db)
 
 # Script end time
 end = time.time()
 
 print('Execution completed in {:.2f} seconds'.format(end - start))
-
-# Provide default values for unused phases
-enrich_stats['point_count'] = 0
-enrich_stats['process_time'] = 0
 
 total_time = sum([x['process_time'] for x in [loader_stats, cleanup_stats, enrich_stats, write_stats]])
 duration = datetime(0, floor(total_time / 60), floor(total_time % 60), floor(total_time % 1))
