@@ -4,9 +4,9 @@
   Loads GSD data from a local file.
 """
 import time
+
 from datetime import time as datetime
 from math import floor
-
 from ski.logging import calc_stats
 from ski.io.gsd import GSDFileSource, stats as loader_stats
 from ski.io.track import TrackFileLoader
