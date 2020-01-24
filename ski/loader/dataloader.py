@@ -10,8 +10,10 @@ import json
 import logging
 import time
 
+from contextlib import closing
 from ski.config import config
 from ski.logging import increment_stat
+from ski.aws.s3 import load_source_from_s3
 from ski.data.commons import basic_to_extended_point
 from ski.io.gpx import parse_gpx
 from ski.io.gsd import parse_gsd
@@ -83,6 +85,18 @@ def direct_process_batch(body, tail, drain, db, batch_idx, track):
     log.debug('[batch=%03d] Written %d points', batch_idx, db.insert_count)
 
 
+def load_source_from_file(source):
+
+    # Get the file
+    f = open(source.url)
+
+    # Init the source
+    source.init_stream(f)
+
+    # Return the stream so it can be managed
+    return f
+
+
 def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
     """
     Loads a set of points from a source object, clean these and send to a processor function.
@@ -96,9 +110,10 @@ def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
     """
 
     # Load points from source
-    points = parser_f(source, **kwargs)
+    #points = parser_f(source, **kwargs)
+    points = source.load_points()
 
-    if points is not None:
+    if points is not None and len(points) > 0:
 
         # Convert to extended points
         ext_points = list(map(basic_to_extended_point, points))
@@ -112,7 +127,7 @@ def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
     # Load points into the batch
     batch.load_points(cleaned_points, drain, process_f=process_f, **kwargs)
 
-    return points is not None
+    return points is not None and len(points) > 0
 
 
 def load_all_points(source, parser_f, process_f, **kwargs):
@@ -167,6 +182,26 @@ def gpx_file_to_directory(source, track):
     loader_function = file_process_batch
 
     load_all_points(source, parser_function, loader_function, track=track)
+
+
+def file_to_directory(source, track):
+
+    with closing(load_source_from_file(source)):
+
+        parser_function = None
+        loader_function = file_process_batch
+
+        load_all_points(source, parser_function, loader_function, track=track)
+
+
+def s3_to_directory(source, track):
+
+    with closing(load_source_from_s3(source)):
+
+        parser_function = None
+        loader_function = file_process_batch
+
+        load_all_points(source, parser_function, loader_function, track=track)
 
 
 def s3_to_dynamo(s3_file, track, db):

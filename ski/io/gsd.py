@@ -4,7 +4,7 @@
 import logging
 import time
 
-from ski.aws.s3 import S3File
+from codecs import decode
 from ski.logging import increment_stat, log_point
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import add_seconds, DMSCoordinate, dms_to_wgs
@@ -18,72 +18,44 @@ stats = {}
 
 
 class GSDSource:
-    """
-    Load GSD formatted data.
-    """
-    def __init__(self, data_stream, section_offset=None, section_limit=None):
-        self.url = None
-        # Store data reference
-        self.data_stream = data_stream
-        # Set up array and internal pointers
+
+    def __init__(self, url, section_offset=None, section_limit=None):
+
+        self.url = url
+
         self.sections = []
+        self.section_limit = section_limit
+        self.section_offset = section_offset
         self.section_ptr = 0
+        self.stream = None
 
-        # Initialize by loading section names from header
-        self.__load_sections(section_offset, section_limit)
+        self.date = None
+        self.index = {}
 
-    def __load_sections(self, section_offset, section_limit):
-        """
-        Load the list of GPS sections from the file header, optionally limiting as specified.
-        
-        Params:
-          section_offset: skip the first number of sections.
-          section_limit: only load the number of sections.
-        """
-        # Load the GSD header
-        load_gsd_header(self.data_stream, sections=self.sections)
+    def __repr__(self):
+        return '<{0} url={1}; stream={2}; date={3}; index_entries={4}>'.format(type(self).__name__, self.url,
+                                                                               self.stream, self.date, len(self.index))
 
-        # Set bounds on the number of sections to parse
-        off = 0 if section_offset is None else min(section_offset, len(self.sections))
-        lim = len(self.sections) if section_limit is None else off + section_limit
-        log.debug('load_sections: %d GSD sections in file; loading sections %d to %d',
-                  len(self.sections), off, (lim - off))
+    def init_stream(self, stream):
 
-        # Constrain section list according to offset and limit
-        self.sections = self.sections[off:lim]
-        log.debug('load_sections: loaded %d GSD sections', len(self.sections))
+        self.stream = stream
 
-        increment_stat(stats, 'section_count', len(self.sections))
+        # Load date and index
+        read_gsd_date(self)
+        read_gsd_index(self)
 
-    def __next_section(self):
-        if self.section_ptr < len(self.sections):
-            section = self.sections[self.section_ptr]
-            # Increment section pointer
-            self.section_ptr += 1
-
-            # Return section
-            return section
-
-        # No sections remain
-        return None
+        increment_stat(stats, 'section_count', len(self.index))
 
     def load_points(self):
+
+        # Start of phase
+        start_time = time.time()
+
         # Prepare a new array
         points = []
 
-        # Get next section from array, return if no sections remain
-        section = self.__next_section()
-        if section is None:
-            log.debug('load_points: reached section %d; end of data', self.section_ptr)
-            return None
-
-        # Load section data into array
-        lines = load_gsd_section(self.data_stream, section)
-        log.debug('load_points: section %s: loaded %d lines', section, len(lines))
-
-        # Get all lines in the section
-        for line in lines:
-            parsed_point = parse_gsd_line(line)
+        for line in next_section_iter(self.stream):
+            parsed_point = parse_gsd_gps_line(0, *line)
 
             # Add the line to output
             points.append(parsed_point)
@@ -91,59 +63,28 @@ class GSDSource:
             # Write to pointlog
             log_point(parsed_point.ts, 'Point load from GSD', source=self.url, **parsed_point.values())
 
-        log.debug('load_points: section %s: loaded %d points', section, len(points))
+        # End of phase
+        end_time = time.time()
+        process_time = end_time - start_time
+        point_count = len(points) if points is not None else 0
+
+        increment_stat(stats, 'process_time', process_time)
+        increment_stat(stats, 'point_count', point_count)
+
+        log.info('Phase complete %s', {
+            'phase': 'load (GSD)',
+            'point_count': point_count,
+            'process_time': process_time
+        })
 
         # Return points array
         return points
 
 
-class GSDFileSource(GSDSource):
-    """Load GSD data from a local file."""
-    def __init__(self, file, section_offset=None, section_limit=None):
-        log.info('Loading GSD data from local file (%s)', file.name)
-
-        super().__init__(file, section_offset, section_limit)
-
-
-class GSDS3Source(GSDSource):
-    """Load GSD data from a resource on S3."""
-    def __init__(self, s3_file, section_offset=None, section_limit=None):
-        if type(s3_file) != S3File:
-            raise TypeError('s3_file parameter must be an S3File')
-
-        log.info('Loading GSD data from S3 (%s)', s3_file)
-        super().__init__(s3_file.body, section_offset, section_limit)
-
-
-def __get_alt(line):
-    return split_line(line)[5]
-
-
-def __get_date(line):
-    return split_line(line)[3]
-
-
-def __get_lat(line):
-    return split_line(line)[0]
-
-
-def __get_lon(line):
-    return split_line(line)[1]
-
-
-def __get_speed(line):
-    return split_line(line)[4]
-
-
-def __get_time(line):
-    return split_line(line)[2]
-
-
-def __next_section(data_stream):
-    for line in data_stream:
+def __section_iter(stream):
+    for line in stream:
         if line.startswith('['):
-            return line.strip()
-    return None
+            yield line.strip()
 
 
 def __parse_gsd_coord(coord):
@@ -161,29 +102,54 @@ def __parse_gsd_coord(coord):
     return dms
 
 
-def __parse_header_line(line):
-    # Get line parts
-    line_parts = split_line(line, True)
-    return int(line_parts[0].strip()), line_parts[1].strip()
+def __parse_gsd_line(line):
+
+    if line is None:
+        return None
+
+    try:
+        ix = line.index('=')
+
+        # Get line no
+        line_no = int(line[:ix])
+
+        # Get line parts and strip whitespace
+        parts = [a.strip() for a in line[ix + 1:].split(',')]
+
+    except ValueError:
+        log.warning('Missing allocation marker in GSD line')
+        line_no = 0
+        parts = None
+
+    return line_no, parts
 
 
-def __parse_section_name(name):
-    # Strip header characters if present
-    if name.startswith('['):
-        name = name[1:-1]
+def __read_line_from_stream(stream, skip_blanks=True):
 
-    # Parse into tuple
-    name_parts = name.split(',')
-    if len(name_parts) < 2:
-        return name
-    return int(name_parts[0].strip()), name_parts[1].strip()
+    eof = False
+    while not eof:
+        line = stream.readline()
+        if line is None or len(line) == 0:
+            # Reached end of file
+            eof = True
+            continue
+
+        line = line.strip()
+        if skip_blanks and len(line) == 0:
+            # Skip blank line
+            continue
+
+        return line
+
+    return None
 
 
-def __skip_to_section(data_stream, name=None, section_id=0):
+def __skip_to_section(stream, name=None, section_id=0):
     """Skip to a named/numbered section in a GSD file"""
     section_found = False
     while not section_found:
-        s = __next_section(data_stream)
+        s = stream.readline()
+
         if s is None:
             raise EOFError('Could not find section {0}'.format(name))
         # Search by section name
@@ -191,27 +157,54 @@ def __skip_to_section(data_stream, name=None, section_id=0):
             section_found = (s.strip() == '[{0}]'.format(name))
         # Search by section ID
         if section_id > 0:
-            section_found = (__parse_section_name(s.strip())[0] == section_id)
+            section_found = (__parse_gsd_line(s.strip())[0] == section_id)
+
+        if section_found:
+            return True
+
+    return False
 
 
-def load_gsd_header(data_stream, sections=None):
-    """Load the header from a GSD file."""
-    if sections is None:
-        sections = []
-    # Advance to TP section
-    __skip_to_section(data_stream, 'TP')
-    for line in data_stream:
-        # Skip blank lines
-        if len(line.strip()) == 0:
-            continue
-        # Stop once we reach the next header
+def read_gsd_date(source):
+    # Skip until we reach the date section
+    __skip_to_section(source.stream, 'Date')
+    # Read the date
+    source.date = __parse_gsd_line(__read_line_from_stream(source.stream))[1][0]
+
+
+def read_gsd_index(source):
+    # Read the TP section and load values into the index
+    for gsd_line in next_section_iter(source.stream, expect_header='TP'):
+        source.index[gsd_line[1][0]] = gsd_line[1][1]
+
+
+def next_section_iter(stream, expect_header=None, skip_to_header=False):
+    # If expect header is provided, ensure we get that (or skip until we do)
+    if expect_header is not None:
+        header_line = __read_line_from_stream(stream)
+        if not header_line.strip() == '[{0}]'.format(expect_header):
+            log.warning('%s header expected but not found', expect_header)
+            return False
+
+    end_of_section = False
+    while not end_of_section:
+        # Read lines from the stream until we reach eof or end of section
+        line = __read_line_from_stream(stream)
+
+        if line is None:
+            # Reached end of file
+            return
+
         if line.startswith('['):
-            break
+            # Reached end of section
+            return
 
-        sections.append(__parse_header_line(line))
+        parsed_line = __parse_gsd_line(line)
+        if parsed_line is not None:
+            yield parsed_line
 
 
-def load_gsd_section(data_stream, section):
+def load_gsd_section(stream, section):
     """Load a section from a GSD file."""
     lines = []
 
@@ -220,12 +213,12 @@ def load_gsd_section(data_stream, section):
     section_name = '{:03d},{:s}'.format(s_idx, s_name)
 
     # Start at beginning of file
-    data_stream.seek(0)
+    stream.seek(0)
 
     # Skip to section
-    __skip_to_section(data_stream, name=section_name)
+    __skip_to_section(stream, name=section_name)
 
-    for line in data_stream:
+    for line in stream:
         # Stop at next section
         if line.startswith('['):
             break
@@ -238,20 +231,28 @@ def load_gsd_section(data_stream, section):
     return lines
 
 
-def parse_gsd_line(line):
+def parse_gsd_gps_line(section_no, line_no, line_data):
+    return parse_gps_data(line_no, line_data)
+
+
+def parse_gps_data(line_no, line_data):
     """Parse a line of GSD data for a GPS point."""
-    if line is None:
+    if line_data is None:
         return None
 
-    log.debug('parse_gsd_line: %s', line)
+    log.debug('parse_gsd_line: %s', line_data)
+
+    if len(line_data) < 6:
+        log.warning('Expected 6 fields in GPS line %d, received %d', line_no, len(line_data))
+        return None
 
     # Read data from GSD line
-    gsd_lat = __get_lat(line)
-    gsd_lon = __get_lon(line)
-    gsd_dt = __get_date(line)
-    gsd_tm = __get_time(line)
-    gsd_alt = __get_alt(line)
-    gsd_spd = __get_speed(line)
+    gsd_lat = line_data[0]
+    gsd_lon = line_data[1]
+    gsd_tm = line_data[2]
+    gsd_dt = line_data[3]
+    gsd_spd = line_data[4]
+    gsd_alt = line_data[5]
 
     point = BasicGPSPoint()
     
@@ -285,7 +286,7 @@ def parse_gsd_line(line):
         point.spd = float(gsd_spd) / 100.0
 
     except ValueError as e:
-        log.warning('Failed to parse GSD line: %s; %s', line, e)
+        log.warning('Failed to parse GPS data from  GSD line %d: %s; %s', line_no, line_data, e)
 
     # Return data item
     return point
@@ -313,34 +314,3 @@ def parse_gsd(gsd_source, **kwargs):
 
     # Return points array
     return points
-
-
-def split_line(line, as_header=False):
-    """Extract the section number and section data from a GSD line."""
-    # Look for allocation marker
-    try:
-        ix = line.index('=')
-        # Get line parts and strip whitespace
-        parts = [a.strip() for a in line[ix + 1:].split(',')]
-
-    except ValueError:
-        log.warning('Missing allocation marker in GSD line')
-        parts = []
-
-    if as_header:
-        # Headers should have 2 parts
-        if len(parts) < 2:
-            log.warning('Unexpected number of data parts (%d) in GSD header line', len(parts))
-            # Ensure that we return 2 parts, pad with zeros
-            return [parts[i] if len(parts) > i else 0 for i in range(0, 2)]
-
-        return parts[0:2]
-
-    else:
-        # Data lines have 6 parts
-        if len(parts) < 6:
-            log.warning('Unexpected number of data parts (%d) in GSD data line', len(parts))
-            # Ensure that we return 6 parts, pad with zeros
-            return [parts[i] if len(parts) > i else 0 for i in range(0, 6)]
-
-        return parts[0:6]

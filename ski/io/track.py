@@ -5,7 +5,6 @@ import logging
 import yaml
 
 from pytz import timezone
-from ski.aws.s3 import S3File
 from ski.data.commons import Track
 
 # Set up logger
@@ -45,13 +44,3 @@ class TrackFileLoader(TrackLoader):
             log.info('Loading track from local file (%s)', track_file)
             self.load_data(yaml.load(f))
 
-
-class TrackS3Loader(TrackLoader):
-    """Load track data from a resource on S3."""
-    def __init__(self, s3_file):
-        if type(s3_file) != S3File:
-            raise TypeError('s3_file parameter must be an S3File')
-        super().__init__()
-
-        log.info('Loading GPX data from S3 (%s)', s3_file)
-        self.load_data(yaml.load(s3_file))

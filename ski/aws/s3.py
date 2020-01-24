@@ -3,7 +3,8 @@
 """
 import logging
 from boto3 import resource
-from io import BytesIO, TextIOWrapper
+from codecs import decode
+from io import TextIOBase, TextIOWrapper
 from ski.config import config
 
 # Set up logger
@@ -16,28 +17,34 @@ bucket = config['dataloader']['aws']['source_bucket']
 s3 = resource('s3')
 
 
-class S3File:
-    """A file resource held in AWS S3."""
-    def __init__(self, key, download=False):
-        # Get the S3 object
-        self.obj = s3.Object(bucket, key)
+class BufferedS3Response(TextIOBase):
 
-        # Initialise an empty body
-        self.body = None
+    def __init__(self, body):
+        self.body = body
+        self.body_iter = body.iter_lines()
 
-        # Download the body content if requested
-        if download:
-            self.download_body()
+    def __repr__(self):
+        return '<{0}>'.format(type(self).__name__)
 
-    def download_body(self, force_download=False):
-        """Download the content (body) of the file from S3."""
-        # Only download the body if it's not already been done
-        if self.body is None or force_download:
-            buf = BytesIO(self.obj.get()['Body'].read())
-            self.body = TextIOWrapper(buf)
+    def close(self):
+        self.body.close()
 
-        # Reset stream
-        self.body.seek(0)
+    def readline(self, size=-1):
+        return decode(self.body_iter.__next__()) + '\n'
 
-    def __str__(self):
-        return 's3://{:s}/{:s}'.format(self.obj.bucket_name, self.obj.key)
+
+def load_source_from_s3(source):
+
+    # Get the object from S3
+    obj = s3.Object(bucket, source.url)
+
+    rsp = obj.get()
+    log.debug('s3 get_object %s', rsp)
+
+    # Create the stream
+    stream = BufferedS3Response(rsp['Body'])
+
+    # Init the stream
+    source.init_stream(stream)
+
+    return stream

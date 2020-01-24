@@ -12,11 +12,12 @@ from ski.io.gsd import GSDSource, stats as loader_stats
 from ski.io.track import TrackFileLoader
 from ski.loader.cleanup import stats as cleanup_stats
 from ski.loader.enrich import stats as enrich_stats
-from ski.loader.dataloader import file_to_directory, direct_write_stats as write_stats
+from ski.loader.dataloader import s3_to_directory, direct_write_stats as write_stats
 
 
 TEST_TRACK_FILE = 'tests/testdata/ski_unittest.yaml'
 TEST_DATA_FILE = 'tests/testdata/testdata.gsd'
+TEST_DATA_S3 = 'gsd/testdata.gsd'
 
 # Script start time
 start = time.time()
@@ -26,17 +27,8 @@ ldr = TrackFileLoader(TEST_TRACK_FILE)
 track = ldr.get_track()
 
 # Create GSD source
-source = GSDSource(TEST_DATA_FILE)
-file_to_directory(source, track)
-
-
-# Open the file
-# with open(TEST_DATA_FILE, mode='r') as f:
-#    # Create GSD source from file
-#    source = GSDFileSource(f)
-#
-#    # Load points
-#    gsd_file_to_directory(source, track)
+source = GSDSource(TEST_DATA_S3)
+s3_to_directory(source, track)
 
 # Script end time
 end = time.time()
