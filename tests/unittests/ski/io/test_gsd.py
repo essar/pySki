@@ -53,7 +53,7 @@ class TestGsd(unittest.TestCase):
         self.assertEqual(len(res), 10)
 
     def test_parse_gps_data(self):
-        res = parse_gps_data(1, ['45180950', '6351140', '90200', '270219', '1360', '24770000'])
+        res = parse_gps_line(1, 1, ['45180950', '6351140', '90200', '270219', '1360', '24770000'])
         self.assertEqual(res.ts, 1551258120)
         self.assertEqual(res.lat, 45.30158333333333)
         self.assertEqual(res.lon, 6.585233333333333)
@@ -61,11 +61,11 @@ class TestGsd(unittest.TestCase):
         self.assertEqual(res.alt, 2477)
 
     def test_parse_gps_data_not_enough_values(self):
-        res = parse_gps_data(1, ['1234567890'])
+        res = parse_gps_line(1, 1, ['1234567890'])
         self.assertIsNone(res)
 
     def test_parse_gps_data_invalid_speed(self):
-        res = parse_gps_data(1, ['45180950', '6351140', '90200', '270219', 'abcd', 'abcd'])
+        res = parse_gps_line(1, 1, ['45180950', '6351140', '90200', '270219', 'abcd', 'abcd'])
         self.assertEqual(res.ts, 1551258120)
         self.assertEqual(res.lat, 45.30158333333333)
         self.assertEqual(res.lon, 6.585233333333333)
@@ -73,7 +73,7 @@ class TestGsd(unittest.TestCase):
         self.assertEqual(res.alt, 0)
 
     def test_parse_gps_data_none(self):
-        res = parse_gps_data(1, None)
+        res = parse_gps_line(1, 1, None)
         self.assertIsNone(res)
 
 

@@ -28,6 +28,7 @@ class GSDSource:
         self.section_offset = section_offset
         self.section_ptr = 0
         self.stream = None
+        self.__next_section = None
 
         self.date = None
         self.index = {}
@@ -35,6 +36,28 @@ class GSDSource:
     def __repr__(self):
         return '<{0} url={1}; stream={2}; date={3}; index_entries={4}>'.format(type(self).__name__, self.url,
                                                                                self.stream, self.date, len(self.index))
+
+    def __read_line_from_stream(self, skip_blanks=True):
+
+        if self.stream is None:
+            raise ValueError('Stream is not initialized')
+
+        eof = False
+        while not eof:
+            line = self.stream.readline()
+            if line is None or len(line) == 0:
+                # Reached end of file
+                eof = True
+                continue
+
+            line = line.strip()
+            if skip_blanks and len(line) == 0:
+                # Skip blank line
+                continue
+
+            return line
+
+        return None
 
     def init_stream(self, stream):
 
@@ -54,14 +77,19 @@ class GSDSource:
         # Prepare a new array
         points = []
 
-        for line in next_section_iter(self.stream):
-            parsed_point = parse_gsd_gps_line(0, *line)
+        # Read the section number from next section line
+        section_number = self.__next_section[0]
+        for line in self.next_section_iter():
+            parsed_point = parse_gps_line(section_number, *line)
 
             # Add the line to output
             points.append(parsed_point)
 
             # Write to pointlog
             log_point(parsed_point.ts, 'Point load from GSD', source=self.url, **parsed_point.values())
+
+            # Read the section number from next section line
+            section_number = self.__next_section[0]
 
         # End of phase
         end_time = time.time()
@@ -80,11 +108,37 @@ class GSDSource:
         # Return points array
         return points
 
+    def next_section_iter(self, expect_header=None, skip_to_header=False):
 
-def __section_iter(stream):
-    for line in stream:
-        if line.startswith('['):
-            yield line.strip()
+        # If expect header is provided, ensure we get that (or skip until we do)
+        if expect_header is not None:
+            if self.__next_section is not None:
+                header_line = self.__next_section
+                self.__next_section = None
+            else:
+                header_line = self.__read_line_from_stream()
+            if not header_line.strip() == '[{0}]'.format(expect_header):
+                log.warning('%s header expected but not found', expect_header)
+                return False
+
+        end_of_section = False
+        while not end_of_section:
+            # Read lines from the stream until we reach eof or end of section
+            line = self.__read_line_from_stream()
+
+            if line is None:
+                # Reached end of file
+                return
+
+            if line.startswith('['):
+                # Reached end of section
+                # Save the header in case we need it next time
+                self.__next_section = line
+                return
+
+            parsed_line = parse_gsd_line(line)
+            if parsed_line is not None:
+                yield parsed_line
 
 
 def __parse_gsd_coord(coord):
@@ -102,7 +156,7 @@ def __parse_gsd_coord(coord):
     return dms
 
 
-def __parse_gsd_line(line):
+def parse_gsd_line(line):
 
     if line is None:
         return None
@@ -124,118 +178,21 @@ def __parse_gsd_line(line):
     return line_no, parts
 
 
-def __read_line_from_stream(stream, skip_blanks=True):
-
-    eof = False
-    while not eof:
-        line = stream.readline()
-        if line is None or len(line) == 0:
-            # Reached end of file
-            eof = True
-            continue
-
-        line = line.strip()
-        if skip_blanks and len(line) == 0:
-            # Skip blank line
-            continue
-
-        return line
-
-    return None
-
-
-def __skip_to_section(stream, name=None, section_id=0):
-    """Skip to a named/numbered section in a GSD file"""
-    section_found = False
-    while not section_found:
-        s = stream.readline()
-
-        if s is None:
-            raise EOFError('Could not find section {0}'.format(name))
-        # Search by section name
-        if name is not None:
-            section_found = (s.strip() == '[{0}]'.format(name))
-        # Search by section ID
-        if section_id > 0:
-            section_found = (__parse_gsd_line(s.strip())[0] == section_id)
-
-        if section_found:
-            return True
-
-    return False
-
-
 def read_gsd_date(source):
     # Skip until we reach the date section
-    __skip_to_section(source.stream, 'Date')
+    gsd_line = source.next_section_iter(expect_header='Date', skip_to_header=True).__next__()
     # Read the date
-    source.date = __parse_gsd_line(__read_line_from_stream(source.stream))[1][0]
+    source.date = gsd_line[1][0]
 
 
 def read_gsd_index(source):
     # Read the TP section and load values into the index
-    for gsd_line in next_section_iter(source.stream, expect_header='TP'):
+    for gsd_line in source.next_section_iter(expect_header='TP'):
+        # Read the index
         source.index[gsd_line[1][0]] = gsd_line[1][1]
 
 
-def next_section_iter(stream, expect_header=None, skip_to_header=False):
-    # If expect header is provided, ensure we get that (or skip until we do)
-    if expect_header is not None:
-        header_line = __read_line_from_stream(stream)
-        if not header_line.strip() == '[{0}]'.format(expect_header):
-            log.warning('%s header expected but not found', expect_header)
-            return False
-
-    end_of_section = False
-    while not end_of_section:
-        # Read lines from the stream until we reach eof or end of section
-        line = __read_line_from_stream(stream)
-
-        if line is None:
-            # Reached end of file
-            return
-
-        if line.startswith('['):
-            # Reached end of section
-            return
-
-        parsed_line = __parse_gsd_line(line)
-        if parsed_line is not None:
-            yield parsed_line
-
-
-def load_gsd_section(stream, section):
-    """Load a section from a GSD file."""
-    lines = []
-
-    # Reconstruct the section name
-    s_idx, s_name = section
-    section_name = '{:03d},{:s}'.format(s_idx, s_name)
-
-    # Start at beginning of file
-    stream.seek(0)
-
-    # Skip to section
-    __skip_to_section(stream, name=section_name)
-
-    for line in stream:
-        # Stop at next section
-        if line.startswith('['):
-            break
-        # Skip blank lines
-        if len(line.strip()) == 0:
-            continue
-        # Add the cleaned-up line
-        lines.append(line.strip())
-
-    return lines
-
-
-def parse_gsd_gps_line(section_no, line_no, line_data):
-    return parse_gps_data(line_no, line_data)
-
-
-def parse_gps_data(line_no, line_data):
+def parse_gps_line(section_no, line_no, line_data):
     """Parse a line of GSD data for a GPS point."""
     if line_data is None:
         return None
@@ -243,7 +200,7 @@ def parse_gps_data(line_no, line_data):
     log.debug('parse_gsd_line: %s', line_data)
 
     if len(line_data) < 6:
-        log.warning('Expected 6 fields in GPS line %d, received %d', line_no, len(line_data))
+        log.warning('Expected 6 fields in GSD section %d, line %d; received %d', section_no, line_no, len(line_data))
         return None
 
     # Read data from GSD line
@@ -286,7 +243,7 @@ def parse_gps_data(line_no, line_data):
         point.spd = float(gsd_spd) / 100.0
 
     except ValueError as e:
-        log.warning('Failed to parse GPS data from  GSD line %d: %s; %s', line_no, line_data, e)
+        log.warning('Failed to parse GPS data from GSD section %d,line %d: %s; %s', section_no, line_no, line_data, e)
 
     # Return data item
     return point
