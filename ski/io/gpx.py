@@ -5,10 +5,9 @@ import logging
 import time
 
 from datetime import datetime
-from ski.aws.s3 import S3File
 from ski.data.commons import BasicGPSPoint
 from ski.logging import increment_stat, log_point
-from xml.dom.minidom import parse, parseString
+from xml.etree.ElementTree import iterparse
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -20,46 +19,48 @@ default_batch = 64
 
 
 class GPXSource:
-    """
-    Load GPX formatted data.
-    """
-    def __init__(self, url, source, batch_size=default_batch):
-        self.url = None
-        self.source = source
+
+    def __init__(self, url, batch_size=default_batch):
+
+        self.url = url
         self.batch_size = batch_size
+
+        self.stream = None
+        self.stream_iter = None
+
         # Set up array and internal pointer
         self.elems = []
         self.elem_ptr = 0
 
-    def load_data(self, doc):
-        """
-        Load data from a GPX document.
+    def __repr__(self):
+        return '<{0} url={1}; stream={2}; elem_count={3}>'.format(
+            type(self).__name__, self.url, self.stream, len(self.elems))
 
-        Params:
-          doc: the XML document containing GPX data.
-        """
-        # Extract elements from document
-        doc_elems = doc.getElementsByTagName('trkpt')
-        log.debug('%d elements found', len(doc_elems))
-        self.elems.extend(doc_elems)
+    def init_stream(self, stream):
+
+        self.stream = stream
+        self.stream_iter = iterparse(stream)
+
+        log.info('Initialised GPX source: %s', self)
+
+    def next_section_iter(self):
+
+        point_count = 0
+        while point_count < self.batch_size:
+            event, elem = self.stream_iter.__next__()
+            if elem.tag.endswith('trkpt'):
+                yield elem
+            point_count += 1
+
+        return
 
     def load_points(self):
-        """Load all the GPS points from a GPX document."""
+        """Load GPS points from a GPX document."""
         # Prepare a new array
         points = []
 
-        # Get next element from document, return if no points remain
-        if self.elem_ptr < len(self.elems):  # and (batch_size < 0 or self.elem_ptr < batch_size):
-            # Look elements
-            s = self.elem_ptr
-            e = self.elem_ptr + self.batch_size
-            elems = self.elems[s:e]
-            # Increment pointer
-            self.elem_ptr += len(elems)
-        else:
-            return None
+        for elem in self.next_section_iter():
 
-        for elem in elems:
             parsed_point = parse_gpx_elem(elem)
 
             # Add the point to output
@@ -72,35 +73,6 @@ class GPXSource:
         return points
 
 
-class GPXFileSource(GPXSource):
-    """Load GPX data from a local file."""
-    def __init__(self, gpx_file_handle, batch_size=default_batch):
-        super().__init__(gpx_file_handle.name, batch_size)
-
-        log.debug('Loading GPX data from local file (%s)', gpx_file_handle.name)
-        self.load_data(parse(gpx_file_handle))
-
-
-class GPXS3Source(GPXSource):
-    """Load GPX data from a resource on S3."""
-    def __init__(self, s3_file_handle, batch_size=default_batch):
-        if type(s3_file_handle) != S3File:
-            raise TypeError('s3_file parameter must be an S3File')
-        super().__init__(s3_file_handle.name, batch_size)
-
-        log.debug('Loading GPX data from S3 (%s)', s3_file_handle.name)
-        self.load_data(parse(s3_file_handle))
-
-
-class GPXStringSource(GPXSource):
-    """Load GSD data from a provided String."""
-    def __init__(self, gpx_string, batch_size=default_batch):
-        super().__init__('string', batch_size)
-        
-        log.debug('Loading GPX data from string (%d bytes)', len(gpx_string))
-        self.load_data(parseString(gpx_string))
-
-
 def __get_text(elem):
     rc = []
     for e in elem:
@@ -109,40 +81,23 @@ def __get_text(elem):
     return ''.join(rc)
 
 
-def __get_alt(elem):
-    return __get_text(elem.getElementsByTagName('ele')[0].childNodes)
-
-
-def __get_lat(elem):
-    return elem.getAttribute('lat')
-
-
-def __get_lon(elem):
-    return elem.getAttribute('lon')
-
-
-def __get_speed(elem):
-    return __get_text(elem.getElementsByTagName('speed')[0].childNodes)
-
-
-def __get_ts(elem):
-    return __get_text(elem.getElementsByTagName('time')[0].childNodes)
-
-
 def parse_gpx_elem(elem):
     """Parse an element of GPX data for a GPS point."""
     # Get next element from document, return if no points remain
+
+    # Empty line in is empty output
     if elem is None:
         return None
 
+    log.debug('parse_gpx_elem: elem=%s; children=%s', elem, list(elem))
+
     # Read data from XML element
-    xml_lat = __get_lat(elem)
-    xml_lon = __get_lon(elem)
-    xml_ts = __get_ts(elem)
-    xml_alt = __get_alt(elem)
-    xml_spd = __get_speed(elem)
-    log.debug('XML: lat=%s; lon=%s; ts=%s; alt=%s; spd=%s', xml_lat, xml_lon, xml_ts, xml_alt, xml_spd)
-        
+    xml_lat = elem.attrib['lat']
+    xml_lon = elem.attrib['lon']
+    xml_ts = elem.find('{http://www.topografix.com/GPX/1/0}time').text
+    xml_alt = elem.find('{http://www.topografix.com/GPX/1/0}ele').text
+    xml_spd = elem.find('{http://www.topografix.com/GPX/1/0}speed').text
+
     point = BasicGPSPoint()
     
     try:
@@ -150,27 +105,34 @@ def parse_gpx_elem(elem):
         dt = datetime.strptime(xml_ts, '%Y-%m-%dT%H:%M:%SZ')
         # Convert to timestamp
         point.ts = int(datetime.timestamp(dt))
+        log.debug('parse_gpx_elem: xml_ts=%s, dt=%s, ts=%d', xml_ts, dt, point.ts)
         
         # Parse latitude, convert to floating point
         point.lat = float(xml_lat)
+        log.debug('parse_gpx_elem: xml_lat=%s, lat=%.4f', xml_lat, point.lat)
             
         # Parse longitude, convert to floating point
-        point.lon = float(xml_lon)    
+        point.lon = float(xml_lon)
+        log.debug('parse_gpx_elem: xml_lon=%s, lon=%.4f', xml_lon, point.lon)
             
         # GPX altitude in metres, convert from floating point to int
         point.alt = int(float(xml_alt))
+        log.debug('parse_gpx_elem: xml_alt=%s, alt=%d', xml_alt, point.alt)
 
         # GPX speed is m/s, convert to km/h
         point.spd = (float(xml_spd) * 3600.0) / 1000.0
+        log.debug('parse_gpx_elem: xml_spd=%s, spd=%.2f', xml_spd, point.spd)
                 
     except ValueError as e:
-        log.warning('Failed to parse GPX element: %s; %s', elem.toxml(), e)
+        log.warning('Failed to parse GPS data from GPX element: %s; %s', elem.toxml(), e)
         
     # Return data item
     return point
 
 
 def parse_gpx(gpx_source, **kwargs):
+
+    log.debug('parse_gpx: source=%s, args=%s', gpx_source, kwargs)
 
     start_time = time.time()
 

@@ -8,7 +8,7 @@ import time
 from datetime import time as datetime
 from math import floor
 from ski.logging import calc_stats
-from ski.io.gpx import GPXFileSource, stats as loader_stats
+from ski.io.gpx import GPXSource, stats as loader_stats
 from ski.io.track import TrackFileLoader
 from ski.loader.cleanup import stats as cleanup_stats
 from ski.loader.enrich import stats as enrich_stats
@@ -25,13 +25,18 @@ start = time.time()
 ldr = TrackFileLoader(TEST_TRACK_FILE)
 track = ldr.get_track()
 
-# Create file loader; load a single GSD section (64 points)
-with open(TEST_DATA_FILE, mode='r') as f:
-    # Create GPX source from file
-    source = GPXFileSource(f)
+# Create GPX Source
+source = GPXSource(TEST_DATA_FILE)
+gpx_file_to_directory(source, track)
 
-    # Load points
-    gpx_file_to_directory(source, track)
+
+# Create file loader; load a single GSD section (64 points)
+# with open(TEST_DATA_FILE, mode='r') as f:
+#    # Create GPX source from file
+#    source = GPXFileSource(f)
+#
+#    # Load points
+#    gpx_file_to_directory(source, track)
 
 # Script end time
 end = time.time()
