@@ -4,7 +4,6 @@
 import logging
 import time
 
-from codecs import decode
 from ski.logging import increment_stat, log_point
 from ski.data.commons import BasicGPSPoint
 from ski.data.coordinate import add_seconds, DMSCoordinate, dms_to_wgs
@@ -19,14 +18,10 @@ stats = {}
 
 class GSDSource:
 
-    def __init__(self, url, section_offset=None, section_limit=None):
+    def __init__(self, url):
 
         self.url = url
 
-        self.sections = []
-        self.section_limit = section_limit
-        self.section_offset = section_offset
-        self.section_ptr = 0
         self.stream = None
         self.__next_section = None
 
@@ -49,7 +44,6 @@ class GSDSource:
 
         eof = False
         while not eof:
-            blank_lines = 0
 
             # Read from the underlying stream
             line = self.stream.readline()
@@ -121,6 +115,8 @@ class GSDSource:
         @param skip_to_header: True to read data until the header value in `expect_header` is reached.
         @return: an iterator over the data, or `False` if the expected header is not found.
         """
+
+        log.debug('next_section_iter: expect_header%s, skip_to_header=%s', expect_header, skip_to_header)
 
         # If expect header is provided, ensure we get that (or skip until we do)
         if expect_header is not None:

@@ -110,8 +110,8 @@ def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
     """
 
     # Load points from source
-    #points = parser_f(source, **kwargs)
-    points = source.load_points()
+    points = parser_f(source, **kwargs)
+    #points = source.load_points()
 
     if points is not None and len(points) > 0:
 
@@ -188,7 +188,7 @@ def file_to_directory(source, track):
 
     with closing(load_source_from_file(source)):
 
-        parser_function = None
+        parser_function = parse_gsd
         loader_function = file_process_batch
 
         load_all_points(source, parser_function, loader_function, track=track)
