@@ -11,7 +11,7 @@ from xml.etree.ElementTree import iterparse
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 stats = {}
 
@@ -19,6 +19,9 @@ default_batch = 64
 
 
 class GPXSource:
+    """
+    Class providing operations for loading and parsing GPX-formatted files and streams.
+    """
 
     def __init__(self, url, batch_size=default_batch):
 
@@ -37,6 +40,10 @@ class GPXSource:
             type(self).__name__, self.url, self.stream, len(self.elems))
 
     def init_stream(self, stream):
+        """
+        Initialise the source with the specified stream.
+        @param stream: an `io` stream that provides the data for the source.
+        """
 
         self.stream = stream
         self.stream_iter = iterparse(stream)
@@ -44,6 +51,10 @@ class GPXSource:
         log.info('Initialised GPX source: %s', self)
 
     def next_section_iter(self):
+        """
+        Returns an iterator over the next set of data.
+        @return: an iterator over the data.
+        """
 
         point_count = 0
         while point_count < self.batch_size:
@@ -52,10 +63,14 @@ class GPXSource:
                 yield elem
             point_count += 1
 
+        log.debug('next_section_iter: point_count=%d', point_count)
         return
 
     def load_points(self):
-        """Load GPS points from a GPX document."""
+        """
+        Reads a set of points from the source. For GPX files this is the specified number of points.
+        @return: a list of points.
+        """
         # Prepare a new array
         points = []
 
@@ -73,16 +88,12 @@ class GPXSource:
         return points
 
 
-def __get_text(elem):
-    rc = []
-    for e in elem:
-        if e.nodeType == e.TEXT_NODE:
-            rc.append(e.data)
-    return ''.join(rc)
-
-
 def parse_gpx_elem(elem):
-    """Parse an element of GPX data for a GPS point."""
+    """
+    Parses an element of GPX data for a GPS point.
+    @param elem: GPX element
+    @return a BasicGPSPoint containing the parsed data.
+    """
     # Get next element from document, return if no points remain
 
     # Empty line in is empty output
@@ -131,6 +142,12 @@ def parse_gpx_elem(elem):
 
 
 def parse_gpx(gpx_source, **kwargs):
+    """
+    Parse a GPX source.
+    @param gpx_source: the source to parse.
+    @param kwargs: Additional parameters.
+    @return: a list of points.
+    """
 
     log.debug('parse_gpx: source=%s, args=%s', gpx_source, kwargs)
 

@@ -34,9 +34,9 @@ class GSDSource:
 
     def __read_line_from_stream(self, skip_blanks=True):
         """
-        Reads a line of data from the stream, optionally skipping blank lines
-        @param skip_blanks: True to skip empty or blank lines
-        @return: a line of data read from the file (excluding leading/trailing whitespace)
+        Reads a line of data from the stream, optionally skipping blank lines.
+        @param skip_blanks: True to skip empty or blank lines.
+        @return: a line of data read from the file (excluding leading/trailing whitespace).
         """
 
         if self.stream is None:
@@ -68,7 +68,7 @@ class GSDSource:
 
     def init_stream(self, stream):
         """
-        Initialise the source with the specified stream.
+        Initialises the source with the specified stream.
         @param stream: an `io` stream that provides the data for the source.
         """
 
@@ -84,7 +84,7 @@ class GSDSource:
 
     def load_points(self):
         """
-        Read a set of points from the source. For GSD files this is a single section (64 points).
+        Reads a set of points from the source. For GSD files this is a single section (64 points).
         @return: a list of points.
         """
 
@@ -296,8 +296,8 @@ def parse_gps_data(section_no, line_no, line_data):
 
 def parse_gsd(gsd_source, **kwargs):
     """
-    Parse a GSD source.
-    @param gsd_source: the source to parse
+    Parses a GSD source.
+    @param gsd_source: the source to parse.
     @param kwargs: Additional parameters.
     @return: a list of points.
     """
