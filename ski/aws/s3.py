@@ -9,9 +9,9 @@ from ski.config import config
 
 # Set up logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
-bucket = config['dataloader']['aws']['source_bucket']
+bucket = config['aws']['s3']['source_bucket']
 
 # Initialise s3 resource
 s3 = resource('s3')

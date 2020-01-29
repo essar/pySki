@@ -1,11 +1,13 @@
+aws:
+  s3:
+    source_bucket: essar-zephyr-test
+
 db:
   dynamo:
     endpoint_url: http://dynamo:8000
     points_table_name: zephyr-points
 
 dataloader:
-  aws:
-    source_bucket: essar-zephyr-test
   batch_size: 1000
   head_length: 30
   tail_length: 30
