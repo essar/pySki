@@ -61,7 +61,7 @@ class GPXSource:
             event, elem = self.stream_iter.__next__()
             if elem.tag.endswith('trkpt'):
                 yield elem
-            point_count += 1
+                point_count += 1
 
         log.debug('next_section_iter: point_count=%d', point_count)
         return
