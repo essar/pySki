@@ -186,6 +186,16 @@ def gpx_file_to_directory(source, track):
         load_all_points(source, parser_function, loader_function, track=track)
 
 
+def gpx_s3_to_directory(source, track):
+
+    with closing(load_source_from_s3(source)):
+
+        parser_function = parse_gpx
+        loader_function = file_process_batch
+
+        load_all_points(source, parser_function, loader_function, track=track)
+
+
 def file_to_directory(source, track):
 
     with closing(load_source_from_file(source)):

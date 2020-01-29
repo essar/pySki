@@ -29,6 +29,9 @@ class BufferedS3Response(TextIOBase):
     def close(self):
         self.body.close()
 
+    def read(self, size=None):
+        return self.body.read(size)
+
     def readline(self, size=-1):
         return decode(self.body_iter.__next__()) + '\n'
 
