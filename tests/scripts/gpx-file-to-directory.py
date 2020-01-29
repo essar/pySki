@@ -29,15 +29,6 @@ track = ldr.get_track()
 source = GPXSource(TEST_DATA_FILE)
 gpx_file_to_directory(source, track)
 
-
-# Create file loader; load a single GSD section (64 points)
-# with open(TEST_DATA_FILE, mode='r') as f:
-#    # Create GPX source from file
-#    source = GPXFileSource(f)
-#
-#    # Load points
-#    gpx_file_to_directory(source, track)
-
 # Script end time
 end = time.time()
 
