@@ -88,6 +88,11 @@ class GPXSource:
         return points
 
 
+def __get_text(elem, tag, default=None):
+    ns = '{http://www.topografix.com/GPX/1/0}'
+    e = elem.find(ns + tag)
+    return e.text if e is not None else default
+
 def parse_gpx_elem(elem):
     """
     Parses an element of GPX data for a GPS point.
@@ -105,9 +110,9 @@ def parse_gpx_elem(elem):
     # Read data from XML element
     xml_lat = elem.attrib['lat']
     xml_lon = elem.attrib['lon']
-    xml_ts = elem.find('{http://www.topografix.com/GPX/1/0}time').text
-    xml_alt = elem.find('{http://www.topografix.com/GPX/1/0}ele').text
-    xml_spd = elem.find('{http://www.topografix.com/GPX/1/0}speed').text
+    xml_ts = __get_text(elem,'time')
+    xml_alt = __get_text(elem, 'ele', 0)
+    xml_spd = __get_text(elem, 'speed', 0.0)
 
     point = BasicGPSPoint()
     
@@ -135,7 +140,7 @@ def parse_gpx_elem(elem):
         log.debug('parse_gpx_elem: xml_spd=%s, spd=%.2f', xml_spd, point.spd)
                 
     except ValueError as e:
-        log.warning('Failed to parse GPS data from GPX element: %s; %s', elem.toxml(), e)
+        log.warning('Failed to parse GPS data from GPX element: %s; %s', elem, e)
         
     # Return data item
     return point
