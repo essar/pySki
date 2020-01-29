@@ -3,7 +3,9 @@
 """
 
 import logging
+from sys import argv
 
+from argparse import ArgumentParser
 from ski.config import config
 
 # Set up logger
@@ -15,16 +17,25 @@ point_log = logging.getLogger('POINTLOG')
 point_log.setLevel(logging.INFO)
 
 # Load config values
+cfg_log_mode = 'DEBUG' if config['logging']['debug'] else 'INFO'
 cfg_point_log_mode = config['logging']['point_log']
 
 # Default values
 DEFAULT_LOG_FMT = '%(asctime)s %(levelname)7s (%(name)s) %(message)s'
 
 
-def configure_logging(default_log_level=logging.INFO, point_log_level=cfg_point_log_mode):
+def configure_logging(default_log_level=cfg_log_mode, point_log_level=cfg_point_log_mode):
 
     # Create default formatter
     fmt = logging.Formatter(DEFAULT_LOG_FMT)
+
+    # Override debug mode
+    if len(argv) > 0:
+        ap = ArgumentParser()
+        ap.add_argument('--debug', action='store_true')
+        args = ap.parse_args()
+        if args.debug:
+            default_log_level = logging.DEBUG
 
     # Create default handler
     h = logging.StreamHandler()
@@ -75,6 +86,11 @@ def debug_track_event(logger, track, message, *args):
 def info_track_event(logger, track, message, *args):
     log_msg = '[%s] ' + message
     logger.debug(log_msg, track.track_id, *args)
+
+
+def enable_debug(debug_enable=True):
+    for h in logging.getLogger('ski').handlers:
+        h.setLevel(logging.DEBUG if debug_enable else logging.INFO)
 
 
 def calc_stats(stats, total_exec_time):

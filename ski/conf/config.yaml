@@ -17,6 +17,7 @@ cleanup:
   skip_outlyers: no
 
 logging:
+  debug: off
   point_log: off
 
 outlyer:
