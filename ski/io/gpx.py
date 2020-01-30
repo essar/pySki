@@ -50,6 +50,27 @@ class GPXSource:
 
         log.info('Initialised GPX source: %s', self)
 
+    def load_points(self):
+        """
+        Reads a set of points from the source. For GPX files this is the specified number of points.
+        @return: a list of points.
+        """
+        # Prepare a new array
+        points = []
+
+        for elem in self.next_section_iter():
+
+            parsed_point = parse_gpx_elem(elem)
+            if parsed_point is not None:
+                # Add the point to output
+                points.append(parsed_point)
+
+                # Write to point log
+                log_point(parsed_point.ts, 'Point load from GPX', source=self.url, **parsed_point.values())
+
+        # Return points array
+        return points
+
     def next_section_iter(self):
         """
         Returns an iterator over the next set of data.
@@ -66,38 +87,20 @@ class GPXSource:
         log.debug('next_section_iter: point_count=%d', point_count)
         return
 
-    def load_points(self):
-        """
-        Reads a set of points from the source. For GPX files this is the specified number of points.
-        @return: a list of points.
-        """
-        # Prepare a new array
-        points = []
 
-        for elem in self.next_section_iter():
-
-            parsed_point = parse_gpx_elem(elem)
-
-            # Add the point to output
-            points.append(parsed_point)
-
-            # Write to pointlog
-            log_point(parsed_point.ts, 'Point load from GPX', source=self.url, **parsed_point.values())
-
-        # Return points array
-        return points
-
-
-def __get_text(elem, tag, default=None):
+def __find_text_or_raise(elem, tag):
     ns = '{http://www.topografix.com/GPX/1/0}'
     e = elem.find(ns + tag)
-    return e.text if e is not None else default
+    if e is None:
+        raise ValueError('Tag {0} not found in element {1}'.format(tag, elem.tag))
+    return e.text
+
 
 def parse_gpx_elem(elem):
     """
     Parses an element of GPX data for a GPS point.
     @param elem: GPX element
-    @return a BasicGPSPoint containing the parsed data.
+    @return a BasicGPSPoint containing the parsed data or None if a GPS point cannot be parsed.
     """
     # Get next element from document, return if no points remain
 
@@ -107,16 +110,16 @@ def parse_gpx_elem(elem):
 
     log.debug('parse_gpx_elem: elem=%s; children=%s', elem, list(elem))
 
-    # Read data from XML element
-    xml_lat = elem.attrib['lat']
-    xml_lon = elem.attrib['lon']
-    xml_ts = __get_text(elem,'time')
-    xml_alt = __get_text(elem, 'ele', 0)
-    xml_spd = __get_text(elem, 'speed', 0.0)
-
     point = BasicGPSPoint()
-    
+
     try:
+        # Read data from XML element
+        xml_lat = elem.attrib['lat']
+        xml_lon = elem.attrib['lon']
+        xml_ts = __find_text_or_raise(elem, 'time')
+        xml_alt = __find_text_or_raise(elem, 'ele')
+        xml_spd = __find_text_or_raise(elem, 'speed')
+
         # GPX datetime in YYYY-MM-DDTHH:MM:SSZ (UTC) format
         dt = datetime.strptime(xml_ts, '%Y-%m-%dT%H:%M:%SZ')
         # Convert to timestamp
@@ -141,6 +144,7 @@ def parse_gpx_elem(elem):
                 
     except ValueError as e:
         log.warning('Failed to parse GPS data from GPX element: %s; %s', elem, e)
+        return None
         
     # Return data item
     return point
