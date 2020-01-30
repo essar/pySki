@@ -14,6 +14,7 @@ from contextlib import closing
 from ski.config import config
 from ski.logging import increment_stat
 from ski.aws.s3 import load_source_from_s3
+from ski.aws.sqs import sqs_process_batch
 from ski.data.commons import basic_to_extended_point
 from ski.io.gpx import parse_gpx
 from ski.io.gsd import parse_gsd
@@ -182,6 +183,15 @@ def gpx_file_to_directory(source, track):
 
         parser_function = parse_gpx
         loader_function = file_process_batch
+
+        load_all_points(source, parser_function, loader_function, track=track)
+
+
+def gpx_file_to_sqs(source, track):
+
+    with closing(load_source_from_file(source)):
+        parser_function = parse_gpx
+        loader_function = sqs_process_batch
 
         load_all_points(source, parser_function, loader_function, track=track)
 

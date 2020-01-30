@@ -1,6 +1,8 @@
 aws:
   s3:
     source_bucket: essar-zephyr-test
+  sqs:
+    enrich_queue_url: https://sqs.eu-west-2.amazonaws.com/014846681604/essar-zephyr-test-enrich
 
 db:
   dynamo:
