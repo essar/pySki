@@ -49,7 +49,11 @@ class BufferedS3Response(TextIOBase):
         @param size: Optional number of lines to read.
         @return: the next line in the file, including trailing newline character.
         """
-        return decode(self.body_iter.__next__()) + '\n'
+        # Wrap in a try/except to catch legacy StopIteration errors
+        try:
+            return decode(self.body_iter.__next__()) + '\n'
+        except StopIteration:
+            return
 
 
 def load_source_from_s3(source):
@@ -70,5 +74,18 @@ def load_source_from_s3(source):
 
     # Init the stream
     source.init_stream(stream)
+
+    return stream
+
+
+def load_track_from_s3(key):
+    # Get the object from S3
+    obj = s3.Object(bucket, key)
+
+    rsp = obj.get()
+    log.debug('load_track_from_s3: source=%s, rsp=%s', key, rsp)
+
+    # Create the stream
+    stream = BufferedS3Response(rsp['Body'])
 
     return stream

@@ -9,10 +9,11 @@ class Track:
     """
     Class that encapsulates data representing a single track or connected set of points.
     """
-    def __init__(self, track_id, track_group, start_time, **properties):
+    def __init__(self, track_id, track_group, start_time, datafile, **properties):
         self.track_id = track_id
         self.track_group = track_group
         self.start_time = start_time
+        self.datafile = datafile
         self.properties = properties
 
         # Convert the start time to a datetime object if a string is provided
@@ -24,13 +25,15 @@ class Track:
         v = {
             'track_id': self.track_id,
             'track_group': self.track_group,
-            'start_time': self.start_time.isoformat()
+            'start_time': self.start_time.isoformat(),
+            'datafile': self.datafile
         }
         v.update(self.properties)
         return v
 
     def __str__(self):
-        return '[{track_id:s}] group={track_group:s} start_time={start_time:s}'.format(**self.values())
+        return '[{track_id:s}] group={track_group:s} start_time={start_time:s}, datafile={datafile:s}'.format(
+            **self.values())
 
 
 class BasicGPSPoint:

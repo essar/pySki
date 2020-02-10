@@ -9,26 +9,24 @@ from datetime import time as datetime
 from math import floor
 from ski.logging import calc_stats
 from ski.io.gsd import GSDSource, stats as loader_stats
-from ski.io.track import TrackFileLoader
+from ski.io.track import TrackS3oader
 from ski.loader.cleanup import stats as cleanup_stats
 from ski.loader.enrich import stats as enrich_stats
-from ski.loader.dataloader import s3_to_directory, direct_write_stats as write_stats
+from ski.loader.dataloader import gsd_s3_to_directory, direct_write_stats as write_stats
 
 
-TEST_TRACK_FILE = 'tests/testdata/ski_unittest.yaml'
-TEST_DATA_FILE = 'tests/testdata/testdata.gsd'
-TEST_DATA_S3 = 'gsd/testdata.gsd'
+TEST_TRACK_KEY = 'ski_unittest.yaml'
 
 # Script start time
 start = time.time()
 
 # Create track loader
-ldr = TrackFileLoader(TEST_TRACK_FILE)
+ldr = TrackS3oader(TEST_TRACK_KEY)
 track = ldr.get_track()
 
 # Create GSD source
-source = GSDSource(TEST_DATA_S3)
-s3_to_directory(source, track)
+source = GSDSource(track.datafile)
+gsd_s3_to_directory(source, track)
 
 # Script end time
 end = time.time()
