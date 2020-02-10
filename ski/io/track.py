@@ -43,7 +43,7 @@ class TrackFileLoader(TrackLoader):
 
         with open(track_file, 'r') as f:
             log.info('Loading track from local file (%s)', track_file)
-            self.load_data(yaml.load(f))
+            self.load_data(yaml.load(f, Loader=yaml.SafeLoader))
 
 
 class TrackS3Loader(TrackLoader):

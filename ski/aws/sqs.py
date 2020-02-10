@@ -57,7 +57,7 @@ def sqs_process_batch(body, tail, drain, batch_idx, track):
 def sqs_enrich_and_save_record(record, process_f, db):
 
     # Read JSON from the record
-    msg = json.loads(record.body)
+    msg = json.loads(record['body'])
 
     # Convert body and tail to GPS objects
     body_points = list(map(lambda e: ExtendedGPSPoint(**e), msg['body']))

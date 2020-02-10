@@ -21,6 +21,7 @@ log.setLevel(logging.INFO)
 stats = {}
 
 db_endpoint = config['db']['dynamo']['endpoint_url']
+# db_endpoint = None
 db_table_points = config['db']['dynamo']['points_table_name']
 
 # Initialise dynamodb resource

@@ -11,7 +11,7 @@ from ski.logging import calc_stats
 from ski.aws.dynamo import DynamoDataStore, stats as write_stats
 from ski.aws.sqs import sqs_read_queue
 from ski.loader.enrich import stats as enrich_stats
-from ski.loader.dataloader import direct_to_db
+from ski.loader.dataloader import process_to_db
 
 
 # Script start time
@@ -20,7 +20,7 @@ start = time.time()
 # Create data store
 db = DynamoDataStore()
 
-sqs_read_queue(direct_to_db, db)
+sqs_read_queue(process_to_db, db)
 
 # Script end time
 end = time.time()

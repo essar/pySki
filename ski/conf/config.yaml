@@ -6,7 +6,8 @@ aws:
 
 db:
   dynamo:
-    endpoint_url: http://dynamo:8000
+    #endpoint_url: http://dynamo:8000
+    endpoint_url: null
     points_table_name: zephyr-points
 
 dataloader:

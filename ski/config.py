@@ -48,7 +48,7 @@ def load_config(file_name):
     """Load configuration from the specified YAML file."""
     with open(file_name, 'r') as f:
         log.info('Loading configuration from %s', file_name)
-        return yaml.load(f)
+        return yaml.load(f, Loader=yaml.SafeLoader)
 
 
 # Load default config

@@ -18,8 +18,8 @@ class Track:
 
         # Convert the start time to a datetime object if a string is provided
         if self.start_time is not None and type(self.start_time) == str:
-            #self.start_time = datetime.fromisoformat(self.start_time) # Requires py 3.7
-            self.start_time = datetime.now()
+            self.start_time = datetime.fromisoformat(self.start_time) # Requires py 3.7
+            #self.start_time = datetime.now()
 
     def values(self):
         v = {
