@@ -2,16 +2,23 @@
   Module that provides common classes and utility functions for SkiData application.
 """
 
+from datetime import datetime
+
 
 class Track:
     """
     Class that encapsulates data representing a single track or connected set of points.
     """
-    def __init__(self, track_id, track_group, start_time):
+    def __init__(self, track_id, track_group, start_time, **properties):
         self.track_id = track_id
         self.track_group = track_group
         self.start_time = start_time
-        self.properties = {}
+        self.properties = properties
+
+        # Convert the start time to a datetime object if a string is provided
+        if self.start_time is not None and type(self.start_time) == str:
+            #self.start_time = datetime.fromisoformat(self.start_time) # Requires py 3.7
+            self.start_time = datetime.now()
 
     def values(self):
         v = {
@@ -23,7 +30,7 @@ class Track:
         return v
 
     def __str__(self):
-        return '[{:s}] group={:s} start_time={:s}'.format(self.track_id, self.track_group, self.start_time.isoformat())
+        return '[{track_id:s}] group={track_group:s} start_time={start_time:s}'.format(**self.values())
 
 
 class BasicGPSPoint:

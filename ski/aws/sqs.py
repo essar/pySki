@@ -7,7 +7,9 @@ import time
 
 from boto3 import resource
 from ski.config import config
+from ski.data.commons import ExtendedGPSPoint, Track
 from ski.logging import increment_stat
+
 
 # Set up logger
 log = logging.getLogger(__name__)
@@ -35,7 +37,7 @@ def sqs_process_batch(body, tail, drain, batch_idx, track):
         'tail': list(map(lambda x: x.values(), tail))
     })
 
-    if len(msg) > 256520:
+    if len(msg) > 260000:
         log.warning('SQS message exceeding suggested max size')
 
     try:
@@ -50,3 +52,27 @@ def sqs_process_batch(body, tail, drain, batch_idx, track):
     increment_stat(stats, 'process_time', (end_time - start_time))
     increment_stat(stats, 'point_count', len(body))
     increment_stat(stats, 'msg_count', 1)
+
+
+def sqs_enrich_and_save_record(record, process_f, db):
+
+    # Read JSON from the record
+    msg = json.loads(record.body)
+
+    # Convert body and tail to GPS objects
+    body_points = list(map(lambda e: ExtendedGPSPoint(**e), msg['body']))
+    tail_points = list(map(lambda e: ExtendedGPSPoint(**e), msg['tail']))
+
+    # Convert track
+    track = Track(**msg['track'])
+
+    # Process record
+    process_f(body_points, tail_points, False, db, track=track)
+
+
+def sqs_read_queue(process_f, db):
+
+    queue = sqs.Queue(enrich_queue_url)
+
+    record = queue.receive_messages()[0]
+    sqs_enrich_and_save_record(record, process_f, db)

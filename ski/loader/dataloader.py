@@ -86,6 +86,28 @@ def direct_process_batch(body, tail, drain, db, batch_idx, track):
     log.debug('[batch=%03d] Written %d points', batch_idx, db.insert_count)
 
 
+def direct_to_db(body, tail, drain, db, **kwargs):
+
+    enrich_and_save(body, tail, drain, enrich_points, db.add_points_to_track, **kwargs)
+
+
+def enrich_and_save(body, tail, drain, enrich_f, save_f, **kwargs):
+
+    # Prepare a window from tail
+    window = PointWindow(tail=tail, min_head_length=head_length)
+    window.drain = drain
+
+    # Load points to the window
+    window.load_points(body)
+    log.debug('enrich_and_save: window=%s', window)
+
+    # Enrich the points
+    enriched_points = enrich_f(window, window_keys)
+
+    # Save points to data store
+    save_f(enriched_points, **kwargs)
+
+
 def load_source_from_file(source):
 
     # Get the file
@@ -155,10 +177,12 @@ def load_all_points(source, parser_f, process_f, **kwargs):
 
 def gsd_file_to_db(source, track, db):
 
-    parser_function = parse_gsd
-    loader_function = direct_process_batch
+    with closing(load_source_from_file(source)):
 
-    load_all_points(source, parser_function, loader_function, db=db, track=track)
+        parser_function = parse_gsd
+        loader_function = direct_to_db
+
+        load_all_points(source, parser_function, loader_function, db=db, track=track)
 
 
 def gsd_file_to_directory(source, track):
@@ -172,7 +196,7 @@ def gsd_file_to_directory(source, track):
 def gpx_file_to_db(source, track, db):
 
     parser_function = parse_gpx
-    loader_function = direct_process_batch
+    loader_function = direct_to_db
 
     load_all_points(source, parser_function, loader_function, db=db, track=track)
 
@@ -230,6 +254,6 @@ def s3_to_dynamo(s3_file, track, db):
 
     source = s3_file
     parser_function = None
-    loader_function = direct_process_batch
+    loader_function = direct_to_db
 
     load_all_points(source, parser_function, loader_function, db=db, track=track)

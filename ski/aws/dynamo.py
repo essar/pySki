@@ -34,7 +34,7 @@ class DynamoDataStore(DataStore):
         self.insert_count = 0
         self.error_count = 0
 
-    def add_points_to_track(self, track, points):
+    def add_points_to_track(self, points, track, **kwargs):
 
         point_count = 0
         start_time = time.time()
