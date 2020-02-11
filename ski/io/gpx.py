@@ -79,13 +79,19 @@ class GPXSource:
 
         point_count = 0
         while point_count < self.batch_size:
-            event, elem = self.stream_iter.__next__()
-            if elem.tag.endswith('trkpt'):
-                yield elem
-                point_count += 1
+            try:
+                event, elem = self.stream_iter.__next__()
+                if elem.tag.endswith('trkpt'):
+                    yield elem
+                    point_count += 1
+            except StopIteration:
+                return
 
         log.debug('next_section_iter: point_count=%d', point_count)
         return
+
+    def parse_points(self, **kwargs):
+        return parse_gpx(self, **kwargs)
 
 
 def __find_text_or_raise(elem, tag):
@@ -180,3 +186,4 @@ def parse_gpx(gpx_source, **kwargs):
 
     # Return points array
     return points
+

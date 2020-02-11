@@ -23,7 +23,7 @@ enrich_queue_url = config['aws']['sqs']['enrich_queue_url']
 sqs = resource('sqs')
 
 
-def sqs_process_batch(body, tail, drain, batch_idx, track):
+def process_to_sqs(body, tail, drain, batch_idx, track):
 
     start_time = time.time()
 

@@ -185,6 +185,12 @@ def file_to_directory(source, track):
         load_all_points(source, process_to_file, track=track)
 
 
+def file_to_sqs(source, track):
+
+    with closing(load_source_from_file(source)):
+        load_all_points(source, process_to_sqs, track=track)
+
+
 def s3_to_directory(source, track):
 
     with closing(load_source_from_s3(source)):

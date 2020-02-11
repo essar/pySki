@@ -155,6 +155,9 @@ class GSDSource:
             if parsed_line is not None:
                 yield parsed_line
 
+    def parse_points(self, **kwargs):
+        return parse_gsd(self, **kwargs)
+
 
 def __parse_gsd_coord(coord):
     """
