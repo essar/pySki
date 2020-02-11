@@ -14,7 +14,7 @@ from contextlib import closing
 from ski.config import config
 from ski.logging import increment_stat
 from ski.aws.s3 import load_source_from_s3
-from ski.aws.sqs import sqs_process_batch
+from ski.aws.sqs import process_to_sqs
 from ski.data.commons import basic_to_extended_point
 from ski.io.gpx import parse_gpx
 from ski.io.gsd import parse_gsd
@@ -48,25 +48,6 @@ def dummy_process_batch(body, tail, drain):
     log.info('Process batch of %d points, %d tail', len(body), len(tail))
 
 
-def file_process_batch(body, tail, drain, batch_idx, track):
-
-    start_time = time.time()
-
-    file = 'tests/batch_output/{:04d}.json'.format(batch_idx)
-    with open(file, 'w') as f:
-        json.dump({
-            'batch': batch_idx,
-            'track': track.values(),
-            'body': list(map(lambda x: x.values(), body)),
-            'tail': list(map(lambda x: x.values(), tail))
-        }, f)
-
-    end_time = time.time()
-    increment_stat(direct_write_stats, 'process_time', (end_time - start_time))
-    increment_stat(direct_write_stats, 'point_count', len(body))
-    increment_stat(direct_write_stats, 'file_count', 1)
-
-
 def direct_process_batch(body, tail, drain, db, batch_idx, track):
 
     # Prepare a window from points
@@ -89,6 +70,25 @@ def direct_process_batch(body, tail, drain, db, batch_idx, track):
 def process_to_db(body, tail, drain, db, **kwargs):
 
     enrich_and_save(body, tail, drain, enrich_points, db.add_points_to_track, **kwargs)
+
+
+def process_to_file(body, tail, drain, batch_idx, track):
+
+    start_time = time.time()
+
+    file = 'tests/batch_output/{:04d}.json'.format(batch_idx)
+    with open(file, 'w') as f:
+        json.dump({
+            'batch': batch_idx,
+            'track': track.values(),
+            'body': list(map(lambda x: x.values(), body)),
+            'tail': list(map(lambda x: x.values(), tail))
+        }, f)
+
+    end_time = time.time()
+    increment_stat(direct_write_stats, 'process_time', (end_time - start_time))
+    increment_stat(direct_write_stats, 'point_count', len(body))
+    increment_stat(direct_write_stats, 'file_count', 1)
 
 
 def enrich_and_save(body, tail, drain, enrich_f, save_f, **kwargs):
@@ -120,21 +120,20 @@ def load_source_from_file(source):
     return f
 
 
-def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
+def load_into_batch(source, batch, drain, process_f, **kwargs):
     """
     Loads a set of points from a source object, clean these and send to a processor function.
     @param source: reference to data source object.
     @param batch: reference to the batch window.
     @param drain: flag to clear all points from the batch.
-    @param parser_f: parsing function used for extracting data from the source.
     @param process_f: processor function.
     @param kwargs: dict of additional arguments passed to the parser and processor functions.
     @return: True if a point is loaded successfully, False if there are no more points to add.
     """
 
     # Load points from source
-    points = parser_f(source, **kwargs)
-    #points = source.load_points()
+    # points = parser_f(source, **kwargs)
+    points = source.parse_points(**kwargs)
 
     if points is not None and len(points) > 0:
 
@@ -153,11 +152,10 @@ def load_into_batch(source, batch, drain, parser_f, process_f, **kwargs):
     return points is not None and len(points) > 0
 
 
-def load_all_points(source, parser_f, process_f, **kwargs):
+def load_all_points(source, process_f, **kwargs):
     """
     Iterates across app points in a source and batch load all points.
     @param source: reference to data source object.
-    @param parser_f: parsing function.
     @param process_f: processor function.
     @param kwargs: dict of additional arguments passed to the parser and processor functions.
     """
@@ -168,121 +166,32 @@ def load_all_points(source, parser_f, process_f, **kwargs):
     batch_count = 0
 
     # Load all points from the loader, store in the database
-    while load_into_batch(source, batch, False, parser_f, process_f, batch_idx=batch_count, **kwargs):
+    while load_into_batch(source, batch, False, process_f, batch_idx=batch_count, **kwargs):
         batch_count += 1
 
     # Call again to drain the buffer
-    load_into_batch(source, batch, True, parser_f, process_f, batch_idx=batch_count, **kwargs)
+    load_into_batch(source, batch, True, process_f, batch_idx=batch_count, **kwargs)
 
 
-def gsd_file_to_db(source, track, db):
-
-    with closing(load_source_from_file(source)):
-
-        parser_function = parse_gsd
-        loader_function = process_to_db
-
-        load_all_points(source, parser_function, loader_function, db=db, track=track)
-
-
-def gsd_file_to_directory(source, track):
-
-    parser_function = parse_gsd
-    loader_function = file_process_batch
-
-    load_all_points(source, parser_function, loader_function, track=track)
-
-
-def gsd_s3_to_directory(source, track):
-
-    with closing(load_source_from_s3(source)):
-
-        parser_function = parse_gsd
-        loader_function = file_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
-
-
-def gsd_s3_to_sqs(source, track):
-
-    with closing(load_source_from_s3(source)):
-
-        parser_function = parse_gsd
-        loader_function = sqs_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
-
-
-def gpx_file_to_db(source, track, db):
-
-    parser_function = parse_gpx
-    loader_function = process_to_db
-
-    load_all_points(source, parser_function, loader_function, db=db, track=track)
-
-
-def gpx_file_to_directory(source, track):
+def file_to_db(source, track, db):
 
     with closing(load_source_from_file(source)):
-
-        parser_function = parse_gpx
-        loader_function = file_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
-
-
-def gpx_file_to_sqs(source, track):
-
-    with closing(load_source_from_file(source)):
-        parser_function = parse_gpx
-        loader_function = sqs_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
-
-
-def gpx_s3_to_sqs(source, track):
-
-    with closing(load_source_from_s3(source)):
-        parser_function = parse_gpx
-        loader_function = sqs_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
-
-
-def gpx_s3_to_directory(source, track):
-
-    with closing(load_source_from_s3(source)):
-
-        parser_function = parse_gpx
-        loader_function = file_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
+        load_all_points(source, process_to_db, db=db, track=track)
 
 
 def file_to_directory(source, track):
 
     with closing(load_source_from_file(source)):
-
-        parser_function = parse_gsd
-        loader_function = file_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
+        load_all_points(source, process_to_file, track=track)
 
 
 def s3_to_directory(source, track):
 
     with closing(load_source_from_s3(source)):
-
-        parser_function = None
-        loader_function = file_process_batch
-
-        load_all_points(source, parser_function, loader_function, track=track)
+        load_all_points(source, process_to_file, track=track)
 
 
-def s3_to_dynamo(s3_file, track, db):
+def s3_to_sqs(source, track):
 
-    source = s3_file
-    parser_function = None
-    loader_function = process_to_db
-
-    load_all_points(source, parser_function, loader_function, db=db, track=track)
+    with closing(load_source_from_s3(source)):
+        load_all_points(source, process_to_sqs, track=track)
