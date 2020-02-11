@@ -5,7 +5,7 @@ import logging
 from ski.io.track import TrackS3Loader
 
 
-TEST_TRACK_KEY = 'ski_unittest.yaml'
+TEST_TRACK_KEY = 'track_unittest.yaml'
 
 # Set up logger
 log = logging.getLogger(__name__)
