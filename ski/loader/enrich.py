@@ -3,7 +3,7 @@
 import logging
 import time
 
-from ski.logging import log_point, increment_stat
+from ski.logging import log_point, increment_stat, max_stat, min_stat
 from ski.data.commons import EnrichedWindow
 
 
@@ -26,6 +26,16 @@ def enrich_points(window, default_keys):
         # Get current point from the window
         point = window.target_point
 
+        # Quick stats
+        max_stat(stats, 'track_max_speed', point.spd)
+        max_stat(stats, 'track_max_alt', point.alt)
+        min_stat(stats, 'track_min_alt', point.alt)
+
+        increment_stat(stats, 'track_total_distance', point.dst)
+        if point.alt_d < 0:
+            increment_stat(stats, 'track_total_desc', point.alt_d)
+            increment_stat(stats, 'track_desc_distance', point.dst)
+
         # Process all windows
         for k in default_keys:
             # Extract window points using window key
@@ -39,6 +49,10 @@ def enrich_points(window, default_keys):
 
             # Record in pointlog
             log_point(point.ts, 'Enrich', key=k, ts=point.ts, **enriched_values)
+
+            # Quick stats
+            k_sust = '{:s}_sust_spd'.format(str(k))
+            max_stat(stats, k_sust, enriched_values['speed_min'])
 
         # Add enriched point to output
         output.append(point)

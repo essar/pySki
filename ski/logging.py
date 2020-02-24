@@ -101,6 +101,14 @@ def increment_stat(stats, stat_name, value):
     stats[stat_name] = (stats[stat_name] if stat_name in stats else 0) + value
 
 
+def max_stat(stats, stat_name, value):
+    stats[stat_name] = max(stats[stat_name], value) if stat_name in stats else value
+
+
+def min_stat(stats, stat_name, value):
+    stats[stat_name] = min(stats[stat_name], value) if stat_name in stats else value
+
+
 def log_point(point_id, phase, level=logging.INFO, **obj):
     log_msg = {
         'phase': phase

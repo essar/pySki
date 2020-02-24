@@ -31,7 +31,7 @@ class TestDataStore(DataStore):
         self.insert_count = 0
         log.info('[TestDataStore] Initialized TestDataStore')
 
-    def add_points_to_track(self, track, points):
+    def add_points_to_track(self, points, track, **kwargs):
         for point in points:
             key = "{:s}-{:d}".format(track.track_id, point.ts)
             self.points.append(point)

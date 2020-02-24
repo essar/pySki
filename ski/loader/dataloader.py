@@ -16,8 +16,6 @@ from ski.logging import increment_stat
 from ski.aws.s3 import load_source_from_s3
 from ski.aws.sqs import process_to_sqs
 from ski.data.commons import basic_to_extended_point
-from ski.io.gpx import parse_gpx
-from ski.io.gsd import parse_gsd
 from ski.loader.cleanup import cleanup_points
 from ski.loader.enrich import enrich_points
 from ski.loader.window import BatchWindow, PointWindow, WindowKey
