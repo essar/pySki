@@ -1,38 +1,65 @@
+"""
+Handles processing of GSD format files.
+"""
 import datetime
+import logging
 from math import atan2, degrees, hypot
 from .coordinate import DMSCoordinate, WGSCoordinate, add_seconds, DMS_to_WGS, WGS_to_UTM
 from .utils import MovingWindow
 
+log = logging.getLogger(__name__)
+
 
 class GSDFile:
-
-    def __init__(self, file, load_header=True) -> None:
+    """
+    Class representing a local GSD file.
+    """
+    def __init__(self, file, load_header:str=True) -> None:
+        """Instantiate a new class instance."""
         # Store file reference
         self.file = file
         # Set up array and internal pointer
         self.sections = []
-        self.section_ptr = 0
 
+        # Load the header unless flagged not to
         if load_header:
             self.load_gsd_header()
 
+
     def __parse_header_line(line:str) -> tuple:
+        """
+        Parse a header line.
+        e.g. `001=2022-01-27T12:00:00 -> (1,'2022-01-27T12:00:00')`
+        """
         # Get line parts
         line_parts = GSDFile.__split_line(line)
+        # Return as a tuple and strip any whitespace
         return int(line_parts[0].strip()), line_parts[1].strip()
 
+
     def __parse_section_name(name:str) -> tuple:
+        """
+        Parse a section name.
+        e.g. `'001,2022-01-27T12:00:00' -> (1,'2022-01-27T12:00:00')`
+        """
         # Strip header characters if present
-        if name.startswith('['): name = name[1:-1]
+        if name.startswith('['):
+            name = name[1:-1]
 
         # Parse into tuple
         name_parts = name.split(',')
         if len(name_parts) < 2:
             return name
         
+        # Return as a tuple and strip any whitespace
         return (int(name_parts[0].strip()), name_parts[1].strip())
 
+
     def __split_line(line:str) -> list:
+        """
+        Split a line around an '=' and ',' characters.
+        eg: `001=1234567,2345678,123456,654321 -> ['123456','234567','123456','654321']`
+        """
         # Look for allocation marker
         ix = line.index('=')
 
@@ -43,18 +70,26 @@ class GSDFile:
         # Get line parts and strip whitespace
         return [x.strip() for x in line[ix + 1:].split(',')]
 
+
     def __next_section(self):
+        """Move to the next section in the file and return the section name."""
         while True:
             line = self.file.readline()
             # Stop if data runs out
             if line is None:
                 break
 
+            log.debug('__next_section: read line %s', line)
+
             # Return the lineif it starts with a square bracket
             if line.startswith('['):
+                log.debug('__next_section: at section %s', line)
                 return line.strip()
+        
+        log.debug('__next_section: reached end of file')
         return None
     
+
     def load_gsd_header(self) -> None:
         """Load the header from a GSD file."""
 
@@ -69,6 +104,7 @@ class GSDFile:
 
             # Stop if data runs out
             if line is None:
+                log.debug('load_gsd_header: reached end of file')
                 break
 
             # Skip blank lines
@@ -77,9 +113,13 @@ class GSDFile:
             
             # Stop once we reach the next header
             if line.startswith('['):
+                log.debug('load_gsd_header: reached next section')
                 break
 
             self.sections.append(GSDFile.__parse_header_line(line))
+
+        log.info('Loaded GSD header: %d section(s)', len(self.sections))
+
 
     def load_gsd_section(self, section:tuple, lines:list=[]) -> None:
         """Load a section from a GSD file."""
@@ -91,7 +131,7 @@ class GSDFile:
         self.file.seek(0)
 
         # Skip to section
-        self.skip_to_section(name=section_name)
+        self.skip_to_section(section_name=section_name)
 
         while True:
             line = self.file.readline()
@@ -102,6 +142,7 @@ class GSDFile:
 
             # Stop at next section
             if line.startswith('['):
+                log.debug('load_gsd_section: reached end of file')
                 break
             
             # Skip blank lines
@@ -111,10 +152,13 @@ class GSDFile:
             # Add the cleaned-up line to list
             lines.append(line.strip())
 
+        log.info('Loaded GSD section, %d line(s)', len(lines))
+
+
     def read_section(self, section_name:str=None) -> None:
         # If a section name is provided, skip to that section; otherwise read the next section
         if section_name:
-            self.skip_to_section(name=section_name)
+            self.skip_to_section(section_name=section_name)
 
         while True:
             line = self.file.readline()
@@ -136,21 +180,30 @@ class GSDFile:
 
         return
 
-    def skip_to_section(self, name:str=None, section_id:int=0) -> None:
+
+    def skip_to_section(self, section_name:str=None, section_id:int=0) -> None:
+        """Move to the named or indexed section in a GSD file."""
         while True:
             s = self.__next_section()
 
             # Stop if no section found
             if s is None:
+                log.debug('skip_to_section: reached end of file')
                 break
+
+            log.debug('skip_to_section: reached section %s', s)
+
             # Search by section name
-            if name is not None and s.strip() == f'[{name}]':
+            if section_name is not None and s.strip() == f'[{section_name}]':
+                log.debug('skip_to_section: reached section %s', section_name)
                 return
+            
             # Search by section ID
             if section_id > 0 and GSDFile.__parse_section_name(s.strip())[0] == section_id:
+                log.debug('skip_to_section: reached section %d', section_id)
                 return
         
-        raise EOFError(f'Could not find section {name}')
+        raise EOFError(f'Could not find section {section_name or section_id}')
 
 
 
