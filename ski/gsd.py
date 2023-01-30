@@ -55,22 +55,6 @@ class GSDFile:
         return (int(name_parts[0].strip()), name_parts[1].strip())
 
 
-    def __split_line(line:str) -> list:
-        """
-        Split a line around an '=' and ',' characters.
-        eg: `001=1234567,2345678,123456,654321 -> ['123456','234567','123456','654321']`
-        """
-        # Look for allocation marker
-        ix = line.index('=')
-
-        # If no allocation marker found return an empty line
-        if ix < 0:
-            return (0, [])
-
-        # Get line parts and strip whitespace
-        return [x.strip() for x in line[ix + 1:].split(',')]
-
-
     def __next_section(self):
         """Move to the next section in the file and return the section name."""
         while True:
@@ -88,6 +72,22 @@ class GSDFile:
         
         log.debug('__next_section: reached end of file')
         return None
+
+
+    def __split_line(line:str) -> list:
+        """
+        Split a line around an '=' and ',' characters.
+        eg: `001=1234567,2345678,123456,654321 -> ['123456','234567','123456','654321']`
+        """
+        # Look for allocation marker
+        ix = line.index('=')
+
+        # If no allocation marker found return an empty line
+        if ix < 0:
+            return (0, [])
+
+        # Get line parts and strip whitespace
+        return [x.strip() for x in line[ix + 1:].split(',')]
     
 
     def load_gsd_header(self) -> None:
@@ -156,6 +156,7 @@ class GSDFile:
 
 
     def read_section(self, section_name:str=None) -> None:
+        """Read data points from the next or a named section, returning as a Generator. Each point is returned as an list of string values."""
         # If a section name is provided, skip to that section; otherwise read the next section
         if section_name:
             self.skip_to_section(section_name=section_name)
@@ -165,10 +166,12 @@ class GSDFile:
 
             # Stop if data runs out
             if line is None:
+                log.debug('read_section: reached end of file')
                 break
 
             # Stop at next section
             if line.startswith('['):
+                log.debug('read_section: reached next section')
                 break
 
             # Skip blank lines
@@ -176,7 +179,9 @@ class GSDFile:
                 continue
 
             # Yield the cleaned-up line
-            yield GSDFile.__split_line(line.strip())
+            line = GSDFile.__split_line(line.strip())
+            log.debug('read_section: line=%s', line)
+            yield line
 
         return
 
@@ -232,11 +237,94 @@ def convert_coords(point: dict) -> dict:
 
     return point
 
+
+def convert_gsd_alt(gsd_alt:str):
+    """Convert read GSD altitude into metres."""
+    if not gsd_alt.isnumeric():
+        log.warn('convert_gsd_coord: gsd_alt is not valid value: %s', gsd_alt)
+        return 0
+
+    try:
+        alt = int(int(gsd_alt) / 10000)
+        log.debug('convert_gsd_alt: %s -> %d', gsd_alt, alt)
+
+    except ValueError:
+        log.error('convert_gsd_alt: Unable to convert GSD string to altitude: %s', gsd_alt, exc_info=True)
+        return 0
+
+    return alt
+
+
+def convert_gsd_coord(gsd_coord:str) -> tuple:
+    """Convert read GSD coordinate into DMS tuple."""
+    try:
+        # Convert to signed zero-padded 10 digit field
+        coord_str = f'{int(gsd_coord):10d}'
+
+        # Degrees is first 5 characters (includes sign)
+        d = int(coord_str[:5])
+        # Minute is remainder of string
+        dm = float(coord_str[5:]) / 1000.0
+        # Convert from decimal minutes to DMS
+        dms = add_seconds(d, dm)
+        log.debug('convert_gsd_coord: % s-> %d -> %.4f -> %.4f', gsd_coord, coord_str, (d, dm), dms)
+
+    except ValueError:
+        log.error('convert_gsd_coord: Unable to convert GSD string to coordinate: %s', gsd_coord, exc_info=True)
+        return None
+
+    return dms
+
+
+def convert_gsd_date(gsd_dt:str, gsd_tm:str) -> datetime.datetime:
+    """Convert read GSD date and time strings into datetime object."""
+    if not gsd_dt.isnumeric():
+        log.warn('convert_gsd_coord: gsd_dt is not valid value: %s', gsd_dt)
+        return None
+    if not gsd_tm.isnumeric():
+        log.warn('convert_gsd_coord: gsd_tm is not valid value: %s', gsd_tm)
+        return None
+    
+    try:
+        # GSD date and time in DDMMYYHHMMSS format
+        dt_str = f'{int(gsd_dt):06d}{int(gsd_tm):06d}'    
+        dt = datetime.datetime.strptime(dt_str, '%d%m%y%H%M%S')
+        log.debug('convert_gsd_date: %s -> %s', dt_str, dt)
+
+    except ValueError:
+        log.warn('convert_gsd_date: Unable to convert GSD strings to date: %s %s', gsd_dt, gsd_tm, exc_info=True)
+        return None
+    
+    return dt
+
+
+def convert_gsd_speed(gsd_spd:str) -> float:
+    """Convert read GSD speed into km/h."""
+    if not gsd_spd.isnumeric():
+        log.warn('convert_gsd_coord: gsd_spd is not a valid value: %s', gsd_spd)
+        return 0
+
+    try:
+        spd = float(gsd_spd) / 100.0
+        log.debug('convert_gsd_speed: %s -> %.3f', gsd_spd, spd)
+
+    except ValueError:
+        log.warning('convert_gsd_speed: Unable to convert GSD strings to speed: %s', gsd_spd, exc_info=True)
+        return 0.0
+
+    return spd
+
+
+def stream_records(f):
+    """Retrieve GPS records from the specified GSD file."""
+    raise NotImplementedError
+
+
 def convert_gsd_to_data_point(gsd_line:list) -> dict:
-    # GSD line should be a list of 6 strs
     if gsd_line is None:
         return None
 
+    # GSD line should be a list of 6 strs
     if len(gsd_line) != 6:
         raise ValueError('Not a valid gsd_line provided')
 
@@ -252,22 +340,14 @@ def convert_gsd_to_data_point(gsd_line:list) -> dict:
     point = {}
 
     try:
-        # GSD date and time in DDMMYYHHMMSS format
-        dtStr = f'{int(gsd_dt):06d}{int(gsd_tm):06d}'
-        dt = datetime.datetime.strptime(dtStr, '%d%m%y%H%M%S')
-        #log.debug('Date: %s, %s', dtStr, dt)
-        # Convert to timestamp
-        point['ts'] = int(dt.timestamp())
-
-        # Parse latitude, first convert to DMS
-        (latD, latM, latS) = __parse_gsd_coord(gsd_lat)
-
-        # Parse longitude, first convert to DMS
-        (lonD, lonM, lonS) = __parse_gsd_coord(gsd_lon)
-
-        # Convert to WGS
-        dms = DMSCoordinate(latD, latM, latS, lonD, lonM, lonS)
+        # Convert GSD date and time strings to UTC timestamp?
+        point['dt'] = convert_gsd_date(gsd_dt, gsd_tm)
+        point['ts'] = int(point['dt'].timestamp())
+        
+        # Convert GSD coordinate to DMS
+        dms = DMSCoordinate(*convert_gsd_coord(gsd_lat), *convert_gsd_coord(gsd_lon))
         #log.debug('DMS: %s', dms)
+        # Then convert to WGS
         wgs = DMS_to_WGS(dms)
         #log.debug('WGS: %s', wgs)
 
