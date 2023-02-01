@@ -1,9 +1,185 @@
-import datetime
 import logging
 import unittest
 import ski.gsd as undertest
 
 undertest.log.setLevel(logging.DEBUG)
+
+
+class MockedFile():
+
+    def __init__(self, data) -> None:
+        self.data = data
+        self.index = 0
+
+    def readline(self) -> str:
+        if self.index >= len(self.data):
+            return None
+        line = self.data[self.index]
+        self.index += 1
+        return line
+    
+    def seek(self, index) -> None:
+        self.index = index
+    
+
+
+class TestGsdFileIsBlank(unittest.TestCase):
+
+    def test_is_blank_empty_string(self):
+        self.assertTrue(undertest.GSDFile.is_blank(''))
+
+    def test_is_blank_none(self):
+        self.assertTrue(undertest.GSDFile.is_blank(None))
+
+    def test_is_blank_not_a_string(self):
+        self.assertFalse(undertest.GSDFile.is_blank(123))
+
+    def test_is_blank_string(self):
+        self.assertFalse(undertest.GSDFile.is_blank('x'))
+
+
+class TestGsdFileIsEof(unittest.TestCase):
+
+    def test_is_eof_newline(self):
+        self.assertFalse(undertest.GSDFile.is_eof('\n'))
+
+    def test_is_eof_none(self):
+        self.assertTrue(undertest.GSDFile.is_eof(None))
+
+    def test_is_eof_string(self):
+        self.assertFalse(undertest.GSDFile.is_eof('x'))
+
+    def test_is_eof_stripped_newline(self):
+        self.assertTrue(undertest.GSDFile.is_eof('\n'.strip()))
+    
+
+
+class TestGsdFileIsSectionHeader(unittest.TestCase):
+
+    def test_is_section_header_empty_string(self):
+        self.assertFalse(undertest.GSDFile.is_section_header(''))
+
+    def test_is_section_header_none(self):
+        self.assertFalse(undertest.GSDFile.is_section_header(None))
+
+    def test_is_section_header_not_a_string(self):
+        self.assertFalse(undertest.GSDFile.is_section_header(123))
+
+    def test_is_section_header_string(self):
+        self.assertFalse(undertest.GSDFile.is_section_header('x'))
+
+    def test_is_section_header_valid_header(self):
+        self.assertTrue(undertest.GSDFile.is_section_header('[x]'))
+
+
+class TestGsdFileParseHeaderLine(unittest.TestCase):
+
+    def test_parse_header_invalid_line(self):
+        result = undertest.GSDFile.parse_header_line('001,test_header')
+        self.assertIsNone(result)
+
+    def test_parse_header_line_none(self):
+        self.assertIsNone(undertest.GSDFile.parse_header_line(None))
+
+    def test_parse_header_line_valid_line(self):
+        index, name = undertest.GSDFile.parse_header_line('1=001,test_header')
+        self.assertEqual(1, index, 'index')
+        self.assertEqual('test_header', name, 'name')
+
+
+class TestGsdFileParsePointsLine(unittest.TestCase):
+
+    def test_parse_points_line_invalid_line(self):
+        result = undertest.GSDFile.parse_points_line('01=value1,value2,value3,value4,value5')
+        self.assertIsNone(result)
+
+    def test_parse_points_line_none(self):
+        self.assertIsNone(undertest.GSDFile.parse_points_line(None))
+
+    def test_parse_points_line_valid_line(self):
+        result = undertest.GSDFile.parse_points_line('01=value1,value2,value3,value4,value5,value6')
+        self.assertListEqual(['value1', 'value2', 'value3', 'value4', 'value5', 'value6'], result)
+
+    def test_parse_points_line_valid_line_more_than_6_elements(self):
+        result = undertest.GSDFile.parse_points_line('01=value1,value2,value3,value4,value5,value6,value7')
+        self.assertListEqual(['value1', 'value2', 'value3', 'value4', 'value5', 'value6'], result)
+    
+
+class TestGsdFileParseSectionName(unittest.TestCase):
+
+    def test_parse_section_name_none(self):
+        self.assertEqual((None, None), undertest.GSDFile.parse_section_name(None))
+
+    def test_parse_section_name_numeric_index(self):
+        result = undertest.GSDFile.parse_section_name('[001,2018-02-15:16:16:55]')
+        self.assertEqual((1, '2018-02-15:16:16:55'), result)
+
+    def test_parse_section_name_string_index(self):
+        result = undertest.GSDFile.parse_section_name('[abc,2018-02-15:16:16:55]')
+        self.assertEqual(('abc', '2018-02-15:16:16:55'), result)
+
+    def test_parse_section_name_valid_name_without_index(self):
+        result = undertest.GSDFile.parse_section_name('[TP]')
+        self.assertEqual((None, 'TP'), result)
+
+
+class TestGsdFileLoadGsdHeader(unittest.TestCase):
+
+    def test_load_gsd_header_to_next_section(self):
+        f = MockedFile(data=['[TP]\n', '\n', '1=001,2018-02-15:16:16:55\n', '\n', '2=002,2018-02-15:16:29:23\n', '\n', '[Next]\n'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        gsd.load_gsd_header()
+        self.assertListEqual([(1,'2018-02-15:16:16:55'), (2,'2018-02-15:16:29:23')], gsd.sections)
+
+    def test_load_gsd_header_to_eof(self):
+        f = MockedFile(data=['[TP]\n', '\n', '1=001,2018-02-15:16:16:55\n', '\n', '2=002,2018-02-15:16:29:23\n'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        gsd.load_gsd_header()
+        self.assertListEqual([(1,'2018-02-15:16:16:55'), (2,'2018-02-15:16:29:23')], gsd.sections)
+
+    def test_load_gsd_header_tp_not_found(self):
+        f = MockedFile(data=['\n', '1=001,2018-02-15:16:16:55\n', '\n', '2=002,2018-02-15:16:29:23'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        self.assertRaises(EOFError, lambda: gsd.load_gsd_header())
+
+    def test_load_gsd_header_with_invalid_header(self):
+        f = MockedFile(data=['[TP]\n', '\n', '1=001,2018-02-15:16:16:55\n', '\n', '002,2018-02-15:16:29:23\n'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        gsd.load_gsd_header()
+        self.assertListEqual([(1,'2018-02-15:16:16:55')], gsd.sections)
+
+
+class TestGsdFileLoadGsdPoints(unittest.TestCase):
+
+    def test_load_gsd_points_named_section_to_next_section(self):
+        f = MockedFile(data=['[Test]\n', '\n', '1=39531388,-105457814,161655,150218,180,27760000\n', '\n', '2=39531308,-105457804,161720,150218,120,27760000\n', '\n', '3=39531339,-105457776,161730,150218,260,27780000\n', '\n', '[Next]\n'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        output = gsd.load_gsd_points(section_name='Test')
+        self.assertListEqual([['39531388','-105457814','161655','150218','180','27760000'], ['39531308','-105457804','161720','150218','120','27760000'], ['39531339','-105457776','161730','150218','260','27780000']], output)
+
+    def test_load_gsd_points_named_section_to_eof(self):
+        f = MockedFile(data=['[Test]\n', '\n', '1=39531388,-105457814,161655,150218,180,27760000\n', '\n', '2=39531308,-105457804,161720,150218,120,27760000\n', '\n', '3=39531339,-105457776,161730,150218,260,27780000\n', ''])
+        gsd = undertest.GSDFile(f, load_header=False)
+        output = gsd.load_gsd_points(section_name='Test')
+        self.assertListEqual([['39531388','-105457814','161655','150218','180','27760000'], ['39531308','-105457804','161720','150218','120','27760000'], ['39531339','-105457776','161730','150218','260','27780000']], output)
+
+    def test_load_gsd_points_named_section_not_found(self):
+        f = MockedFile(data=['\n', '1=39531388,-105457814,161655,150218,180,27760000\n', '\n', '2=39531308,-105457804,161720,150218,120,27760000\n', '\n', '3=39531339,-105457776,161730,150218,260,27780000\n'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        self.assertRaises(EOFError, lambda: gsd.load_gsd_points('Test'))
+
+    def test_load_gsd_points_next_section_to_eof(self):
+        f = MockedFile(data=['\n', '1=39531388,-105457814,161655,150218,180,27760000\n', '\n', '2=39531308,-105457804,161720,150218,120,27760000\n', '\n', '3=39531339,-105457776,161730,150218,260,27780000\n', ''])
+        gsd = undertest.GSDFile(f, load_header=False)
+        output = gsd.load_gsd_points()
+        self.assertListEqual([['39531388','-105457814','161655','150218','180','27760000'], ['39531308','-105457804','161720','150218','120','27760000'], ['39531339','-105457776','161730','150218','260','27780000']], output)
+
+    def test_load_gsd_points_with_invalid_point(self):
+        f = MockedFile(data=['[Test]\n', '\n', '1=39531388,-105457814,161655,150218,180,27760000\n', '\n', '2=39531308,-105457804,161720,150218,120\n', '\n', '3=39531339,-105457776,161730,150218,260,27780000\n'])
+        gsd = undertest.GSDFile(f, load_header=False)
+        output = gsd.load_gsd_points(section_name='Test')
+        self.assertListEqual([['39531388','-105457814','161655','150218','180','27760000'], ['39531339','-105457776','161730','150218','260','27780000']], output)
+
 
 class TestConvertGsdAlt(unittest.TestCase):
 
