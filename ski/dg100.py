@@ -106,7 +106,8 @@ class MessageParser:
             return {
                 'lat': lat,
                 'lon': lon,
-                'date': record_date,
+                'tm': timestr,
+                'dt': datestr,
                 'spd': spd
             }
 
@@ -134,13 +135,11 @@ class MessageParser:
 
             parser_log.info('RECORD: %s => %d %d %6s %6s %d %d %d', record_bytes.hex(), lat, lon, timestr, datestr, spd, alt, record_format)
 
-            # Format into datetime object
-            record_date = datetime.datetime.strptime(f'{datestr} {timestr}', '%d%m%y %H%M%S')
-            
             return {
                 'lat': lat,
                 'lon': lon,
-                'date': record_date,
+                'tm': timestr,
+                'dt': datestr,
                 'spd': spd,
                 'alt': alt,
                 'format': record_format
@@ -255,6 +254,17 @@ def calculate_checksum(payload_bytes:bytes) -> bytes:
     # From spec doc: The last line of the checksum function masks bit 15 (i.e. the most significant bit in the checksum.) This means that the checksum will never be larger than 32767 (decimal.)
     checksum = checksum & 0x7FFF
     return _to_bytes(checksum)
+
+
+def format_track_record_as_gsd(track_record:dict) -> list:
+    return [
+        str(track_record['lat']),
+        str(track_record['lon']),
+        str(track_record['tm']),
+        str(track_record['dt']),
+        str(track_record['spd']),
+        str(track_record['alt'])
+    ]
 
 
 def get_track_records(ser:serial.Serial, track_index:int) -> list:
@@ -435,7 +445,7 @@ def stream_records(ser: serial.Serial) -> None:
                 # Increment count
                 record_count += 1
                 # Return to the caller
-                yield r
+                yield format_track_record_as_gsd(r)
 
         except ValueError as e:
             log.warn('Unable to load records for file %d: %s, skipping', h['index'], e)

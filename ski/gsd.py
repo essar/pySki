@@ -3,9 +3,8 @@ Handles processing of GSD format files.
 """
 import datetime
 import logging
-from math import atan2, degrees, hypot
-from .coordinate import DMSCoordinate, WGSCoordinate, add_seconds, DMS_to_WGS, WGS_to_UTM
-from .utils import MovingWindow
+
+from .coordinate import WGSCoordinate, add_seconds, WGS_to_UTM
 
 log = logging.getLogger(__name__)
 
@@ -262,15 +261,15 @@ def convert_gsd_coord(gsd_coord:str) -> tuple:
     """Convert read GSD coordinate into DMS tuple."""
     try:
         # Convert to signed zero-padded 10 digit field
-        coord_str = f'{int(gsd_coord):10d}'
+        coord_str = f'{int(gsd_coord):010d}'
 
-        # Degrees is first 5 characters (includes sign)
-        d = int(coord_str[:5])
+        # Degrees is first 4 characters (includes sign)
+        d = int(coord_str[:4])
         # Minute is remainder of string
-        dm = float(coord_str[5:]) / 1000.0
+        dm = float(coord_str[4:]) / 10000.0
         # Convert from decimal minutes to DMS
         dms = add_seconds(d, dm)
-        log.debug('convert_gsd_coord: % s-> %d -> %.4f -> %.4f', gsd_coord, coord_str, (d, dm), dms)
+        log.debug('convert_gsd_coord: %s -> %s -> (%d, %.4f) -> (%d, %d, %d)', gsd_coord, coord_str, d, dm, *dms)
 
     except ValueError:
         log.error('convert_gsd_coord: Unable to convert GSD string to coordinate: %s', gsd_coord, exc_info=True)
@@ -348,59 +347,8 @@ def stream_records(f) -> None:
     return None
 
 
-
-def convert_gsd_to_data_point(gsd_line:list) -> dict:
-    if gsd_line is None:
-        return None
-
-    # GSD line should be a list of 6 strs
-    if len(gsd_line) != 6:
-        raise ValueError('Not a valid gsd_line provided')
-
-    # Read data from GSD line
-    gsd_lat = gsd_line[0]
-    gsd_lon = gsd_line[1]
-    gsd_dt  = gsd_line[3]
-    gsd_tm  = gsd_line[2]
-    gsd_alt = gsd_line[5]
-    gsd_spd = gsd_line[4]
-    print(f'GSD: lat={gsd_lat}; lon={gsd_lon}; dt={gsd_dt}; tm={gsd_tm}; alt={gsd_alt}; spd={gsd_spd}')
-
-    point = {}
-
-    try:
-        # Convert GSD date and time strings to UTC timestamp?
-        point['dt'] = convert_gsd_date(gsd_dt, gsd_tm)
-        point['ts'] = int(point['dt'].timestamp())
-        
-        # Convert GSD coordinate to DMS
-        dms = DMSCoordinate(*convert_gsd_coord(gsd_lat), *convert_gsd_coord(gsd_lon))
-        #log.debug('DMS: %s', dms)
-        # Then convert to WGS
-        wgs = DMS_to_WGS(dms)
-        #log.debug('WGS: %s', wgs)
-
-        # Latitude & Longitude
-        point['lat'] = wgs.get_latitude_degrees()
-        point['lon'] = wgs.get_longitude_degrees()
-
-        # GSD altitude in 10^-5?!, convert from floating point to int
-        point['alt'] = int(int(gsd_alt) / 10000)
-
-        # GSD speed in m/h?
-        point['spd'] = float(gsd_spd) / 100.0
-
-    except ValueError as e:
-        #log.warning('Failed to parse GSD line: %s; %s', line, e)
-        print(f'Failed to parse GSD line: {e}')
-        
-    # Return data item
-    return point
-
-
 if __name__ == '__main__':
-    logging.basicConfig()
-    log.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
     with open('data/20180215.gsd', 'r') as f:
         result = stream_records(f)

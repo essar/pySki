@@ -1,5 +1,6 @@
 import logging
 import unittest
+from ski.coordinate import DMSCoordinate
 import ski.gsd as undertest
 
 undertest.log.setLevel(logging.DEBUG)
@@ -193,31 +194,42 @@ class TestConvertGsdAlt(unittest.TestCase):
 class TestConvertGsdCoord(unittest.TestCase):
 
     def test_convert_coord_7digits(self):
-        coord = undertest.convert_gsd_coord('1234567')
-        self.assertEqual(12, coord[0], 'Degrees')
-        self.assertEqual(34, coord[1], 'Minutes')
-        self.assertAlmostEqual(0.567 * 60.0, coord[2], msg='Seconds')
+        coord = undertest.convert_gsd_coord('9531388')
+        self.assertEqual(9, coord[0], 'Degrees')
+        self.assertEqual(53, coord[1], 'Minutes')
+        self.assertAlmostEqual(0.1388 * 60.0, coord[2], msg='Seconds')
+        self.assertIsNotNone(DMSCoordinate(*coord, 0, 0, 0), 'Parses as latitude')
+
+    def test_convert_coord_7digits_signed(self):
+        coord = undertest.convert_gsd_coord('-9531388')
+        self.assertEqual(-9, coord[0], 'Degrees')
+        self.assertEqual(53, coord[1], 'Minutes')
+        self.assertAlmostEqual(0.1388 * 60.0, coord[2], msg='Seconds')
+        self.assertIsNotNone(DMSCoordinate(*coord, 0, 0, 0), 'Parses as latitude')
 
     def test_convert_coord_8digits(self):
-        coord = undertest.convert_gsd_coord('12345678')
-        self.assertEqual(123, coord[0], 'Degrees')
+        coord = undertest.convert_gsd_coord('39531388')
+        self.assertEqual(39, coord[0], 'Degrees')
+        self.assertEqual(53, coord[1], 'Minutes')
+        self.assertAlmostEqual(0.1388 * 60.0, coord[2], msg='Seconds')
+        self.assertIsNotNone(DMSCoordinate(*coord, 0, 0, 0), 'Parses as latitude')
+
+    def test_convert_coord_8digits_signed(self):
+        coord = undertest.convert_gsd_coord('-39531388')
+        self.assertEqual(-39, coord[0], 'Degrees')
+        self.assertEqual(53, coord[1], 'Minutes')
+        self.assertAlmostEqual(0.1388 * 60.0, coord[2], msg='Seconds')
+        self.assertIsNotNone(DMSCoordinate(*coord, 0, 0, 0), 'Parses as latitude')
+
+    def test_convert_coord_10digits_signed(self):
+        coord = undertest.convert_gsd_coord('-105457814')
+        self.assertEqual(-105, coord[0], 'Degrees')
         self.assertEqual(45, coord[1], 'Minutes')
-        self.assertAlmostEqual(0.678 * 60.0, coord[2], msg='Seconds')
+        self.assertAlmostEqual(0.7814 * 60.0, coord[2], msg='Seconds')
+        self.assertIsNotNone(DMSCoordinate(0, 0, 0, *coord), 'Parses as longitude')
 
     def test_convert_coord_not_number(self):
         self.assertIsNone(undertest.convert_gsd_coord('123456ab'))
-
-    def test_convert_coord_negative(self):
-        coord = undertest.convert_gsd_coord('-1234567')
-        self.assertEqual(-12, coord[0], 'Degrees')
-        self.assertEqual(34, coord[1], 'Minutes')
-        self.assertAlmostEqual(0.567 * 60.0, coord[2], msg='Seconds')
-
-    def test_convert_coord_negative_8digits(self):
-        coord = undertest.convert_gsd_coord('-12345678')
-        self.assertEqual(-123, coord[0], 'Degrees')
-        self.assertEqual(45, coord[1], 'Minutes')
-        self.assertAlmostEqual(0.678 * 60.0, coord[2], msg='Seconds')
 
 
 class TestConvertGsdDate(unittest.TestCase):
