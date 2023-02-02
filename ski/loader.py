@@ -14,22 +14,34 @@ def cmdline(cmd_args:list):
         command = cmd_args.pop(0)
 
         if command == '-d':
+            # Load from serial device
             device_path = cmd_args.pop(0)
             load_from_device(device_path)
             break
 
         if command == '-f':
+            # Load from a file
             file_name = cmd_args.pop(0)
             load_from_gsd_file(file_name)
             break
 
         if command == '-v':
+            # Enable debug logging
             logging.basicConfig(level=logging.DEBUG)
             continue
 
         print(f'Unknkown command: {command}')
 
         
+
+def handle_stream(data:dict) -> list:
+
+    point_count = data['point_count']
+    sections_complete = (data['section_count'] / data['total_sections']) * 100.0
+
+    print(f'\rProcessing point {point_count:5d} : {sections_complete:.02f}%', end='')
+
+    return data['point']
 
 def load_from_device(device_path):
 
@@ -39,12 +51,13 @@ def load_from_device(device_path):
             serial_log.info(ser)
 
             window = MovingWindow(2)
+            handle_f = handle_stream
             build_f = build_point_from_gsd
             enrich_f = lambda p: enrich_point(window, p)
-            result = map_all(stream_records_from_device(ser), build_f, enrich_f)
+            result = map_all(stream_records_from_device(ser), handle_f, build_f, enrich_f)
 
             count = len(list(result))
-            print(f'Total of {count} point(s)')
+            print(f'\rProcessed {count} point(s)')
             
 
     except serial.SerialException as err:
@@ -56,19 +69,18 @@ def load_from_gsd_file(filename):
     try:
         with open(filename, 'r') as f:
             window = MovingWindow(2)
+            handle_f = handle_stream
             build_f = build_point_from_gsd
             enrich_f = lambda p: enrich_point(window, p)
-            result = map_all(stream_records_from_file(f), build_f, enrich_f)
+            result = map_all(stream_records_from_file(f), handle_f, build_f, enrich_f)
             
             count = len(list(result))
-            print(f'Total of {count} point(s)')
+            print(f'\rProcessed {count} point(s)')
 
     except IOError as err:
         print(err)
         
 
 if __name__ == '__main__':
-    #logging.basicConfig(level=logging.DEBUG)
-    print(sys.argv[1:])
     cmdline(sys.argv[1:])
 
