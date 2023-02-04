@@ -45,7 +45,7 @@ def build_point_from_gsd(gsd_line:list, convert_coords:bool=True) -> dict:
         # Convert GSD date and time strings to UTC timestamp?
         point['dt'] = convert_gsd_date(gsd_dt, gsd_tm)
         point['ts'] = int(point['dt'].timestamp())
-        __log_point(f'IN=GSD{gsd_line}', point)
+        __log_point(f'SRC=GSD{gsd_line}', point)
         __log_point('dt=%s', point, 'dt')
         
         # Convert GSD coordinate to DMS
@@ -55,8 +55,8 @@ def build_point_from_gsd(gsd_line:list, convert_coords:bool=True) -> dict:
         log.debug('build_point_from_gsd: (%s,%s) -> %s -> %s', gsd_lat, gsd_lon, dms, wgs)
 
         # Latitude & Longitude
-        point['lat'] = wgs.get_latitude_degrees()
-        point['lon'] = wgs.get_longitude_degrees()
+        point['lat'] = round(wgs.get_latitude_degrees(), 4)
+        point['lon'] = round(wgs.get_longitude_degrees(), 4)
         __log_point('lat=%4f', point, 'lat')
         __log_point('lon=%.4f', point, 'lon')
 
@@ -74,8 +74,8 @@ def build_point_from_gsd(gsd_line:list, convert_coords:bool=True) -> dict:
             
 
         # GSD speed in m/h?
-        point['spd'] = convert_gsd_speed(gsd_spd)
-        __log_point('spd=%.2f', point, 'spd')
+        point['spd'] = round(convert_gsd_speed(gsd_spd), 3)
+        __log_point('spd=%.3f', point, 'spd')
 
         # GSD altitude in 10^-5?!, convert from floating point to int
         point['alt'] = convert_gsd_alt(gsd_alt)
@@ -113,3 +113,57 @@ def enrich_point(window: MovingWindow, point: dict, add_distance:bool=True, add_
         __log_point('spd_d=%.3f', point, 'spd_d')
 
     return point
+
+
+def linear_interpolate(iter_in) -> None:
+
+    # Define internal interpolation function
+    def __interp_f(prev_point: dict, point: dict, item:str, delta:int):
+        int_value = prev_point[item] + ((point[item] - prev_point[item]) / delta)
+        log.debug('linear_interpolate: (%s,%s)[%d] -> %s', prev_point[item], point[item], delta, int_value)
+        return int_value
+
+    try:
+        prev_point = None
+        while True:
+            point = next(iter_in)
+            
+            if prev_point:
+                ts_d = point['ts'] - prev_point['ts']
+                log.debug('linear_interpolate: %d -> %d; ts_d=%d', prev_point['ts'], point['ts'], ts_d)
+                
+                if ts_d == 0:
+                    # Remove if duplicate
+                    log.info('linear_interpolate: duplicate identified at %d, removing', point['ts'])
+                    continue
+                
+                while ts_d > 1:
+                    int_ts = int(__interp_f(prev_point, point, 'ts', ts_d))
+                    log.debug('linear_interpolate: Adding interpolated point at %d', int_ts)
+                    new_point = {
+                        'ts': int_ts,
+                        'lat': round(__interp_f(prev_point, point, 'lat', ts_d), 4),
+                        'lon': round(__interp_f(prev_point, point, 'lon', ts_d), 4),
+                        'x': int(__interp_f(prev_point, point, 'x', ts_d)),
+                        'y': int(__interp_f(prev_point, point, 'y', ts_d)),
+                        'spd': round(__interp_f(prev_point, point, 'spd', ts_d), 3),
+                        'alt': int(__interp_f(prev_point, point, 'alt', ts_d))
+                    }
+                    __log_point(f'SRC=INT{new_point}', new_point)
+                    log.debug('linear_interpolate: %s', new_point)
+                    
+                    yield new_point
+                    prev_point = new_point
+                    
+                    # Recalc delta
+                    ts_d = point['ts'] - prev_point['ts']
+
+            yield point
+            prev_point = point
+
+    except StopIteration:
+        pass
+
+
+def remove_outlyers(window: MovingWindow, point: dict) -> list:
+    pass

@@ -88,3 +88,40 @@ class TestEnrichPoint(unittest.TestCase):
         self.assertEqual(0, result['hdg'], 'hdg')
         self.assertEqual(0, result['alt_d'], 'alt_d')
         self.assertFalse('spd_d' in result, 'spd_d')
+
+
+class TestLinearInterpolate(unittest.TestCase):
+
+    def test_linear_interpolate_prev_point_none(self):
+        point = { 'ts': 1518711415, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        self.assertListEqual([point], undertest.linear_interpolate(point, None))
+
+    def test_linear_interpolate_duplicate_point(self):
+        prev_point = { 'ts': 1518711415, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        point = { 'ts': 1518711415, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        self.assertListEqual([], undertest.linear_interpolate(point, prev_point))
+
+    def test_linear_interpolate_adjuct_point(self):
+        prev_point = { 'ts': 1518711415, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        point = { 'ts': 1518711416, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        self.assertListEqual([prev_point], undertest.linear_interpolate(point, prev_point))
+        
+    def test_linear_interpolate_missing_single_point(self):
+        prev_point = { 'ts': 1518711415, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        point = { 'ts': 1518711417, 'lat': 39.8858, 'lon': -105.7634, 'x': 434762, 'y': 4415348, 'spd': 1.81, 'alt': 2776 }
+        exp_point = { 'ts': 1518711416, 'lat': 39.8857, 'lon': -105.7632, 'x': 434761, 'y': 4415346, 'spd': 1.805, 'alt': 2776 }
+
+        self.assertListEqual([prev_point, exp_point], undertest.linear_interpolate(point, prev_point))
+    
+    def test_linear_interpolate_missing_multiple_points(self):
+        prev_point = { 'ts': 1518711415, 'lat': 39.8856, 'lon': -105.7630, 'x': 434760, 'y': 4415344, 'spd': 1.80, 'alt': 2776 }
+        point = { 'ts': 1518711419, 'lat': 39.8860, 'lon': -105.7638, 'x': 434800, 'y': 4415352, 'spd': 1.82, 'alt': 2772 }
+        exp_points = [
+            prev_point,
+            { 'ts': 1518711416, 'lat': 39.8857, 'lon': -105.7632, 'x': 434770, 'y': 4415346, 'spd': 1.805, 'alt': 2775 },
+            { 'ts': 1518711417, 'lat': 39.8858, 'lon': -105.7634, 'x': 434780, 'y': 4415348, 'spd': 1.810, 'alt': 2774 },
+            { 'ts': 1518711418, 'lat': 39.8859, 'lon': -105.7636, 'x': 434790, 'y': 4415350, 'spd': 1.815, 'alt': 2773 }
+        ]
+
+        self.assertListEqual(exp_points, undertest.linear_interpolate(point, prev_point))
+        

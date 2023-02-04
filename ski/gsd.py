@@ -317,7 +317,7 @@ def convert_gsd_speed(gsd_spd:str) -> float:
     return spd
 
 
-def stream_records(f) -> dict:
+def stream_records(f) -> None:
     """Retrieve GPS records from the specified GSD file."""
     # Create GSDFile object; read the header
     gsd = GSDFile(f)
@@ -332,9 +332,14 @@ def stream_records(f) -> dict:
             if len(points) == 0:
                 log.debug('stream_records: reached end of stream')
                 break
+
+            # Increment section counter
+            section_count += 1
             
             # Yield each point
             for p in points:
+                # Increment counter
+                point_count += 1
                 # Return point data to the caller
                 yield {
                     'point': p,
@@ -342,23 +347,13 @@ def stream_records(f) -> dict:
                     'section_count': section_count,
                     'total_sections': len(gsd.sections)
                 }
-                # Increment counter
-                point_count += 1
-
-            # Increment section counter
-            section_count += 1
 
         except EOFError:
             log.warn('Did not find section %s; skipping', 'x')
         except ValueError as e:
             log.warn('Unable to load section records, skipping', e)
 
-    log.info('Returned %d point(s) from %d section(s)', point_count, section_count)
-    return {
-        'point_count': point_count,
-        'section_count': section_count,
-        'total_sections': len(gsd.sections)
-    }
+    log.info('Returned %d point(s) from %d section(s) in %s', point_count, section_count, f.name)
 
 
 if __name__ == '__main__':

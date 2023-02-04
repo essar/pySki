@@ -427,11 +427,11 @@ def print_track_record(record_data:dict) -> str:
     return f'{record_data["date"].isoformat()} lat={record_data["lat"]}, lon={record_data["lon"]}, alt={record_data["alt"]}, spd={record_data["spd"]}'
 
 
-def stream_records(ser: serial.Serial) -> dict:
+def stream_records(ser: serial.Serial) -> None:
     """Streams records from a serial connection."""
     # Get headers from the device
     headers = get_track_headers(ser)
-    log.info('Loaded %d header(s) from DG100', len(headers))
+    log.info('Loaded %d header(s) from device', len(headers))
 
     header_count = 0
     record_count = 0
@@ -456,14 +456,9 @@ def stream_records(ser: serial.Serial) -> dict:
             header_count += 1
 
         except ValueError as e:
-            log.warn('Unable to load records for file %d: %s, skipping', h['index'], e)
+            log.warn('Unable to load records for section %d: %s, skipping', h['index'], e)
 
-    log.info('Loaded %d record(s) from DG100', record_count)
-    return {
-        'point_count': record_count,
-        'section_count': header_count,
-        'total_sections': len(headers)
-    }
+    log.info('Loaded %d record(s) from %s', record_count, ser.name)
 
 
 def test_connect():

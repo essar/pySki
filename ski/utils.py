@@ -21,6 +21,12 @@ class MovingWindow:
             return 0
         return self.data[0][key] - self.data[-1][key]
 
+    def first(self):
+        return self.data[0] if len(self.data) > 0 else None
+
+    def last(self):
+        return self.data[-1] if len(self.data) > 0 else None
+
     def sum(self, key:str) -> int:
         if len(self.data) < 1:
             return 0
