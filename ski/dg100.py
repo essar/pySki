@@ -440,9 +440,15 @@ def stream_records(ser: serial.Serial) -> None:
         try:
             # For every header, get the records
             records = get_track_records(ser, track_index=h['index'])
+
+            # Increment header counter
+            header_count += 1
             
             # Loop across all records
             for r in records:
+                # Increment counter
+                record_count += 1
+
                 # Return point data to the caller
                 yield {
                     'point': format_track_record_as_gsd(r),
@@ -450,10 +456,6 @@ def stream_records(ser: serial.Serial) -> None:
                     'section_count': header_count,
                     'total_sections': len(headers)
                 }
-                # Increment counter
-                record_count += 1
-
-            header_count += 1
 
         except ValueError as e:
             log.warn('Unable to load records for section %d: %s, skipping', h['index'], e)

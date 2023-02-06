@@ -4,7 +4,7 @@ import sys
 from .dg100 import stream_records as stream_records_from_device
 from .dg100 import serial_log
 from .gsd import stream_records as stream_records_from_file
-from .processor import build_point_from_gsd, enrich_point, linear_interpolate, map_all
+from .processor import build_point_from_gsd, enrich_point, linear_interpolate, summary
 from .stream import Stream
 from .utils import MovingWindow
 
@@ -12,16 +12,16 @@ from .utils import MovingWindow
 def cmdline(cmd_args:list):
     #logging.basicConfig(level=logging.INFO)
     """Process the command line"""
-    while True:
+    while len(cmd_args) > 0:
         command = cmd_args.pop(0)
 
-        if command == '-d':
+        if command == '-d' or command == '--device':
             # Load from serial device
             device_path = cmd_args.pop(0)
             load_from_device(device_path)
             break
 
-        if command == '-f':
+        if command == '-f' or command == '--file':
             # Load from a file
             file_name = cmd_args.pop(0)
             load_from_gsd_file(file_name)
@@ -52,15 +52,23 @@ def load_from_device(device_path):
         with serial.Serial(device_path, speed, timeout=1) as ser:
             serial_log.info(ser)
 
-            window = MovingWindow(2)
-            handle_f = load_stream
+            loader_f = load_stream
             build_f = build_point_from_gsd
-            enrich_f = lambda p: enrich_point(window, p)
-            result = map_all(stream_records_from_device(ser), handle_f, build_f, enrich_f)
+            interpolate_f = linear_interpolate
 
-            count = len(list(result))
-            print(f'\rLoaded {count} point(s)')
+            enrich_window = MovingWindow(2)
+            enrich_f = lambda p: enrich_point(enrich_window, p)
+
+            summary_obj = {}
+            summary_f = lambda p: summary(summary_obj, p)
+
+            records = stream_records_from_device(ser)
+
+            result = Stream.create(records).map(loader_f).map(build_f).pipe(interpolate_f).map(enrich_f).map(summary_f)
             
+            count = len(list(result))
+            print(f'\n{count} point(s) loaded and processed')
+            print(summary_obj)
 
     except serial.SerialException as err:
         print(err)
@@ -78,13 +86,16 @@ def load_from_gsd_file(filename):
             enrich_window = MovingWindow(2)
             enrich_f = lambda p: enrich_point(enrich_window, p)
             
+            summary_obj = {}
+            summary_f = lambda p: summary(summary_obj, p)
+
             records = stream_records_from_file(f)
 
-            result = Stream.create(records).map(loader_f).map(build_f).pipe(interpolate_f).map(enrich_f)
+            result = Stream.create(records).map(loader_f).map(build_f).pipe(interpolate_f).map(enrich_f).map(summary_f)
             
-            #result = map_all(records, handle_f, build_f, interp_f, enrich_f)
             count = len(list(result))
             print(f'\n{count} point(s) loaded and processed')
+            print(summary_obj)
 
     except IOError as err:
         print(err)

@@ -167,3 +167,38 @@ def linear_interpolate(iter_in) -> None:
 
 def remove_outlyers(window: MovingWindow, point: dict) -> list:
     pass
+
+
+def summary(summary_obj:dict, point:dict) -> dict:
+
+    # Total distance
+    if 'd' in point:
+        summary_obj['total_dist'] = summary_obj.setdefault('total_dist', 0.0) + point['d']
+
+    # XY bounds
+    if 'x' in point:
+        summary_obj['x_bounds'] = [
+            min(summary_obj['x_bounds'][0], point['x']) if 'x_bounds' in summary_obj else point['x'],
+            max(summary_obj['x_bounds'][1], point['x']) if 'x_bounds' in summary_obj else point['x']
+        ]
+    if 'y' in point:
+        summary_obj['y_bounds'] = [
+            min(summary_obj['y_bounds'][0], point['y']) if 'y_bounds' in summary_obj else point['y'],
+            max(summary_obj['y_bounds'][1], point['y']) if 'y_bounds' in summary_obj else point['y']
+        ]
+
+    # Min/max alts
+    if 'alt' in point:
+        summary_obj['min_alt'] = min(summary_obj['min_alt'], point['alt']) if 'min_alt' in summary_obj else point['alt']
+        summary_obj['max_alt'] = max(summary_obj['max_alt'], point['alt']) if 'max_alt' in summary_obj else point['alt']
+
+    # Max speed
+    if 'spd' in point:
+        summary_obj['max_spd'] = max(summary_obj['max_spd'], point['spd']) if 'max_spd' in summary_obj else point['spd']
+
+    # Total descent
+    if 'alt_d' in point:
+        summary_obj['total_desc'] = summary_obj.setdefault('total_desc', 0.0) + max(0, point['alt_d'])
+    
+
+    return point
