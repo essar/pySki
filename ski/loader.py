@@ -1,12 +1,13 @@
+import json
 import logging
 import serial
 import sys
 from .dg100 import stream_records as stream_records_from_device
 from .dg100 import serial_log
 from .gsd import stream_records as stream_records_from_file
-from .processor import build_point_from_gsd, enrich_point, linear_interpolate, summary
+from .processor import add_timezone, build_point_from_gsd, enrich_point, linear_interpolate, summary
 from .stream import Stream
-from .utils import MovingWindow
+from .utils import DateAwareJSONEncoder, MovingWindow
 
 
 def cmdline(cmd_args:list):
@@ -83,6 +84,9 @@ def load_from_gsd_file(filename):
 
             interpolate_f = linear_interpolate
 
+            tz_cache = {}
+            add_timezone_f = lambda p: add_timezone(p, tz_cache)
+
             enrich_window = MovingWindow(2)
             enrich_f = lambda p: enrich_point(enrich_window, p)
             
@@ -91,15 +95,18 @@ def load_from_gsd_file(filename):
 
             records = stream_records_from_file(f)
 
-            result = Stream.create(records).map(loader_f).map(build_f).pipe(interpolate_f).map(enrich_f).map(summary_f)
+            result = Stream.create(records).map(loader_f).map(build_f).pipe(interpolate_f).map(add_timezone_f).map(enrich_f).map(summary_f)
             
-            count = len(list(result))
+            points = list(result)
+            count = len(points)
             print(f'\n{count} point(s) loaded and processed')
             print(summary_obj)
+            for p in points[1000:1020]:
+                print(json.dumps(p, indent=2, cls=DateAwareJSONEncoder))
 
     except IOError as err:
         print(err)
-        
+
 
 if __name__ == '__main__':
     cmdline(sys.argv[1:])

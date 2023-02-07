@@ -1,5 +1,19 @@
 import unittest
 import ski.utils as undertest
+from datetime import datetime
+from json import dumps
+from zoneinfo import ZoneInfo
+
+class TestDateAwareJsonEncoder(unittest.TestCase):
+
+    def test_default_with_date(self):
+        dt = datetime(2023, 2, 1, 12, 1, 2, tzinfo=ZoneInfo('UTC'))
+        self.assertEqual('2023-02-01T12:01:02+00:00', undertest.DateAwareJSONEncoder().default(dt))
+        self.assertEqual('{"date": "2023-02-01T12:01:02+00:00"}', dumps({ 'date' : dt }, cls=undertest.DateAwareJSONEncoder))
+
+    def test_default_with_string(self):
+        self.assertRaises(TypeError, lambda: undertest.DateAwareJSONEncoder().default('test'))
+        self.assertEqual('{"str": "test"}', dumps({ 'str' : 'test' }, cls=undertest.DateAwareJSONEncoder))
 
 
 class TestMovingWindow(unittest.TestCase):

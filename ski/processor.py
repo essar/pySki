@@ -1,12 +1,14 @@
+import datetime
 import logging
+import zoneinfo
 from math import atan2, degrees, hypot
+from timezonefinder import TimezoneFinderL
 from .coordinate import DMSCoordinate, DMS_to_WGS, WGS_to_UTM
 from .gsd import convert_gsd_alt, convert_gsd_coord, convert_gsd_date, convert_gsd_speed
 from .utils import MovingWindow
 
 log = logging.getLogger(__name__)
 points_log = logging.getLogger('points')
-
 
 def __log_point(msg:str, point:dict, *args:str):
     points_log.info('[%10s] ' + msg, point['ts'], *[point[x] for x in args])
@@ -17,6 +19,42 @@ def map_all(iterable, *functions):
 
     return iterable
 
+
+def add_timezone(point, tz_cache):
+    """Add a timezone-aware datetime to a point. If no cached timezone is available then we look it up based on lat/long data"""
+    def __lookup_tz(point):
+        if 'lat' in point and 'lon' in point:
+            tz_cache['tf'] = TimezoneFinderL()
+
+            lat = point['lat']
+            lon = point['lon']
+            tz_cache['zonename'] = tz_cache['tf'].timezone_at(lat=lat, lng=lon)
+            log.info('Identified point to be in %d timezone', tz_cache['zonename'])
+        else:
+            log.warn('Lat/lon data missing from point; unable to determine timezone')
+            tz_cache['zonename'] = 'UTC'
+
+    if not tz_cache or 'zonename' not in tz_cache:
+        # No timezone passed in cache; look up based on lat/lon
+        __lookup_tz(point)
+
+    if 'ts' in point:
+        if 'zoneinfo' not in tz_cache:
+            try:
+                tz_cache['zoneinfo'] = zoneinfo.ZoneInfo(tz_cache['zonename'])
+            except zoneinfo.ZoneInfoNotFoundError:
+                log.warn('Invalid timezone %s; performing lookup', tz_cache['zonename'])
+                # Clear cached value(s) and re-query
+                del tz_cache['zonename']
+                __lookup_tz(point)
+                tz_cache['zoneinfo'] = zoneinfo.ZoneInfo(tz_cache['zonename'])
+
+        # Convert timestamp
+        dtz = datetime.datetime.utcfromtimestamp(point['ts']).astimezone(tz=tz_cache['zoneinfo'])
+        point['dt'] = dtz
+
+    return point
+    
 
 def build_point_from_gsd(gsd_line:list, convert_coords:bool=True) -> dict:
     """Build a GPS point from a line of GSD-formatted data"""
@@ -198,7 +236,7 @@ def summary(summary_obj:dict, point:dict) -> dict:
 
     # Total descent
     if 'alt_d' in point:
-        summary_obj['total_desc'] = summary_obj.setdefault('total_desc', 0.0) + max(0, point['alt_d'])
+        summary_obj['total_desc'] = summary_obj.setdefault('total_desc', 0.0) - min(0, point['alt_d'])
     
 
     return point

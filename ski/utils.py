@@ -1,4 +1,17 @@
+from json import JSONEncoder
+from datetime import datetime
 from statistics import mean
+
+
+class DateAwareJSONEncoder (JSONEncoder):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return JSONEncoder.default(self, obj)
 
 
 class MovingWindow:
