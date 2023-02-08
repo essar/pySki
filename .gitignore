@@ -1,0 +1,19 @@
+#Log files
+*.log
+
+#System files
+.DS_Store
+
+#IDE
+.vscode/
+
+#Test files
+.coverage
+coverage.json
+htmlcov/
+
+#Python
+__pycache__/
+dist/
+*.egg-info/
+venv*/
