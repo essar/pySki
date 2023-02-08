@@ -24,4 +24,4 @@ SkiData has undergone a number of iterations and evolutions. Various forms of th
 - [Plotly](https://plotly.com/python/)
 - [pySerial](https://pythonhosted.org/pyserial/index.html)
 - [SciPi](https://scipy.org/)
-- [TimezoneFinder][(https://timezonefinder.readthedocs.io/en/latest/index.html)
+- [TimezoneFinder](https://timezonefinder.readthedocs.io/en/latest/index.html)
