@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - "*"
-  pr:
+  pull_request:
     branches:
       - main
       - master
@@ -11,48 +11,48 @@ jobs:
   test:
     runs-on: ubuntu-latest
   
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.10
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install coverage coverage-badge
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install coverage coverage-badge
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Run unit tests
-      run: |
-        coverage run -m unittest discover -s "tests/" -p "*_test.py"
-        coverage report --omit="tests/*"
+      - name: Run unit tests
+        run: |
+          coverage run -m unittest discover -s "tests/" -p "*_test.py"
+          coverage report --omit="tests/*"
 
-    - name: Create HTML coverage report
-      run: coverage html
+      - name: Create HTML coverage report
+        run: coverage html
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report
-        path: htmlcov/
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: htmlcov/
 
-    - name: Create JSON coverage report
-      run: |
-        coverage json
-        echo "coverage_total=$(cat coverage.json | jq -r '.totals.percent_covered_display')" >> $GITHUB_ENV
+      - name: Create JSON coverage report
+        run: |
+          coverage json
+          echo "coverage_total=$(cat coverage.json | jq -r '.totals.percent_covered_display')" >> $GITHUB_ENV
 
-    - name: Update badge
-      uses: Schneegans/dynamic-badges-action@v1.6.0
-      with:
-        auth: ${{ secrets.GIST_SECRET }}
-        gistID: 208eb98099788c4db260c7791537bd85   # replace with your real Gist id.
-        filename: pySki_coverage_badge.json
-        label: Coverage
-        message: ${{ env.coverage_total }}%
-        minColorRange: 50
-        maxColorRange: 90
-        valColorRange: ${{ env.coverage_total }}
+      - name: Update badge
+        uses: Schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 208eb98099788c4db260c7791537bd85
+          filename: pySki_coverage_badge.json
+          label: Coverage
+          message: ${{ env.coverage_total }}%
+          minColorRange: 50
+          maxColorRange: 90
+          valColorRange: ${{ env.coverage_total }}
