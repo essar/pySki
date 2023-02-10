@@ -356,6 +356,60 @@ def stream_records(f) -> None:
     log.info('Returned %d point(s) from %d section(s) in %s', point_count, section_count, f.name)
 
 
+def __write_gsd_header(f, header_name:str) -> None:
+    """Write a GSD section name"""
+    f.write(f'[{str}]')
+    f.write('')
+
+def __write_gsd_entry(f, index:int, value:str) -> None:
+    """Write a GSD section entry"""
+    f.write(f'{index}={value}')
+    f.write('')
+
+def build_group_header(points:list) -> str:
+    """Build the group header name from a list of points."""
+    first_point = points[0]
+    # Get date field
+    if 'dt' in first_point:
+        dtstr = points['dt'].strftime('%y-%m-%d-%H:%M:%S')
+    elif 'ts' in first_point:
+        dtstr = ''
+
+
+
+
+def group_points(points:list, section_size=32) -> None:
+    point_buffer = []
+    for p in points:
+        point_buffer.append(p)
+        if len(point_buffer) >= section_size:
+            # Yield the buffer and reset
+            yield point_buffer
+            point_buffer = []
+    
+    # Ensure to return the final set of buffered points
+    yield point_buffer
+
+
+def write_gsd(f, points:list, section_size=32) -> None:
+    """Write data points to GSD file"""
+
+    # Group points into sections
+    sections = {
+
+    }
+
+    # Write current date
+    __write_gsd_header(f, 'Date')
+    __write_gsd_entry(f, 1, datetime.datetime.now().strftime('%y-%m-%d-%H:%M:%S'))
+
+    # Convert to groups
+    point_groups = (x for x in group_points(points))
+
+
+
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
