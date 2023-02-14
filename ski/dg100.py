@@ -61,6 +61,10 @@ class MessageParser:
         """Parse track file data into a dict."""
         log.debug(record_bytes.hex(' '))
 
+        if record_bytes[-1] == 0xff:
+            # Empty record, probably end of file
+            return None
+
         # Format A fields - position only (8 bytes)
         if format == 0:
             log.debug('Parsing track record as format A')
@@ -68,10 +72,14 @@ class MessageParser:
             if len(record_bytes) != 8:
                 raise ValueError(f'Invalid data; expected 8 byte(s), received {len(record_bytes)} byte(s)')
             
-            # Latitude is first 4 bytes;
-            lat = _from_bytes(record_bytes[0:4])
-            # Lonitude is next 4 bytes;
-            lon = _from_bytes(record_bytes[4:8])
+            # Latitude is first 4 bytes
+            lat_bytes = record_bytes[0:4]
+            lat = _from_bytes(lat_bytes)
+            log.debug('%s -> %d', lat_bytes, lat)
+            # Longitude is next 4 bytes;
+            lon_bytes = record_bytes[4:8]
+            lon = _from_bytes(lon_bytes)
+            log.debug('%s -> %d', lon_bytes, lon)
 
             parser_log.info('RECORD: %s => %d %d', record_bytes.hex(), lat, lon)
 
@@ -87,10 +95,14 @@ class MessageParser:
             if len(record_bytes) != 20:
                 raise ValueError(f'Invalid data; expected 20 byte(s), received {len(record_bytes)} byte(s)')
             
-            # Latitude is first 4 bytes;
-            lat = _from_bytes(record_bytes[0:4])
-            # Lonitude is next 4 bytes;
-            lon = _from_bytes(record_bytes[4:8])
+            # Latitude is first 4 bytes
+            lat_bytes = record_bytes[0:4]
+            lat = _from_bytes(lat_bytes)
+            log.debug('%s -> %d', lat_bytes, lat)
+            # Longitude is next 4 bytes;
+            lon_bytes = record_bytes[4:8]
+            lon = _from_bytes(lon_bytes)
+            log.debug('%s -> %d', lon_bytes, lon)
             # Time is in the next 4 bytes; pad to a 6 digit string
             timestr = str(_from_bytes(record_bytes[8:12])).zfill(6)
             # Date is in the next 4 bytes; pad to a 6 digit string
@@ -118,10 +130,14 @@ class MessageParser:
             if len(record_bytes) != 32:
                 raise ValueError(f'Invalid data; expected 32 byte(s), received {len(record_bytes)} byte(s)')
             
-            # Latitude is first 4 bytes;
-            lat = _from_bytes(record_bytes[0:4])
-            # Lonitude is next 4 bytes;
-            lon = _from_bytes(record_bytes[4:8])
+            # Latitude is first 4 bytes
+            lat_bytes = record_bytes[0:4]
+            lat = _from_bytes(lat_bytes)
+            log.debug('%s -> %d', lat_bytes, lat)
+            # Longitude is next 4 bytes;
+            lon_bytes = record_bytes[4:8]
+            lon = _from_bytes(lon_bytes)
+            log.debug('%s -> %d', lon_bytes, lon)
             # Time is in the next 4 bytes; pad to a 6 digit string
             timestr = str(_from_bytes(record_bytes[8:12])).zfill(6)
             # Date is in the next 4 bytes; pad to a 6 digit string
@@ -184,7 +200,7 @@ class MessageParser:
         track_records.extend([self._parse_track_record(payload_bytes[x:(x + record_length)], record_format) for x in range(record_length, len(payload_bytes), record_length)])
 
         return {
-            'records': track_records
+            'records': [x for x in track_records if x is not None]
         }
 
     def track_headers_response(self, payload_bytes:bytes) -> dict:
@@ -212,7 +228,7 @@ class MessageParser:
 
 def _from_bytes(bytes:bytes) -> int:
     """Convert bytes to an int."""
-    return int.from_bytes(bytes, byteorder='big')
+    return int.from_bytes(bytes, byteorder='big', signed=True)
 
 
 def _message_checksum(message_bytes:bytes) -> bytes:
