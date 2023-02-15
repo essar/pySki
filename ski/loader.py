@@ -4,7 +4,7 @@ import serial
 import sys
 from .dg100 import stream_records as stream_records_from_device
 from .dg100 import serial_log
-from .gsd import stream_records as stream_records_from_file
+from .gsd import stream_records as stream_records_from_file, write_gsd
 from .processor import add_timezone, build_point_from_gsd, enrich_point, linear_interpolate, summary
 from .stream import Stream
 from .utils import DateAwareJSONEncoder, MovingWindow
@@ -15,6 +15,13 @@ def cmdline(cmd_args:list):
     """Process the command line"""
     while len(cmd_args) > 0:
         command = cmd_args.pop(0)
+
+        if command == '-cp' or command == '--copy':
+            # Load from serial device and write to a file
+            device_path = cmd_args.pop(0)
+            file_name = cmd_args.pop(0)
+            load_from_device_to_file(device_path, file_name)
+            break
 
         if command == '-d' or command == '--device':
             # Load from serial device
@@ -75,6 +82,27 @@ def load_from_device(device_path):
         print(err)
 
 
+def load_from_device_to_file(device_path, filename):
+
+    speed = 115200
+    try:
+        with serial.Serial(device_path, speed, timeout=1) as ser:
+            serial_log.info(ser)
+            
+            with open(filename, mode='w') as f:
+
+                write_f = lambda ps: write_gsd(f, ps)
+
+                records = stream_records_from_device(ser)
+
+                Stream.create(records).map(lambda x: x['point']).pipe(write_f)
+            
+            
+
+    except serial.SerialException as err:
+        print(err)
+
+
 def load_from_gsd_file(filename):
 
     try:
@@ -101,8 +129,8 @@ def load_from_gsd_file(filename):
             count = len(points)
             print(f'\n{count} point(s) loaded and processed')
             print(summary_obj)
-            for p in points[1000:1020]:
-                print(json.dumps(p, indent=2, cls=DateAwareJSONEncoder))
+            #for p in points[1000:1020]:
+            #    print(json.dumps(p, indent=2, cls=DateAwareJSONEncoder))
 
     except IOError as err:
         print(err)
