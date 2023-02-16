@@ -1,3 +1,4 @@
+import datetime
 import logging
 import unittest
 from ski.coordinate import DMSCoordinate
@@ -22,6 +23,19 @@ class MockedFile():
     def seek(self, index) -> None:
         self.index = index
     
+    def write(self, line:str) -> None:
+        self.data.append(line)
+
+
+class TestGsdFileFormatPointsLine(unittest.TestCase):
+
+    def test_format_points_line_invalid_line(self):
+        point = ['value1', 'value2', 'value3', 'value4', 'value5']
+        self.assertIsNone(undertest.GSDFile.format_points_line(point))
+
+    def test_format_points_line_valid_line(self):
+        point = ['value1', 'value2', 'value3', 'value4', 'value5', 'value6']
+        self.assertEqual('value1,value2,value3,value4,value5,value6', undertest.GSDFile.format_points_line(point))
 
 
 class TestGsdFileIsBlank(unittest.TestCase):
@@ -53,7 +67,6 @@ class TestGsdFileIsEof(unittest.TestCase):
     def test_is_eof_stripped_newline(self):
         self.assertTrue(undertest.GSDFile.is_eof('\n'.strip()))
     
-
 
 class TestGsdFileIsSectionHeader(unittest.TestCase):
 
@@ -182,6 +195,27 @@ class TestGsdFileLoadGsdPoints(unittest.TestCase):
         self.assertListEqual([['39531388','-105457814','161655','150218','180','27760000'], ['39531339','-105457776','161730','150218','260','27780000']], output)
 
 
+class TestGsdFileWriteSection(unittest.TestCase):
+
+    def test_write_section_single_entry(self):
+        f = MockedFile([])
+        gsd = undertest.GSDFile(f, load_header=False)
+        gsd.write_section('Test Section', entries=['Test entry'])
+        self.assertListEqual(['[Test Section]', '', '1=Test entry', ''], f.data)
+
+    def test_write_section_multiple_entries(self):
+        f = MockedFile([])
+        gsd = undertest.GSDFile(f, load_header=False)
+        gsd.write_section('Test Section', entries=['Test entry 1', 'Test entry 2'])
+        self.assertListEqual(['[Test Section]', '', '1=Test entry 1', '', '2=Test entry 2', ''], f.data)
+
+    def test_write_section_points(self):
+        f = MockedFile([])
+        gsd = undertest.GSDFile(f, load_header=False)
+        gsd.write_section('Test Section', points=[['a','b','c','d','e','f']])
+        self.assertListEqual(['[Test Section]', '', '1=a,b,c,d,e,f', ''], f.data)
+
+
 class TestConvertGsdAlt(unittest.TestCase):
 
     def test_convert_alt(self):
@@ -263,3 +297,88 @@ class TestConvertGsdSpeed(unittest.TestCase):
 
     def test_convert_speed_not_number(self):
         self.assertEqual(0, undertest.convert_gsd_speed('1234ab'))
+
+
+class TestBuildGroupHeader(unittest.TestCase):
+    
+    def test_build_header_from_dt(self):
+        points = [{'dt': datetime.datetime(2018, 2, 15, 16, 16, 55)}]
+        result = undertest.build_group_header(points)
+        self.assertEqual('001,2018-02-15-16:16:55', result)
+
+    def test_build_header_from_ts(self):
+        points = [{'ts': 1518711415}]
+        result = undertest.build_group_header(points)
+        self.assertEqual('001,2018-02-15-16:16:55', result)
+
+    def test_build_header_from_gsd(self):
+        points = [['0', '0', '161655', '150218', '0', '0']]
+        result = undertest.build_group_header(points)
+        self.assertEqual('001,2018-02-15-16:16:55', result)
+
+    def test_build_header_none(self):
+        points = [{}]
+        result = undertest.build_group_header(points)
+        self.assertIsNone(result)
+
+    def test_build_header_empty_list(self):
+        points = []
+        result = undertest.build_group_header(points)
+        self.assertIsNone(result)
+
+
+class TestGroupPoints(unittest.TestCase):
+
+    def test_group_points_single_group(self):
+        points = [x for x in range(1, 10)]
+        result = list(undertest.group_points(points,section_size=20))
+        self.assertEqual(1, len(result))
+
+    def test_group_points_multiple_group(self):
+        points = [x for x in range(1, 10)]
+        result = list(undertest.group_points(points, section_size=5))
+        self.assertEqual(2, len(result))
+
+
+class TestWriteGsd(unittest.TestCase):
+
+    def test_write_gsd(self):
+        f = MockedFile([])
+        data = [['39531388','-105457814','161655','150218','180','27760000']]
+        undertest.write_gsd(f, data)
+        self.assertEqual('[Date]', f.readline(), 'Line 1')
+        self.assertEqual('', f.readline(), 'Line 2')
+        self.assertIsNotNone(f.readline(), 'Line 3')
+        self.assertEqual('', f.readline(), 'Line 4')
+        
+        self.assertEqual('[TP]', f.readline(), 'Line 5')
+        self.assertEqual('', f.readline(), 'Line 6')
+        self.assertEqual('1=001,2018-02-15-16:16:55', f.readline(), 'Line 7')
+        self.assertEqual('', f.readline(), 'Line 8')
+        
+        self.assertEqual('[001,2018-02-15-16:16:55]', f.readline(), 'Line 9')
+        self.assertEqual('', f.readline(), 'Line 10')
+        self.assertEqual('1=39531388,-105457814,161655,150218,180,27760000', f.readline(), 'Line11')
+        self.assertEqual('', f.readline(), 'Line 12')
+
+    def test_write_gsd_from_generator(self):
+        f = MockedFile([])
+        data = [
+            ['39531388','-105457814','161655','150218','180','27760000'],
+            ['39531308','-105457804','161720','150218','120','27760000']
+        ]
+        undertest.write_gsd(f, (x for x in data))
+        self.assertEqual('[Date]', f.readline(), 'Line 1')
+        self.assertEqual('', f.readline(), 'Line 2')
+        self.assertIsNotNone(f.readline(), 'Line 3')
+        self.assertEqual('', f.readline(), 'Line 4')
+        
+        self.assertEqual('[TP]', f.readline(), 'Line 5')
+        self.assertEqual('', f.readline(), 'Line 6')
+        self.assertEqual('1=001,2018-02-15-16:16:55', f.readline(), 'Line 7')
+        self.assertEqual('', f.readline(), 'Line 8')
+        
+        self.assertEqual('[001,2018-02-15-16:16:55]', f.readline(), 'Line 9')
+        self.assertEqual('', f.readline(), 'Line 10')
+        self.assertEqual('1=39531388,-105457814,161655,150218,180,27760000', f.readline(), 'Line11')
+        self.assertEqual('', f.readline(), 'Line 12')

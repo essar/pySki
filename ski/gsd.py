@@ -25,6 +25,15 @@ class GSDFile:
             self.load_gsd_header()
 
 
+    def format_points_line(line_parts:list) -> str:
+        if len(line_parts) < 6:
+            log.warn('parse_points_line: line does not look like a points line, did not contain at least 6 values')
+            return None
+
+        # Output is first 6 values as strings, joined by a comma
+        return ','.join([str(x) for x in line_parts[0:6]])
+
+
     def is_blank(line:str) -> bool:
         return len(str(line or '').strip()) == 0
 
@@ -227,6 +236,43 @@ class GSDFile:
         raise EOFError(f'Could not find section {section_name or section_id}')
 
 
+    def write_section(self, name:str, entries:list=None, points:list=None) -> None:
+        """Write a GSD section"""
+        # Do not write out if the section name is none
+        if name is None:
+            pass
+
+        # Write the section name
+        self.file.write(f'[{name}]\n')
+        self.file.write('\n')
+
+        # Write the section entries (for date, TP sections)
+        entry_index = 1
+        for entry in entries or []:
+            if entry is not None:
+                self.file.write(f'{entry_index}={entry}\n')
+                self.file.write('\n')
+                entry_index += 1
+        
+        # Write the section points
+        point_index = 1
+        for point in [GSDFile.format_points_line(p) for p in points or []]:
+            if point is not None:
+                self.file.write(f'{point_index}={point}\n')
+                self.file.write('\n')
+                point_index += 1
+
+
+class GSDSectionCounter():
+
+    def __init__(self) -> None:
+        self.count = 0
+
+    @property
+    def value(self):
+        self.count += 1
+        return self.count
+
 
 def convert_coords(point: dict) -> dict:
     wgs = WGSCoordinate(point['lat'], point['lon'])
@@ -354,6 +400,59 @@ def stream_records(f) -> None:
             log.warn('Unable to load section records, skipping', e)
 
     log.info('Returned %d point(s) from %d section(s) in %s', point_count, section_count, f.name)
+
+
+def build_group_header(points:list, counter:GSDSectionCounter=GSDSectionCounter()) -> str:
+    """Build the group header name from a list of points."""
+    if len(points) < 1:
+        return None
+    first_point = points[0]
+    # Get date field
+    if 'dt' in first_point:
+        dtstr = first_point['dt'].strftime('%Y-%m-%d-%H:%M:%S')
+    elif 'ts' in first_point:
+        dtstr = datetime.datetime.fromtimestamp(first_point['ts']).strftime('%Y-%m-%d-%H:%M:%S')
+    elif isinstance(first_point, list):
+        dtstr = convert_gsd_date(first_point[3], first_point[2]).strftime('%Y-%m-%d-%H:%M:%S')
+    else:
+        return None
+
+    return f'{counter.value:03d},{dtstr}'
+
+
+def group_points(points:list, section_size=32) -> None:
+    point_buffer = []
+    for p in points:
+        point_buffer.append(p)
+        if len(point_buffer) >= section_size:
+            # Yield the buffer and reset
+            yield point_buffer
+            point_buffer = []
+    
+    # Ensure to return the final set of buffered points
+    yield point_buffer
+
+
+def write_gsd(f, points:list, section_size=32) -> None:
+    """Write data points to GSD file"""
+    gsd = GSDFile(f, load_header=False)
+
+    # Build groups
+    point_groups = (x for x in group_points(points) if x is not None)
+    # Group points into sections
+    sections = {build_group_header(p): p for p in point_groups}
+    log.info('Grouped points into %d section(s)', len(sections))
+
+    # Write date section
+    gsd.write_section('Date', entries=[datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')])
+
+    # Write headers
+    gsd.write_section('TP', entries=sections.keys())
+
+    # Write points
+    for section, points in sections.items():
+        if section is not None:
+            gsd.write_section(section, points=points)
 
 
 if __name__ == '__main__':
