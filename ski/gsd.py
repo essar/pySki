@@ -238,6 +238,10 @@ class GSDFile:
 
     def write_section(self, name:str, entries:list=None, points:list=None) -> None:
         """Write a GSD section"""
+        # Do not write out if the section name is none
+        if name is None:
+            pass
+
         # Write the section name
         self.file.write(f'[{name}]\n')
         self.file.write('\n')
@@ -245,16 +249,18 @@ class GSDFile:
         # Write the section entries (for date, TP sections)
         entry_index = 1
         for entry in entries or []:
-            self.file.write(f'{entry_index}={entry}\n')
-            self.file.write('\n')
-            entry_index += 1
+            if entry is not None:
+                self.file.write(f'{entry_index}={entry}\n')
+                self.file.write('\n')
+                entry_index += 1
         
         # Write the section points
         point_index = 1
         for point in [GSDFile.format_points_line(p) for p in points or []]:
-            self.file.write(f'{point_index}={point}\n')
-            self.file.write('\n')
-            point_index += 1
+            if point is not None:
+                self.file.write(f'{point_index}={point}\n')
+                self.file.write('\n')
+                point_index += 1
 
 
 class GSDSectionCounter():
@@ -432,7 +438,7 @@ def write_gsd(f, points:list, section_size=32) -> None:
     gsd = GSDFile(f, load_header=False)
 
     # Build groups
-    point_groups = (x for x in group_points(points))
+    point_groups = (x for x in group_points(points) if x is not None)
     # Group points into sections
     sections = {build_group_header(p): p for p in point_groups}
     log.info('Grouped points into %d section(s)', len(sections))
@@ -441,11 +447,12 @@ def write_gsd(f, points:list, section_size=32) -> None:
     gsd.write_section('Date', entries=[datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')])
 
     # Write headers
-    gsd.write_section('TP', sections.keys())
+    gsd.write_section('TP', entries=sections.keys())
 
     # Write points
     for section, points in sections.items():
-        gsd.write_section(section, points=points)
+        if section is not None:
+            gsd.write_section(section, points=points)
 
 
 if __name__ == '__main__':
