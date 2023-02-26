@@ -2,6 +2,7 @@ import json
 import logging
 import serial
 import sys
+from .dash import run_dashboard
 from .dg100 import stream_records as stream_records_from_device
 from .dg100 import serial_log
 from .gsd import stream_records as stream_records_from_file, write_gsd
@@ -39,6 +40,11 @@ def cmdline(cmd_args:list):
             # Enable debug logging
             logging.basicConfig(level=logging.DEBUG)
             continue
+
+        if command == '-D' or command == '--dash':
+            # Start the dashboard display
+            file_name = cmd_args.pop(0)
+            run_dashboard(load_from_gsd_file, filename=file_name)
 
         print(f'Unknkown command: {command}')
 
@@ -129,8 +135,12 @@ def load_from_gsd_file(filename):
             count = len(points)
             print(f'\n{count} point(s) loaded and processed')
             print(summary_obj)
-            #for p in points[1000:1020]:
+
+            #for p in points[1000:1010]:
             #    print(json.dumps(p, indent=2, cls=DateAwareJSONEncoder))
+
+            return points
+            
 
     except IOError as err:
         print(err)
